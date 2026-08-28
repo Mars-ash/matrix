@@ -1,0 +1,224 @@
+"use client";
+import React, { useState, useCallback, useMemo, use } from "react";
+import { notFound } from "next/navigation";
+import { AppShell } from "@/components/app-shell";
+import { TrialReportSessionList } from "@/components/trial-report-session-list";
+import { TrialReportEditor } from "@/components/trial-report-editor";
+import { TrialSessionFormDialog } from "@/components/trial-session-form-dialog";
+import { useAppState, useAppDispatch } from "@/lib/store";
+import { uid } from "@/lib/format";
+import {
+  cloneTrialSessionWithoutPhotos,
+} from "@/lib/trial-report";
+import type { TrialSession } from "@/lib/types";
+
+interface PageProps {
+  params: Promise<{ projectId: string; joId: string }>;
+}
+
+export default function TrialReportsPage({ params }: PageProps) {
+  const { projectId, joId } = use(params);
+  const { projects } = useAppState();
+  const dispatch = useAppDispatch();
+
+  const project = projects.find((p) => p.id === projectId);
+  const jo = project?.jos.find((j) => j.id === joId);
+
+  if (!project || !jo) {
+    notFound();
+  }
+
+  const sessions = useMemo(() => jo.trialSessions ?? [], [jo.trialSessions]);
+
+  const [selectedId, setSelectedId] = useState<string | null>(
+    sessions.length > 0 ? sessions[0].id : null
+  );
+  const [printSelectedIds, setPrintSelectedIds] = useState<string[]>([]);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
+
+  // Keep selection valid
+  const selectedSession = sessions.find((s) => s.id === selectedId) ?? null;
+  if (selectedId && !selectedSession && sessions.length > 0) {
+    // Selection was invalidated (delete), auto-select first
+    setTimeout(() => setSelectedId(sessions[0].id), 0);
+  }
+
+  const handleCreateSubmit = useCallback(
+    (prefix: string, trialDate: string, generatedName: string) => {
+      const now = new Date().toISOString();
+      const newSession: TrialSession = {
+        id: uid(),
+        joId,
+        name: generatedName,
+        trialDate,
+        updateDate: trialDate,
+        customer: project.customer,
+        jobNo: jo.joNumber,
+        picName: "",
+        approvedByName: "",
+        findings: [],
+        createdAt: now,
+        updatedAt: now,
+      };
+      dispatch({
+        type: "CREATE_TRIAL_SESSION",
+        projectId,
+        joId,
+        session: newSession,
+      });
+      setSelectedId(newSession.id);
+    },
+    [dispatch, projectId, joId, project.customer, jo.joNumber]
+  );
+
+  const handleDuplicateSubmit = useCallback(
+    (prefix: string, trialDate: string, generatedName: string) => {
+      const sourceSession = selectedSession ?? sessions[sessions.length - 1];
+      if (!sourceSession) return;
+
+      const duplicated = cloneTrialSessionWithoutPhotos(sourceSession, {
+        name: generatedName,
+        trialDate,
+        updateDate: trialDate,
+      });
+
+      dispatch({
+        type: "DUPLICATE_TRIAL_SESSION",
+        projectId,
+        joId,
+        sourceSessionId: sourceSession.id,
+        session: duplicated,
+      });
+      setSelectedId(duplicated.id);
+    },
+    [dispatch, projectId, joId, selectedSession, sessions]
+  );
+
+  const handleDeleteSession = useCallback(
+    (sessionId: string) => {
+      dispatch({
+        type: "DELETE_TRIAL_SESSION",
+        projectId,
+        joId,
+        sessionId,
+      });
+      // Clean up print selection
+      setPrintSelectedIds((prev) => prev.filter((id) => id !== sessionId));
+      // If we deleted the selected one, select another
+      if (selectedId === sessionId) {
+        const remaining = sessions.filter((s) => s.id !== sessionId);
+        setSelectedId(remaining.length > 0 ? remaining[0].id : null);
+      }
+    },
+    [dispatch, projectId, joId, selectedId, sessions]
+  );
+
+  const handleTogglePrintSelect = useCallback((sessionId: string) => {
+    setPrintSelectedIds((prev) =>
+      prev.includes(sessionId)
+        ? prev.filter((id) => id !== sessionId)
+        : [...prev, sessionId]
+    );
+  }, []);
+
+  return (
+    <AppShell
+      breadcrumbs={[
+        { label: "Dashboard", href: "/" },
+        { label: project.name, href: "/" },
+        {
+          label: `JO ${jo.joNumber}`,
+          href: `/projects/${projectId}/jos/${joId}`,
+        },
+        { label: "Trial Reports" },
+      ]}
+    >
+      {/* JO Context header */}
+      <div className="trial-page-context">
+        <div>
+          <span style={{ fontSize: 20, fontWeight: 800 }}>
+            Trial Reports — JO {jo.joNumber}
+          </span>
+          <span
+            style={{
+              fontSize: 13,
+              color: "var(--color-text-muted)",
+              marginLeft: 8,
+            }}
+          >
+            {jo.product} · {project.customer} · {jo.type}
+          </span>
+        </div>
+      </div>
+
+      {/* Main layout */}
+      <div className="trial-page-layout">
+        <TrialReportSessionList
+          projectId={projectId}
+          joId={joId}
+          sessions={sessions}
+          selectedId={selectedId}
+          onSelectSession={setSelectedId}
+          printSelectedIds={printSelectedIds}
+          onTogglePrintSelect={handleTogglePrintSelect}
+          onCreateNew={() => setCreateDialogOpen(true)}
+          onDuplicate={() => setDuplicateDialogOpen(true)}
+          onDeleteSession={handleDeleteSession}
+        />
+
+        <div className="trial-page-editor-area">
+          {selectedSession ? (
+            <TrialReportEditor
+              projectId={projectId}
+              joId={joId}
+              session={selectedSession}
+            />
+          ) : (
+            <div className="trial-page-empty">
+              <div>
+                <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 8 }}>
+                  Belum ada trial session
+                </p>
+                <p
+                  style={{
+                    fontSize: 13,
+                    color: "var(--color-text-muted)",
+                    marginBottom: 16,
+                  }}
+                >
+                  Buat trial session baru untuk mulai mencatat hasil trial.
+                </p>
+                <button
+                  className="btn btn-primary"
+                  onClick={() => setCreateDialogOpen(true)}
+                >
+                  Buat Trial Baru
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Dialogs */}
+      <TrialSessionFormDialog
+        open={createDialogOpen}
+        onClose={() => setCreateDialogOpen(false)}
+        mode="create"
+        onSubmit={handleCreateSubmit}
+      />
+      <TrialSessionFormDialog
+        open={duplicateDialogOpen}
+        onClose={() => setDuplicateDialogOpen(false)}
+        mode="duplicate"
+        defaultPrefix={
+          selectedSession
+            ? selectedSession.name.replace(/\s*\d{6}$/, "")
+            : ""
+        }
+        onSubmit={handleDuplicateSubmit}
+      />
+    </AppShell>
+  );
+}

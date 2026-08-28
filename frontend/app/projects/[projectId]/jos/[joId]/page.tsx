@@ -1,0 +1,762 @@
+"use client";
+import React, { useState, useCallback, useEffect, use } from "react";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { AppShell } from "@/components/app-shell";
+import { ControlTable } from "@/components/control-table";
+import { ActivityPanel } from "@/components/activity-panel";
+import { AddDataDialog } from "@/components/add-data-dialog";
+import { CategoryCreateDialog } from "@/components/category-create-dialog";
+import { JoItemSearch } from "@/components/jo-item-search";
+import { Dialog } from "@/components/dialog";
+import { useAppState, useAppDispatch } from "@/lib/store";
+import { joProgress, joProblemCount, categoryProgress } from "@/lib/progress";
+import { formatProgress } from "@/lib/format";
+import { SUBCONT_SUPPLIERS, type ControlStatus } from "@/lib/types";
+
+interface PageProps {
+  params: Promise<{ projectId: string; joId: string }>;
+}
+
+const BULK_PROCESS_OPTIONS = [
+  { value: "Material", label: "PO Mtl" },
+  { value: "Arrival", label: "Arrival" },
+  { value: "Machining", label: "Machining" },
+  { value: "Hardening", label: "Hardening" },
+  { value: "Grinding", label: "Grinding" },
+  { value: "Wirecut", label: "Wirecut" },
+  { value: "Assembly", label: "Assembly" },
+];
+
+export default function JoDetailPage({ params }: PageProps) {
+  const { projectId, joId } = use(params);
+  const { projects } = useAppState();
+  const dispatch = useAppDispatch();
+  const [addDataCatId, setAddDataCatId] = useState<string | null>(null);
+  const [isActivityOpen, setIsActivityOpen] = useState(false);
+  const [finishConfirmOpen, setFinishConfirmOpen] = useState(false);
+  const [categoryCreateOpen, setCategoryCreateOpen] = useState(false);
+  const [highlightedItemId, setHighlightedItemId] = useState<string | null>(null);
+
+  // Bulk operation states
+  const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
+  const [activeBulkModal, setActiveBulkModal] = useState<"arrival" | "status" | "subcont" | null>(null);
+  const [bulkArrivalDate, setBulkArrivalDate] = useState("");
+  const [bulkStatusProcesses, setBulkStatusProcesses] = useState<string[]>(["Machining"]);
+  const [bulkStatusValue, setBulkStatusValue] = useState<ControlStatus>("In Progress");
+  const [bulkStatusNotes, setBulkStatusNotes] = useState("");
+  const [bulkSubcontProcess, setBulkSubcontProcess] = useState("Machining");
+  const [bulkSubcontSupplier, setBulkSubcontSupplier] = useState("");
+  const [bulkSubcontArrivalDate, setBulkSubcontArrivalDate] = useState("");
+
+  const project = projects.find((p) => p.id === projectId);
+  const jo = project?.jos.find((j) => j.id === joId);
+
+  if (!project || !jo) {
+    notFound();
+  }
+
+  const progress = joProgress(jo);
+  const problems = joProblemCount(jo);
+  const addDataCat = jo.categories.find((c) => c.id === addDataCatId);
+
+  // Handle search result navigation
+  const handleSearchSelect = useCallback((categoryId: string, itemId: string) => {
+    setHighlightedItemId(itemId);
+    // Scroll to the item row
+    const el = document.getElementById(`item-${itemId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, []);
+
+  // Clear highlight after timeout
+  useEffect(() => {
+    if (!highlightedItemId) return;
+    const timer = setTimeout(() => setHighlightedItemId(null), 2500);
+    return () => clearTimeout(timer);
+  }, [highlightedItemId]);
+
+  // Bulk selection handlers
+  const handleToggleSelectItem = useCallback((itemId: string) => {
+    setSelectedItemIds((prev) =>
+      prev.includes(itemId) ? prev.filter((id) => id !== itemId) : [...prev, itemId]
+    );
+  }, []);
+
+  const handleToggleSelectAllCategory = useCallback((itemIds: string[], selectAll: boolean) => {
+    setSelectedItemIds((prev) => {
+      if (selectAll) {
+        const set = new Set([...prev, ...itemIds]);
+        return Array.from(set);
+      } else {
+        return prev.filter((id) => !itemIds.includes(id));
+      }
+    });
+  }, []);
+
+  return (
+    <AppShell
+      breadcrumbs={[
+        { label: "Dashboard", href: "/" },
+        { label: project.name, href: "/" },
+        { label: jo.joNumber },
+      ]}
+    >
+      {/* Header */}
+      <div className="jo-detail-header">
+        {/* Left Side: Title & Progress Lock-up */}
+        <div className="jo-detail-title-block">
+          {/* JO Info */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <h1 style={{ fontSize: "clamp(20px, 4.5vw, 30px)", fontWeight: 800, margin: 0, lineHeight: 1, letterSpacing: "-0.02em" }}>
+              JO {jo.joNumber}
+            </h1>
+            <span style={{ fontSize: "clamp(12px, 2.8vw, 16px)", fontWeight: 500, letterSpacing: "0.04em", color: "var(--color-text)", lineHeight: 1 }}>
+              {jo.type.toUpperCase()}
+            </span>
+            <span style={{ fontSize: "clamp(11px, 2.2vw, 15px)", color: "var(--color-text-muted)", lineHeight: 1 }}>
+              {jo.product}
+            </span>
+          </div>
+
+          {/* Vertical Divider — hidden on mobile via CSS */}
+          <div className="jo-detail-divider" style={{ width: 2, height: 64, backgroundColor: "var(--color-text)", borderRadius: 1 }} />
+
+          {/* Progress */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 4, justifyContent: "center" }}>
+            <span
+              style={{
+                fontSize: "clamp(26px, 5.5vw, 38px)",
+                fontWeight: 800,
+                lineHeight: 1,
+                letterSpacing: "-0.02em",
+                color: progress === 100 ? "var(--color-status-done)" : "var(--color-text)",
+              }}
+            >
+              {formatProgress(progress)}
+            </span>
+            <span style={{ fontSize: "clamp(10px, 1.8vw, 13px)", color: "var(--color-text-muted)", letterSpacing: "0.05em", fontWeight: 500 }}>
+              PROGRESS
+            </span>
+          </div>
+        </div>
+
+        {/* Right Side: Target, Problems, Buttons */}
+        <div className="jo-detail-meta">
+          {jo.targetDate && (
+            <span>
+              Target{" "}
+              <strong style={{ fontSize: 16, color: "var(--color-text)" }}>
+                {jo.targetDate}
+              </strong>
+            </span>
+          )}
+          {problems > 0 && (
+            <span>
+              Problems{" "}
+              <strong style={{ fontSize: 20, color: "var(--color-status-problem)" }}>
+                {problems}
+              </strong>
+            </span>
+          )}
+          <Link
+            href={`/projects/${projectId}/jos/${joId}/trial-reports`}
+            className="btn btn-secondary"
+            style={{ padding: "4px 12px", fontSize: 12, textDecoration: "none" }}
+          >
+            Trial Reports
+          </Link>
+          <button
+            className="btn btn-secondary"
+            onClick={() => setIsActivityOpen(true)}
+            style={{ padding: "4px 12px", fontSize: 12 }}
+          >
+            Activity & Problem Log
+          </button>
+
+          {jo.finishDate ? (
+            <span style={{ fontSize: 13, color: "var(--color-status-done)", fontWeight: 600, padding: "4px 12px", border: "1px solid var(--color-status-done)", borderRadius: "var(--radius-md)", background: "rgba(13, 124, 74, 0.05)" }}>
+              Finished: {jo.finishDate}
+            </span>
+          ) : (
+            <button
+              className="btn btn-primary"
+              onClick={() => setFinishConfirmOpen(true)}
+              style={{ padding: "4px 12px", fontSize: 12 }}
+            >
+              Finish JO
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Thin progress track */}
+      {progress !== null && (
+        <div
+          style={{
+            height: 3,
+            background: "var(--color-bg-hover)",
+            borderRadius: 1,
+            overflow: "hidden",
+            marginBottom: 20,
+          }}
+        >
+          <div
+            style={{
+              height: "100%",
+              width: `${Math.max(0, Math.min(100, progress))}%`,
+              background:
+                progress === 100
+                  ? "var(--color-status-done)"
+                  : progress >= 50
+                    ? "var(--color-status-in-progress)"
+                    : "var(--color-accent)",
+              borderRadius: 1,
+              transition: "width 200ms ease",
+            }}
+          />
+        </div>
+      )}
+
+      {/* Search + Category jump links */}
+      <div className="jo-search-category-bar">
+        <JoItemSearch categories={jo.categories} onSelect={handleSearchSelect} />
+
+        {jo.categories.length > 1 && (
+          <div className="jo-category-tabs">
+            {jo.categories.map((cat) => (
+              <a
+                key={cat.id}
+                href={`#cat-${cat.id}`}
+                style={{
+                  color: "var(--color-text-secondary)",
+                  textDecoration: "none",
+                  padding: "6px 12px",
+                  background: "var(--color-bg-hover)",
+                  borderRadius: "var(--radius-sm)",
+                  transition: "background 80ms, color 80ms",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "var(--color-border)";
+                  e.currentTarget.style.color = "var(--color-text)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "var(--color-bg-hover)";
+                  e.currentTarget.style.color = "var(--color-text-secondary)";
+                }}
+              >
+                {cat.label}
+                <span style={{ color: "var(--color-text-muted)", fontSize: 13, fontWeight: 600 }}>
+                  {formatProgress(categoryProgress(cat))}
+                </span>
+              </a>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Category sections */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 20, marginBottom: 28 }}>
+        {jo.categories.map((cat) => (
+          <section key={cat.id} id={`cat-${cat.id}`}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "baseline",
+                marginBottom: 8,
+                paddingBottom: 6,
+                borderBottom: "1px solid var(--color-border)",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+                <h2 style={{ fontSize: 18 }}>{cat.label}</h2>
+                <span
+                  style={{
+                    fontSize: 10,
+                    color: "var(--color-text-muted)",
+                    fontWeight: 500,
+                  }}
+                >
+                  {cat.kind} · {cat.items.length} item{cat.items.length !== 1 ? "s" : ""}
+                  {cat.isCustom && " · Custom"}
+                </span>
+              </div>
+              <span
+                style={{
+                  fontSize: 20,
+                  fontWeight: 700,
+                  color: "var(--color-text-secondary)",
+                  fontVariantNumeric: "tabular-nums",
+                  letterSpacing: "-0.02em",
+                }}
+              >
+                {formatProgress(categoryProgress(cat))}
+              </span>
+            </div>
+
+            <ControlTable
+              category={cat}
+              projectId={projectId}
+              joId={joId}
+              onAddData={() => setAddDataCatId(cat.id)}
+              highlightedItemId={highlightedItemId}
+              selectedItemIds={selectedItemIds}
+              onToggleSelectItem={handleToggleSelectItem}
+              onToggleSelectAllCategory={handleToggleSelectAllCategory}
+            />
+          </section>
+        ))}
+      </div>
+
+      {/* Add New Category button */}
+      <div style={{ marginBottom: 28 }}>
+        <button
+          className="btn btn-secondary"
+          onClick={() => setCategoryCreateOpen(true)}
+          style={{ width: "100%", padding: 10, borderStyle: "dashed", fontSize: 13 }}
+        >
+          + Add New Category
+        </button>
+      </div>
+
+      {/* Activity Drawer */}
+      {isActivityOpen && (
+        <>
+          <div
+            style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.15)", zIndex: 40 }}
+            onClick={() => setIsActivityOpen(false)}
+          />
+          <div
+            style={{
+              position: "fixed",
+              top: 0,
+              right: 0,
+              bottom: 0,
+              width: 400,
+              maxWidth: "100%",
+              background: "var(--color-bg)",
+              boxShadow: "-4px 0 24px rgba(0,0,0,0.1)",
+              zIndex: 50,
+              display: "flex",
+              flexDirection: "column",
+              animation: "slideIn 200ms ease-out",
+            }}
+          >
+            <div
+              style={{
+                padding: "20px 24px",
+                borderBottom: "1px solid var(--color-border)",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <h2 style={{ fontSize: 18, margin: 0 }}>Activity & Problem Log</h2>
+              <button
+                onClick={() => setIsActivityOpen(false)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  fontSize: 20,
+                  color: "var(--color-text-secondary)",
+                }}
+              >
+                ✕
+              </button>
+            </div>
+            <div style={{ flex: 1, overflowY: "auto", padding: "16px 24px" }}>
+              <ActivityPanel activities={jo.activities} />
+            </div>
+          </div>
+          <style>{`
+            @keyframes slideIn {
+              from { transform: translateX(100%); }
+              to { transform: translateX(0); }
+            }
+          `}</style>
+        </>
+      )}
+
+      {/* Add Data Dialog */}
+      {addDataCat && (
+        <AddDataDialog
+          open={!!addDataCatId}
+          onClose={() => setAddDataCatId(null)}
+          projectId={projectId}
+          joId={joId}
+          categoryId={addDataCat.id}
+          categoryKind={addDataCat.kind}
+          categoryLabel={addDataCat.label}
+        />
+      )}
+
+      {/* Category Create Dialog */}
+      <CategoryCreateDialog
+        open={categoryCreateOpen}
+        onClose={() => setCategoryCreateOpen(false)}
+        projectId={projectId}
+        joId={joId}
+      />
+
+      {/* Finish Confirmation Dialog */}
+      <Dialog
+        open={finishConfirmOpen}
+        onClose={() => setFinishConfirmOpen(false)}
+        title="Finish Job Order"
+        footer={
+          <>
+            <button className="btn btn-secondary" onClick={() => setFinishConfirmOpen(false)}>
+              Cancel
+            </button>
+            <button
+              className="btn btn-primary"
+              onClick={() => {
+                dispatch({ type: "FINISH_JO", projectId, joId });
+                setFinishConfirmOpen(false);
+              }}
+            >
+              Confirm
+            </button>
+          </>
+        }
+      >
+        <p style={{ margin: 0, fontSize: 14, color: "var(--color-text-secondary)" }}>
+          Are you sure you want to finish JO {jo.joNumber}? This will set the finish date to today.
+        </p>
+      </Dialog>
+
+      {/* Floating Bulk Action Bar */}
+      {selectedItemIds.length > 0 && (
+        <div className="bulk-action-bar">
+          <div className="bulk-action-bar-count">
+            <span className="bulk-action-bar-badge">{selectedItemIds.length}</span>
+            <span className="bulk-action-bar-label">Part Terpilih</span>
+          </div>
+
+          <div className="bulk-action-bar-divider" />
+
+          <div className="bulk-action-bar-buttons">
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm bulk-action-btn"
+              onClick={() => setActiveBulkModal("arrival")}
+            >
+              Set Target Arrival
+            </button>
+
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm bulk-action-btn"
+              onClick={() => setActiveBulkModal("status")}
+            >
+              Ubah Status
+            </button>
+
+            <button
+              type="button"
+              className="btn btn-primary btn-sm bulk-action-btn"
+              onClick={() => setActiveBulkModal("subcont")}
+            >
+              Kirim Subcont
+            </button>
+          </div>
+
+          <button
+            type="button"
+            className="bulk-action-bar-cancel"
+            onClick={() => {
+              setSelectedItemIds([]);
+              setActiveBulkModal(null);
+            }}
+            title="Batal pilih semua"
+          >
+            ✕ Batal
+          </button>
+        </div>
+      )}
+
+      {/* Bulk Target Arrival Dialog */}
+      <Dialog
+        open={activeBulkModal === "arrival"}
+        onClose={() => setActiveBulkModal(null)}
+        title="Set Target Arrival (Bulk)"
+        footer={
+          <>
+            <button className="btn btn-secondary" onClick={() => setActiveBulkModal(null)}>
+              Batal
+            </button>
+            <button
+              className="btn btn-primary"
+              disabled={!bulkArrivalDate}
+              onClick={() => {
+                dispatch({
+                  type: "BULK_UPDATE_TARGET_ARRIVAL",
+                  projectId,
+                  joId,
+                  itemIds: selectedItemIds,
+                  targetDate: bulkArrivalDate,
+                });
+                setActiveBulkModal(null);
+                setSelectedItemIds([]);
+              }}
+            >
+              Terapkan ({selectedItemIds.length} Part)
+            </button>
+          </>
+        }
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <label className="label">Tanggal Target Kedatangan</label>
+          <input
+            type="date"
+            className="input"
+            value={bulkArrivalDate}
+            onChange={(e) => setBulkArrivalDate(e.target.value)}
+          />
+        </div>
+      </Dialog>
+
+      {/* Bulk Status Dialog */}
+      <Dialog
+        open={activeBulkModal === "status"}
+        onClose={() => setActiveBulkModal(null)}
+        title="Ubah Status Proses (Bulk)"
+        footer={
+          <>
+            <button className="btn btn-secondary" onClick={() => setActiveBulkModal(null)}>
+              Batal
+            </button>
+            <button
+              className="btn btn-primary"
+              disabled={bulkStatusProcesses.length === 0}
+              onClick={() => {
+                dispatch({
+                  type: "BULK_UPDATE_STATUS",
+                  projectId,
+                  joId,
+                  itemIds: selectedItemIds,
+                  processes: bulkStatusProcesses,
+                  status: bulkStatusValue,
+                  notes: bulkStatusNotes,
+                });
+                if (
+                  bulkArrivalDate &&
+                  bulkStatusProcesses.some((p) => p === "Material" || p === "Arrival" || p === "PO")
+                ) {
+                  dispatch({
+                    type: "BULK_UPDATE_TARGET_ARRIVAL",
+                    projectId,
+                    joId,
+                    itemIds: selectedItemIds,
+                    targetDate: bulkArrivalDate,
+                  });
+                }
+                setActiveBulkModal(null);
+                setSelectedItemIds([]);
+              }}
+            >
+              Simpan
+            </button>
+          </>
+        }
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+              <label className="label" style={{ margin: 0 }}>
+                Pilih Proses{" "}
+                <span style={{ fontWeight: "normal", color: "var(--color-text-muted)" }}>
+                  ({bulkStatusProcesses.length} dipilih)
+                </span>
+              </label>
+              <div style={{ display: "flex", gap: 8, fontSize: 12 }}>
+                <button
+                  type="button"
+                  style={{ background: "none", border: "none", color: "var(--color-accent)", cursor: "pointer", padding: 0, fontWeight: 500 }}
+                  onClick={() => setBulkStatusProcesses(BULK_PROCESS_OPTIONS.map((p) => p.value))}
+                >
+                  Pilih Semua
+                </button>
+                <span style={{ color: "var(--color-border)" }}>•</span>
+                <button
+                  type="button"
+                  style={{ background: "none", border: "none", color: "var(--color-text-muted)", cursor: "pointer", padding: 0 }}
+                  onClick={() => setBulkStatusProcesses([])}
+                >
+                  Reset
+                </button>
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))",
+                gap: 6,
+                padding: 1,
+              }}
+            >
+              {BULK_PROCESS_OPTIONS.map((proc) => {
+                const isChecked = bulkStatusProcesses.includes(proc.value);
+                return (
+                  <label
+                    key={proc.value}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      padding: "6px 10px",
+                      borderRadius: "var(--radius-md)",
+                      border: isChecked ? "1px solid var(--color-text)" : "1px solid var(--color-border)",
+                      background: isChecked
+                        ? "color-mix(in srgb, var(--color-text) 5%, var(--color-bg-raised))"
+                        : "var(--color-bg-raised)",
+                      cursor: "pointer",
+                      fontSize: 12,
+                      userSelect: "none",
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={() => {
+                        if (isChecked) {
+                          setBulkStatusProcesses(bulkStatusProcesses.filter((p) => p !== proc.value));
+                        } else {
+                          setBulkStatusProcesses([...bulkStatusProcesses, proc.value]);
+                        }
+                      }}
+                      style={{ cursor: "pointer" }}
+                    />
+                    <span style={{ fontWeight: isChecked ? 600 : 400 }}>{proc.label}</span>
+                  </label>
+                );
+              })}
+            </div>
+            {bulkStatusProcesses.length === 0 && (
+              <p style={{ fontSize: 11, color: "var(--color-status-problem)", marginTop: 4 }}>
+                Pilih minimal satu proses untuk diubah statusnya.
+              </p>
+            )}
+          </div>
+
+          <div>
+            <label className="label">Status Baru</label>
+            <select
+              className="select"
+              value={bulkStatusValue}
+              onChange={(e) => setBulkStatusValue(e.target.value as ControlStatus)}
+            >
+              <option value="Not Started">Not Started</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Done">Done</option>
+              <option value="Problem">Problem</option>
+            </select>
+          </div>
+
+          {bulkStatusProcesses.some((p) => p === "Material" || p === "Arrival" || p === "PO") && (
+            <div>
+              <label className="label">Target Arrival </label>
+              <input
+                type="date"
+                className="input"
+                value={bulkArrivalDate}
+                onChange={(e) => setBulkArrivalDate(e.target.value)}
+              />
+            </div>
+          )}
+
+          {bulkStatusValue === "Problem" && (
+            <div>
+              <label className="label">Catatan Masalah</label>
+              <textarea
+                className="input"
+                rows={2}
+                placeholder="Jelaskan masalahnya..."
+                value={bulkStatusNotes}
+                onChange={(e) => setBulkStatusNotes(e.target.value)}
+              />
+            </div>
+          )}
+        </div>
+      </Dialog>
+
+      {/* Bulk Subcont Dialog */}
+      <Dialog
+        open={activeBulkModal === "subcont"}
+        onClose={() => setActiveBulkModal(null)}
+        title="Kirim ke Subcont (Bulk Dispatch)"
+        footer={
+          <>
+            <button className="btn btn-secondary" onClick={() => setActiveBulkModal(null)}>
+              Batal
+            </button>
+            <button
+              className="btn btn-primary"
+              onClick={() => {
+                dispatch({
+                  type: "BULK_SEND_SUBCONT",
+                  projectId,
+                  joId,
+                  itemIds: selectedItemIds,
+                  process: bulkSubcontProcess,
+                  supplier: bulkSubcontSupplier,
+                  arrivalTargetDate: bulkSubcontArrivalDate,
+                });
+                setActiveBulkModal(null);
+                setSelectedItemIds([]);
+              }}
+            >
+              Kirim ke Subcont ({selectedItemIds.length} Part)
+            </button>
+          </>
+        }
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div>
+            <label className="label">Proses Subcont</label>
+            <select
+              className="select"
+              value={bulkSubcontProcess}
+              onChange={(e) => setBulkSubcontProcess(e.target.value)}
+            >
+              <option value="Machining">Machining</option>
+              <option value="Hardening">Hardening</option>
+              <option value="Wirecut">Wirecut</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="label">Pilih Supplier / Vendor</label>
+            <select
+              className="select"
+              value={bulkSubcontSupplier}
+              onChange={(e) => setBulkSubcontSupplier(e.target.value)}
+            >
+              <option value="">— Pilih Supplier —</option>
+              {SUBCONT_SUPPLIERS.map((sup) => (
+                <option key={sup} value={sup}>{sup}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="label">Estimasi Target Kembali (Arrival)</label>
+            <input
+              type="date"
+              className="input"
+              value={bulkSubcontArrivalDate}
+              onChange={(e) => setBulkSubcontArrivalDate(e.target.value)}
+            />
+          </div>
+        </div>
+      </Dialog>
+    </AppShell>
+  );
+}
