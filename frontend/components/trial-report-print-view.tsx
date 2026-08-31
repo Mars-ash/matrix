@@ -1,7 +1,39 @@
 "use client";
 import React from "react";
-import { sortTrialFindings, formatDateDDMMYYYY } from "@/lib/trial-report";
-import type { TrialSession, JO } from "@/lib/types";
+import {
+  sortTrialFindings,
+  sortTrialEntries,
+  formatFindingLetter,
+  formatDateDDMMYYYY,
+} from "@/lib/trial-report";
+import type { TrialSession, TrialTextEntry, JO } from "@/lib/types";
+
+function renderEntries(entries: TrialTextEntry[]) {
+  if (entries.length === 0) {
+    return <span className="trial-print-empty-dash">—</span>;
+  }
+  return (
+    <div className="trial-print-entry-list">
+      {entries.map((entry) => (
+        <div key={entry.id} className="trial-print-entry-item">
+          <div className="trial-print-entry-text">{entry.text || "—"}</div>
+          {entry.photos && entry.photos.length > 0 && (
+            <div className="trial-print-photos">
+              {entry.photos.map((ph) => (
+                <img
+                  key={ph.id}
+                  src={ph.previewUrl}
+                  alt={ph.name}
+                  className="trial-print-photo"
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export function TrialReportPrintView({
   sessions,
@@ -35,7 +67,7 @@ export function TrialReportPrintView({
                 </div>
               </div>
 
-              {/* Header metadata (4 items stacked: Customer, Job No, Hari Trial, Update) */}
+              {/* Header metadata */}
               <div className="trial-print-header-meta">
                 <table className="trial-print-header-meta-table">
                   <tbody>
@@ -49,17 +81,21 @@ export function TrialReportPrintView({
                     </tr>
                     <tr>
                       <td className="trial-print-meta-label">Hari Trial</td>
-                      <td className="trial-print-meta-value">{formatDateDDMMYYYY(session.trialDate)}</td>
+                      <td className="trial-print-meta-value">
+                        {formatDateDDMMYYYY(session.trialDate)}
+                      </td>
                     </tr>
                     <tr>
                       <td className="trial-print-meta-label">Update</td>
-                      <td className="trial-print-meta-value">{formatDateDDMMYYYY(session.updateDate)}</td>
+                      <td className="trial-print-meta-value">
+                        {formatDateDDMMYYYY(session.updateDate)}
+                      </td>
                     </tr>
                   </tbody>
                 </table>
               </div>
 
-              {/* Header signature boxes (sejajar dengan logo) */}
+              {/* Header signature boxes */}
               <div className="trial-print-header-signatures">
                 <table className="trial-print-sig-table">
                   <thead>
@@ -88,69 +124,147 @@ export function TrialReportPrintView({
               </div>
             </div>
 
-            {/* Findings table */}
+            {/* Findings table with separate columns for Target, PIC, and Status */}
             <table className="trial-print-findings-table">
               <thead>
                 <tr>
-                  <th style={{ width: 32 }}>No</th>
-                  <th>Uraian Masalah</th>
-                  <th>Penyebab</th>
-                  <th>Langkah Perbaikan</th>
-                  <th style={{ width: 80 }}>Target</th>
-                  <th style={{ width: 60 }}>PIC</th>
-                  <th style={{ width: 72 }}>Status</th>
+                  <th style={{ width: 36, textAlign: "center" }}>No</th>
+                  <th style={{ width: "25%" }}>Uraian Masalah</th>
+                  <th style={{ width: "22%" }}>Penyebab</th>
+                  <th style={{ width: "27%" }}>Langkah Perbaikan</th>
+                  <th style={{ width: "9%", textAlign: "center" }}>Target</th>
+                  <th style={{ width: "9%" }}>PIC</th>
+                  <th style={{ width: "8%", textAlign: "center" }}>Status</th>
                 </tr>
               </thead>
               <tbody>
-                {sortedFindings.map((finding, idx) => (
-                  <React.Fragment key={finding.id}>
-                    <tr>
-                      <td style={{ textAlign: "center", fontWeight: 600 }}>
-                        {idx + 1}
-                      </td>
-                      <td style={{ whiteSpace: "pre-wrap" }}>
-                        {finding.problem}
-                      </td>
-                      <td style={{ whiteSpace: "pre-wrap" }}>
-                        {finding.cause}
-                      </td>
-                      <td style={{ whiteSpace: "pre-wrap" }}>
-                        {finding.correctiveAction}
-                      </td>
-                      <td>{formatDateDDMMYYYY(finding.targetDate)}</td>
-                      <td>{finding.pic}</td>
-                      <td>
-                        <span
-                          className={
-                            finding.status === "Close"
-                              ? "trial-print-status-close"
-                              : "trial-print-status-open"
-                          }
-                        >
-                          {finding.status}
-                        </span>
-                      </td>
-                    </tr>
-                    {/* Inline photos */}
-                    {finding.photos.length > 0 && (
-                      <tr>
-                        <td></td>
-                        <td colSpan={6}>
+                {sortedFindings.map((finding, idx) => {
+                  const letter = formatFindingLetter(finding.order || idx + 1);
+                  const problems = sortTrialEntries(finding.problems ?? []);
+                  const causes = sortTrialEntries(finding.causes ?? []);
+                  const actions = sortTrialEntries(finding.correctiveActions ?? []);
+                  const rowSpan = Math.max(actions.length, 1);
+
+                  if (actions.length === 0) {
+                    return (
+                      <tr key={finding.id} className="trial-print-finding-row">
+                        <td className="trial-print-finding-letter-cell">
+                          <span className="trial-print-finding-letter">
+                            {letter}
+                          </span>
+                        </td>
+                        <td className="trial-print-entries-cell">
+                          {renderEntries(problems)}
+                        </td>
+                        <td className="trial-print-entries-cell">
+                          {renderEntries(causes)}
+                        </td>
+                        <td className="trial-print-entries-cell">
+                          <span className="trial-print-empty-dash">—</span>
+                        </td>
+                        <td className="trial-print-meta-cell" style={{ textAlign: "center" }}>
+                          <span className="trial-print-empty-dash">—</span>
+                        </td>
+                        <td className="trial-print-meta-cell">
+                          <span className="trial-print-empty-dash">—</span>
+                        </td>
+                        <td className="trial-print-meta-cell" style={{ textAlign: "center" }}>
+                          <span className="trial-print-empty-dash">—</span>
+                        </td>
+                      </tr>
+                    );
+                  }
+
+                  return actions.map((action, aIdx) => (
+                    <tr key={action.id} className="trial-print-finding-row">
+                      {aIdx === 0 && (
+                        <>
+                          <td
+                            rowSpan={rowSpan}
+                            className="trial-print-finding-letter-cell"
+                          >
+                            <span className="trial-print-finding-letter">
+                              {letter}
+                            </span>
+                          </td>
+                          <td
+                            rowSpan={rowSpan}
+                            className="trial-print-entries-cell"
+                          >
+                            {renderEntries(problems)}
+                          </td>
+                          <td
+                            rowSpan={rowSpan}
+                            className="trial-print-entries-cell"
+                          >
+                            {renderEntries(causes)}
+                          </td>
+                        </>
+                      )}
+                      <td className="trial-print-entries-cell">
+                        <div className="trial-print-entry-text">
+                          {action.text || "—"}
+                        </div>
+                        {action.photos && action.photos.length > 0 && (
                           <div className="trial-print-photos">
-                            {finding.photos.map((photo) => (
+                            {action.photos.map((ph) => (
                               <img
-                                key={photo.id}
-                                src={photo.previewUrl}
-                                alt={photo.name}
+                                key={ph.id}
+                                src={ph.previewUrl}
+                                alt={ph.name}
                                 className="trial-print-photo"
                               />
                             ))}
                           </div>
-                        </td>
-                      </tr>
-                    )}
-                  </React.Fragment>
-                ))}
+                        )}
+                      </td>
+                      <td
+                        className="trial-print-meta-cell"
+                        style={{ textAlign: "center", whiteSpace: "nowrap" }}
+                      >
+                        {action.targetDate ? (
+                          formatDateDDMMYYYY(action.targetDate)
+                        ) : (
+                          <span className="trial-print-empty-dash">—</span>
+                        )}
+                      </td>
+                      <td className="trial-print-meta-cell">
+                        {action.pic ? (
+                          <div className="trial-print-pic-list">
+                            {action.pic
+                              .split(",")
+                              .map((p) => p.trim())
+                              .filter(Boolean)
+                              .map((name, pIdx) => (
+                                <div
+                                  key={pIdx}
+                                  className="trial-print-pic-item"
+                                >
+                                  {name}
+                                </div>
+                              ))}
+                          </div>
+                        ) : (
+                          <span className="trial-print-empty-dash">—</span>
+                        )}
+                      </td>
+                      <td
+                        className="trial-print-meta-cell"
+                        style={{ textAlign: "center" }}
+                      >
+                        <span
+                          className={`trial-print-status-tag ${
+                            action.status === "Close"
+                              ? "trial-print-status-close"
+                              : "trial-print-status-open"
+                          }`}
+                        >
+                          {action.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ));
+                })}
               </tbody>
             </table>
 
@@ -172,3 +286,4 @@ export function TrialReportPrintView({
     </div>
   );
 }
+

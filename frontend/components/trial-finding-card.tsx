@@ -1,9 +1,92 @@
 "use client";
-import React from "react";
+import React, { useState, useCallback, type KeyboardEvent } from "react";
 import { TrialPhotoUploader } from "./trial-photo-uploader";
 import { useAppDispatch } from "@/lib/store";
-import type { TrialFinding } from "@/lib/types";
+import { uid } from "@/lib/format";
+import { formatFindingLetter, sortTrialEntries } from "@/lib/trial-report";
+import type {
+  TrialFinding,
+  TrialTextEntry,
+  TrialCorrectiveActionEntry,
+  TrialFindingStatus,
+} from "@/lib/types";
 import { TRIAL_FINDING_STATUSES } from "@/lib/types";
+
+/* ------------------------------------------------------------------ */
+/* PIC Tag Input — Enter to add, click ✕ to remove, comma-separated   */
+/* ------------------------------------------------------------------ */
+function PicTagInput({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const [draft, setDraft] = useState("");
+  const tags = value
+    .split(",")
+    .map((t) => t.trim())
+    .filter(Boolean);
+
+  const addTag = useCallback(
+    (raw: string) => {
+      const name = raw.trim();
+      if (!name) return;
+      // avoid exact duplicate
+      if (tags.some((t) => t.toLowerCase() === name.toLowerCase())) {
+        setDraft("");
+        return;
+      }
+      onChange([...tags, name].join(", "));
+      setDraft("");
+    },
+    [tags, onChange]
+  );
+
+  const removeTag = useCallback(
+    (idx: number) => {
+      onChange(tags.filter((_, i) => i !== idx).join(", "));
+    },
+    [tags, onChange]
+  );
+
+  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      addTag(draft);
+    }
+    if (e.key === "Backspace" && draft === "" && tags.length > 0) {
+      removeTag(tags.length - 1);
+    }
+  };
+
+  return (
+    <div className="pic-tag-input">
+      {tags.map((tag, i) => (
+        <span key={i} className="pic-tag">
+          {tag}
+          <button
+            type="button"
+            className="pic-tag-remove"
+            onClick={() => removeTag(i)}
+            aria-label={`Hapus ${tag}`}
+          >
+            ✕
+          </button>
+        </span>
+      ))}
+      <input
+        className="pic-tag-draft"
+        type="text"
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onKeyDown={handleKeyDown}
+        onBlur={() => addTag(draft)}
+        placeholder={tags.length === 0 ? "Nama PIC, tekan Enter" : "+ Tambah"}
+      />
+    </div>
+  );
+}
 
 interface TrialFindingCardProps {
   projectId: string;
@@ -13,6 +96,7 @@ interface TrialFindingCardProps {
   displayOrder: number;
   isFirst: boolean;
   isLast: boolean;
+  isHighlighted?: boolean;
 }
 
 export function TrialFindingCard({
@@ -23,24 +107,18 @@ export function TrialFindingCard({
   displayOrder,
   isFirst,
   isLast,
+  isHighlighted = false,
 }: TrialFindingCardProps) {
   const dispatch = useAppDispatch();
+  const findingLetter = formatFindingLetter(displayOrder);
 
-  const updateField = (
-    updates: Partial<Omit<TrialFinding, "id" | "photos" | "createdAt">>
-  ) => {
-    dispatch({
-      type: "UPDATE_TRIAL_FINDING",
-      projectId,
-      joId,
-      sessionId,
-      findingId: finding.id,
-      updates,
-    });
-  };
+  const sortedProblems = sortTrialEntries(finding.problems ?? []);
+  const sortedCauses = sortTrialEntries(finding.causes ?? []);
+  const sortedActions = sortTrialEntries(finding.correctiveActions ?? []);
 
-  const handleDelete = () => {
-    if (!confirm(`Hapus temuan #${displayOrder}?`)) return;
+  // Finding-level operations
+  const handleDeleteFinding = () => {
+    if (!confirm(`Hapus Temuan ${findingLetter}?`)) return;
     dispatch({
       type: "DELETE_TRIAL_FINDING",
       projectId,
@@ -50,7 +128,7 @@ export function TrialFindingCard({
     });
   };
 
-  const handleMove = (direction: "up" | "down") => {
+  const handleMoveFinding = (direction: "up" | "down") => {
     dispatch({
       type: "REORDER_TRIAL_FINDING",
       projectId,
@@ -61,50 +139,195 @@ export function TrialFindingCard({
     });
   };
 
+  // Section entry operations
+  const handleAddProblem = () => {
+    const now = new Date().toISOString();
+    const newEntry: TrialTextEntry = {
+      id: uid(),
+      order: sortedProblems.length + 1,
+      text: "",
+      photos: [],
+      createdAt: now,
+      updatedAt: now,
+    };
+    dispatch({
+      type: "ADD_TRIAL_ENTRY",
+      projectId,
+      joId,
+      sessionId,
+      findingId: finding.id,
+      section: "problems",
+      entry: newEntry,
+    });
+  };
+
+  const handleAddCause = () => {
+    const now = new Date().toISOString();
+    const newEntry: TrialTextEntry = {
+      id: uid(),
+      order: sortedCauses.length + 1,
+      text: "",
+      photos: [],
+      createdAt: now,
+      updatedAt: now,
+    };
+    dispatch({
+      type: "ADD_TRIAL_ENTRY",
+      projectId,
+      joId,
+      sessionId,
+      findingId: finding.id,
+      section: "causes",
+      entry: newEntry,
+    });
+  };
+
+  const handleAddAction = () => {
+    const now = new Date().toISOString();
+    const newEntry: TrialCorrectiveActionEntry = {
+      id: uid(),
+      order: sortedActions.length + 1,
+      text: "",
+      targetDate: "",
+      pic: "",
+      status: "On Process",
+      photos: [],
+      createdAt: now,
+      updatedAt: now,
+    };
+    dispatch({
+      type: "ADD_TRIAL_ENTRY",
+      projectId,
+      joId,
+      sessionId,
+      findingId: finding.id,
+      section: "correctiveActions",
+      entry: newEntry,
+    });
+  };
+
+  const handleUpdateEntry = (
+    section: "problems" | "causes" | "correctiveActions",
+    entryId: string,
+    updates:
+      | Partial<Omit<TrialTextEntry, "id" | "photos" | "createdAt">>
+      | Partial<Omit<TrialCorrectiveActionEntry, "id" | "photos" | "createdAt">>
+  ) => {
+    dispatch({
+      type: "UPDATE_TRIAL_ENTRY",
+      projectId,
+      joId,
+      sessionId,
+      findingId: finding.id,
+      section,
+      entryId,
+      updates,
+    });
+  };
+
+  const handleDeleteEntry = (
+    section: "problems" | "causes" | "correctiveActions",
+    entryId: string,
+    label: string
+  ) => {
+    if (!confirm(`Hapus ${label}?`)) return;
+    dispatch({
+      type: "DELETE_TRIAL_ENTRY",
+      projectId,
+      joId,
+      sessionId,
+      findingId: finding.id,
+      section,
+      entryId,
+    });
+  };
+
+  const handleMoveEntry = (
+    section: "problems" | "causes" | "correctiveActions",
+    entryId: string,
+    direction: "up" | "down"
+  ) => {
+    dispatch({
+      type: "REORDER_TRIAL_ENTRY",
+      projectId,
+      joId,
+      sessionId,
+      findingId: finding.id,
+      section,
+      entryId,
+      direction,
+    });
+  };
+
+  const handleAddPhoto = (
+    section: "problems" | "causes" | "correctiveActions",
+    entryId: string,
+    photo: { id: string; name: string; previewUrl: string }
+  ) => {
+    dispatch({
+      type: "ADD_TRIAL_ENTRY_PHOTO",
+      projectId,
+      joId,
+      sessionId,
+      findingId: finding.id,
+      section,
+      entryId,
+      photo,
+    });
+  };
+
+  const handleRemovePhoto = (
+    section: "problems" | "causes" | "correctiveActions",
+    entryId: string,
+    photoId: string
+  ) => {
+    dispatch({
+      type: "REMOVE_TRIAL_ENTRY_PHOTO",
+      projectId,
+      joId,
+      sessionId,
+      findingId: finding.id,
+      section,
+      entryId,
+      photoId,
+    });
+  };
+
   return (
-    <div className="trial-finding-card">
+    <div
+      id={`finding-${finding.id}`}
+      className={`trial-finding-card ${isHighlighted ? "finding-highlight" : ""}`}
+    >
       {/* Finding header */}
       <div className="trial-finding-header">
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span className="trial-finding-number">#{displayOrder}</span>
-          <select
-            className="select trial-finding-status-select"
-            value={finding.status}
-            onChange={(e) =>
-              updateField({
-                status: e.target.value as (typeof TRIAL_FINDING_STATUSES)[number],
-              })
-            }
-          >
-            {TRIAL_FINDING_STATUSES.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
+          <span className="trial-finding-number">Temuan {findingLetter}</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
           <button
+            type="button"
             className="btn btn-secondary btn-sm"
             disabled={isFirst}
-            onClick={() => handleMove("up")}
-            title="Pindah ke atas"
+            onClick={() => handleMoveFinding("up")}
+            title="Pindah temuan ke atas"
             style={{ padding: "2px 6px", fontSize: 11 }}
           >
             ▲
           </button>
           <button
+            type="button"
             className="btn btn-secondary btn-sm"
             disabled={isLast}
-            onClick={() => handleMove("down")}
-            title="Pindah ke bawah"
+            onClick={() => handleMoveFinding("down")}
+            title="Pindah temuan ke bawah"
             style={{ padding: "2px 6px", fontSize: 11 }}
           >
             ▼
           </button>
           <button
+            type="button"
             className="btn btn-secondary btn-sm"
-            onClick={handleDelete}
+            onClick={handleDeleteFinding}
             title="Hapus temuan"
             style={{
               padding: "2px 6px",
@@ -117,71 +340,293 @@ export function TrialFindingCard({
         </div>
       </div>
 
-      {/* Finding fields */}
-      <div className="trial-finding-fields">
-        <div>
-          <label className="label">Uraian Masalah</label>
-          <textarea
-            className="input"
-            rows={2}
-            value={finding.problem}
-            onChange={(e) => updateField({ problem: e.target.value })}
-            placeholder="Deskripsi masalah yang ditemukan..."
-          />
+      {/* 1. Uraian Masalah Section */}
+      <div className="trial-section-block">
+        <div className="trial-section-header">
+          <span className="trial-section-title">Uraian Masalah</span>
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm trial-add-entry-btn"
+            onClick={handleAddProblem}
+          >
+            + Tambah Masalah
+          </button>
         </div>
-        <div>
-          <label className="label">Penyebab</label>
-          <textarea
-            className="input"
-            rows={2}
-            value={finding.cause}
-            onChange={(e) => updateField({ cause: e.target.value })}
-            placeholder="Penyebab masalah..."
-          />
-        </div>
-        <div>
-          <label className="label">Langkah Perbaikan</label>
-          <textarea
-            className="input"
-            rows={2}
-            value={finding.correctiveAction}
-            onChange={(e) =>
-              updateField({ correctiveAction: e.target.value })
-            }
-            placeholder="Tindakan perbaikan..."
-          />
-        </div>
-        <div className="trial-finding-inline-fields">
-          <div>
-            <label className="label">Target</label>
-            <input
-              className="input"
-              type="date"
-              value={finding.targetDate}
-              onChange={(e) => updateField({ targetDate: e.target.value })}
-            />
+        {sortedProblems.length === 0 ? (
+          <div className="trial-section-empty">
+            Belum ada uraian masalah. Klik &quot;+ Tambah Masalah&quot; untuk menambahkan.
           </div>
-          <div>
-            <label className="label">PIC</label>
-            <input
-              className="input"
-              type="text"
-              value={finding.pic}
-              onChange={(e) => updateField({ pic: e.target.value })}
-              placeholder="PIC"
-            />
+        ) : (
+          <div className="trial-entry-list">
+            {sortedProblems.map((problem, pIdx) => (
+              <div key={problem.id} className="trial-entry-row">
+                <div className="trial-entry-header">
+                  <span className="trial-entry-index">#{problem.order}</span>
+                  <div className="trial-entry-controls">
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      disabled={pIdx === 0}
+                      onClick={() => handleMoveEntry("problems", problem.id, "up")}
+                      title="Pindah ke atas"
+                      style={{ padding: "1px 5px", fontSize: 10 }}
+                    >
+                      ▲
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      disabled={pIdx === sortedProblems.length - 1}
+                      onClick={() => handleMoveEntry("problems", problem.id, "down")}
+                      title="Pindah ke bawah"
+                      style={{ padding: "1px 5px", fontSize: 10 }}
+                    >
+                      ▼
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      onClick={() =>
+                        handleDeleteEntry("problems", problem.id, `masalah #${problem.order}`)
+                      }
+                      title="Hapus baris masalah"
+                      style={{
+                        padding: "1px 5px",
+                        fontSize: 10,
+                        color: "var(--color-status-problem)",
+                      }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
+                <textarea
+                  className="input"
+                  rows={2}
+                  value={problem.text}
+                  onChange={(e) =>
+                    handleUpdateEntry("problems", problem.id, { text: e.target.value })
+                  }
+                  placeholder="Deskripsi masalah yang ditemukan..."
+                />
+                <TrialPhotoUploader
+                  photos={problem.photos ?? []}
+                  onAddPhoto={(photo) => handleAddPhoto("problems", problem.id, photo)}
+                  onRemovePhoto={(photoId) => handleRemovePhoto("problems", problem.id, photoId)}
+                />
+              </div>
+            ))}
           </div>
-        </div>
+        )}
       </div>
 
-      {/* Photos */}
-      <TrialPhotoUploader
-        projectId={projectId}
-        joId={joId}
-        sessionId={sessionId}
-        findingId={finding.id}
-        photos={finding.photos}
-      />
+      {/* 2. Penyebab Section */}
+      <div className="trial-section-block">
+        <div className="trial-section-header">
+          <span className="trial-section-title">Penyebab</span>
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm trial-add-entry-btn"
+            onClick={handleAddCause}
+          >
+            + Tambah Penyebab
+          </button>
+        </div>
+        {sortedCauses.length === 0 ? (
+          <div className="trial-section-empty">
+            Belum ada penyebab. Klik &quot;+ Tambah Penyebab&quot; untuk menambahkan.
+          </div>
+        ) : (
+          <div className="trial-entry-list">
+            {sortedCauses.map((cause, cIdx) => (
+              <div key={cause.id} className="trial-entry-row">
+                <div className="trial-entry-header">
+                  <span className="trial-entry-index">#{cause.order}</span>
+                  <div className="trial-entry-controls">
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      disabled={cIdx === 0}
+                      onClick={() => handleMoveEntry("causes", cause.id, "up")}
+                      title="Pindah ke atas"
+                      style={{ padding: "1px 5px", fontSize: 10 }}
+                    >
+                      ▲
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      disabled={cIdx === sortedCauses.length - 1}
+                      onClick={() => handleMoveEntry("causes", cause.id, "down")}
+                      title="Pindah ke bawah"
+                      style={{ padding: "1px 5px", fontSize: 10 }}
+                    >
+                      ▼
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      onClick={() =>
+                        handleDeleteEntry("causes", cause.id, `penyebab #${cause.order}`)
+                      }
+                      title="Hapus baris penyebab"
+                      style={{
+                        padding: "1px 5px",
+                        fontSize: 10,
+                        color: "var(--color-status-problem)",
+                      }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
+                <textarea
+                  className="input"
+                  rows={2}
+                  value={cause.text}
+                  onChange={(e) =>
+                    handleUpdateEntry("causes", cause.id, { text: e.target.value })
+                  }
+                  placeholder="Penyebab masalah..."
+                />
+                <TrialPhotoUploader
+                  photos={cause.photos ?? []}
+                  onAddPhoto={(photo) => handleAddPhoto("causes", cause.id, photo)}
+                  onRemovePhoto={(photoId) => handleRemovePhoto("causes", cause.id, photoId)}
+                />
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* 3. Langkah Perbaikan Section */}
+      <div className="trial-section-block">
+        <div className="trial-section-header">
+          <span className="trial-section-title">Langkah Perbaikan</span>
+          <button
+            type="button"
+            className="btn btn-primary btn-sm trial-add-entry-btn"
+            onClick={handleAddAction}
+          >
+            + Tambah Langkah Perbaikan
+          </button>
+        </div>
+        {sortedActions.length === 0 ? (
+          <div className="trial-section-empty">
+            Belum ada langkah perbaikan. Klik &quot;+ Tambah Langkah Perbaikan&quot; untuk menambahkan.
+          </div>
+        ) : (
+          <div className="trial-entry-list">
+            {sortedActions.map((action, aIdx) => (
+              <div key={action.id} className="trial-entry-row">
+                <div className="trial-entry-header">
+                  <span className="trial-entry-index">#{action.order}</span>
+                  <div className="trial-entry-controls">
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      disabled={aIdx === 0}
+                      onClick={() => handleMoveEntry("correctiveActions", action.id, "up")}
+                      title="Pindah ke atas"
+                      style={{ padding: "1px 5px", fontSize: 10 }}
+                    >
+                      ▲
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      disabled={aIdx === sortedActions.length - 1}
+                      onClick={() => handleMoveEntry("correctiveActions", action.id, "down")}
+                      title="Pindah ke bawah"
+                      style={{ padding: "1px 5px", fontSize: 10 }}
+                    >
+                      ▼
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      onClick={() =>
+                        handleDeleteEntry("correctiveActions", action.id, `langkah perbaikan #${action.order}`)
+                      }
+                      title="Hapus baris langkah perbaikan"
+                      style={{
+                        padding: "1px 5px",
+                        fontSize: 10,
+                        color: "var(--color-status-problem)",
+                      }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
+                <textarea
+                  className="input"
+                  rows={2}
+                  value={action.text}
+                  onChange={(e) =>
+                    handleUpdateEntry("correctiveActions", action.id, { text: e.target.value })
+                  }
+                  placeholder="Tindakan perbaikan..."
+                />
+                {/* Target · PIC · Status — each in its own column */}
+                <div className="trial-action-columns">
+                  <div className="trial-action-col">
+                    <label className="label" style={{ fontSize: 11, marginBottom: 2 }}>
+                      Target
+                    </label>
+                    <input
+                      className="input"
+                      type="date"
+                      value={action.targetDate}
+                      onChange={(e) =>
+                        handleUpdateEntry("correctiveActions", action.id, { targetDate: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="trial-action-col">
+                    <label className="label" style={{ fontSize: 11, marginBottom: 2 }}>
+                      PIC
+                    </label>
+                    <PicTagInput
+                      value={action.pic}
+                      onChange={(v) =>
+                        handleUpdateEntry("correctiveActions", action.id, { pic: v })
+                      }
+                    />
+                  </div>
+                  <div className="trial-action-col">
+                    <label className="label" style={{ fontSize: 11, marginBottom: 2 }}>
+                      Status
+                    </label>
+                    <select
+                      className="select trial-finding-status-select"
+                      value={action.status}
+                      onChange={(e) =>
+                        handleUpdateEntry("correctiveActions", action.id, {
+                          status: e.target.value as TrialFindingStatus,
+                        })
+                      }
+                      style={{ width: "100%" }}
+                    >
+                      {TRIAL_FINDING_STATUSES.map((s) => (
+                        <option key={s} value={s}>
+                          {s}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <TrialPhotoUploader
+                  photos={action.photos ?? []}
+                  onAddPhoto={(photo) => handleAddPhoto("correctiveActions", action.id, photo)}
+                  onRemovePhoto={(photoId) => handleRemovePhoto("correctiveActions", action.id, photoId)}
+                />
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

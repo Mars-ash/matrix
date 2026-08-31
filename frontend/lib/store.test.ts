@@ -613,21 +613,60 @@ describe("BULK OPERATIONS", () => {
 // Trial report reducer tests
 // ---------------------------------------------------------------------------
 import { joProgress } from "./progress";
-import type { TrialSession, TrialFinding } from "./types";
+import type {
+  TrialSession,
+  TrialFinding,
+  TrialTextEntry,
+  TrialCorrectiveActionEntry,
+} from "./types";
 
 const joId = MOCK_PROJECT.jos[0].id;
+
+function makeTrialTextEntry(
+  overrides: Partial<TrialTextEntry> = {}
+): TrialTextEntry {
+  return {
+    id: `te-${Math.random().toString(36).slice(2)}`,
+    order: 1,
+    text: "Sample problem or cause",
+    photos: [],
+    createdAt: "2026-08-27T00:00:00Z",
+    updatedAt: "2026-08-27T00:00:00Z",
+    ...overrides,
+  };
+}
+
+function makeTrialCorrectiveActionEntry(
+  overrides: Partial<TrialCorrectiveActionEntry> = {}
+): TrialCorrectiveActionEntry {
+  return {
+    id: `ca-${Math.random().toString(36).slice(2)}`,
+    order: 1,
+    text: "Sample corrective action",
+    targetDate: "2026-09-01",
+    pic: "Budi",
+    status: "On Process",
+    photos: [],
+    createdAt: "2026-08-27T00:00:00Z",
+    updatedAt: "2026-08-27T00:00:00Z",
+    ...overrides,
+  };
+}
 
 function makeTrialFinding(overrides: Partial<TrialFinding> = {}): TrialFinding {
   return {
     id: `tf-${Math.random().toString(36).slice(2)}`,
     order: 1,
-    problem: "Crack on surface",
-    cause: "Material defect",
-    correctiveAction: "Ganti material",
-    targetDate: "2026-09-01",
-    pic: "Budi",
-    status: "On Process",
-    photos: [],
+    problems: [makeTrialTextEntry({ text: "Crack on surface" })],
+    causes: [makeTrialTextEntry({ text: "Material defect" })],
+    correctiveActions: [
+      makeTrialCorrectiveActionEntry({
+        text: "Ganti material",
+        targetDate: "2026-09-01",
+        pic: "Budi",
+        status: "On Process",
+      }),
+    ],
     createdAt: "2026-08-27T00:00:00Z",
     updatedAt: "2026-08-27T00:00:00Z",
     ...overrides,
@@ -678,15 +717,53 @@ describe("CREATE_TRIAL_SESSION", () => {
 });
 
 describe("DUPLICATE_TRIAL_SESSION", () => {
-  it("duplicates a session when source exists", () => {
-    const source = makeTrialSession({ id: "ts-src" });
+  it("duplicates a session when source exists and preserves nested structure without photos", () => {
+    const source = makeTrialSession({
+      id: "ts-src",
+      findings: [
+        makeTrialFinding({
+          problems: [
+            makeTrialTextEntry({
+              text: "Problem 1",
+              photos: [{ id: "p-ph", name: "p.jpg", previewUrl: "/p.svg", addedAt: "2026-08-27T00:00:00Z" }],
+            }),
+          ],
+          causes: [makeTrialTextEntry({ text: "Cause 1" })],
+          correctiveActions: [
+            makeTrialCorrectiveActionEntry({
+              text: "Action 1",
+              targetDate: "2026-09-01",
+              pic: "Budi",
+              status: "Close",
+            }),
+          ],
+        }),
+      ],
+    });
     let next = reducer(state, {
       type: "CREATE_TRIAL_SESSION",
       projectId,
       joId,
       session: source,
     });
-    const duplicate = makeTrialSession({ id: "ts-dup" });
+    const duplicate = makeTrialSession({
+      id: "ts-dup",
+      findings: [
+        makeTrialFinding({
+          problems: [makeTrialTextEntry({ text: "Problem 1", photos: [] })],
+          causes: [makeTrialTextEntry({ text: "Cause 1" })],
+          correctiveActions: [
+            makeTrialCorrectiveActionEntry({
+              text: "Action 1",
+              targetDate: "2026-09-01",
+              pic: "Budi",
+              status: "Close",
+              photos: [],
+            }),
+          ],
+        }),
+      ],
+    });
     next = reducer(next, {
       type: "DUPLICATE_TRIAL_SESSION",
       projectId,
@@ -697,6 +774,8 @@ describe("DUPLICATE_TRIAL_SESSION", () => {
     const jo = next.projects[0].jos[0];
     const mockCount = (state.projects[0].jos[0].trialSessions ?? []).length;
     expect(jo.trialSessions).toHaveLength(mockCount + 2);
+    const dupSession = jo.trialSessions!.find((s) => s.id === "ts-dup")!;
+    expect(dupSession.findings[0].problems[0].photos).toEqual([]);
   });
 
   it("returns original state when source does not exist", () => {
@@ -782,32 +861,6 @@ describe("ADD_TRIAL_FINDING", () => {
   });
 });
 
-describe("UPDATE_TRIAL_FINDING", () => {
-  it("updates finding fields", () => {
-    const finding = makeTrialFinding({ id: "tf-uf" });
-    const session = makeTrialSession({ id: "ts-uf", findings: [finding] });
-    let next = reducer(state, {
-      type: "CREATE_TRIAL_SESSION",
-      projectId,
-      joId,
-      session,
-    });
-    next = reducer(next, {
-      type: "UPDATE_TRIAL_FINDING",
-      projectId,
-      joId,
-      sessionId: "ts-uf",
-      findingId: "tf-uf",
-      updates: { problem: "New problem text", status: "Close" },
-    });
-    const f = next.projects[0].jos[0].trialSessions!
-      .find((s) => s.id === "ts-uf")!
-      .findings.find((f) => f.id === "tf-uf")!;
-    expect(f.problem).toBe("New problem text");
-    expect(f.status).toBe("Close");
-  });
-});
-
 describe("DELETE_TRIAL_FINDING", () => {
   it("removes a finding and re-sequences order", () => {
     const f1 = makeTrialFinding({ id: "tf-d1", order: 1 });
@@ -840,8 +893,8 @@ describe("DELETE_TRIAL_FINDING", () => {
 
 describe("REORDER_TRIAL_FINDING", () => {
   it("moves a finding up", () => {
-    const f1 = makeTrialFinding({ id: "tf-r1", order: 1, problem: "first" });
-    const f2 = makeTrialFinding({ id: "tf-r2", order: 2, problem: "second" });
+    const f1 = makeTrialFinding({ id: "tf-r1", order: 1 });
+    const f2 = makeTrialFinding({ id: "tf-r2", order: 2 });
     const session = makeTrialSession({
       id: "ts-ro",
       findings: [f1, f2],
@@ -864,8 +917,8 @@ describe("REORDER_TRIAL_FINDING", () => {
       (s) => s.id === "ts-ro"
     )!;
     const sorted = [...s.findings].sort((a, b) => a.order - b.order);
-    expect(sorted[0].problem).toBe("second");
-    expect(sorted[1].problem).toBe("first");
+    expect(sorted[0].id).toBe("tf-r2");
+    expect(sorted[1].id).toBe("tf-r1");
   });
 
   it("boundary: moving first finding up is a no-op (returns original state)", () => {
@@ -885,7 +938,6 @@ describe("REORDER_TRIAL_FINDING", () => {
       findingId: "tf-b1",
       direction: "up",
     });
-    // Should return original state object reference
     expect(result).toBe(next);
   });
 
@@ -911,10 +963,264 @@ describe("REORDER_TRIAL_FINDING", () => {
   });
 });
 
-describe("ADD_TRIAL_FINDING_PHOTO / REMOVE_TRIAL_FINDING_PHOTO", () => {
-  it("adds and removes a photo from a finding", () => {
-    const finding = makeTrialFinding({ id: "tf-ph" });
-    const session = makeTrialSession({ id: "ts-ph", findings: [finding] });
+describe("ADD_TRIAL_ENTRY", () => {
+  it("adds a problem entry to a finding and sequences order", () => {
+    const finding = makeTrialFinding({ id: "tf-e1", problems: [] });
+    const session = makeTrialSession({ id: "ts-e1", findings: [finding] });
+    let next = reducer(state, {
+      type: "CREATE_TRIAL_SESSION",
+      projectId,
+      joId,
+      session,
+    });
+    const newProblem = makeTrialTextEntry({ id: "p-1", text: "Problem A" });
+    next = reducer(next, {
+      type: "ADD_TRIAL_ENTRY",
+      projectId,
+      joId,
+      sessionId: "ts-e1",
+      findingId: "tf-e1",
+      section: "problems",
+      entry: newProblem,
+    });
+    const s = next.projects[0].jos[0].trialSessions!.find((s) => s.id === "ts-e1")!;
+    const f = s.findings.find((f) => f.id === "tf-e1")!;
+    expect(f.problems).toHaveLength(1);
+    expect(f.problems[0].id).toBe("p-1");
+    expect(f.problems[0].order).toBe(1);
+  });
+
+  it("adds a cause entry to a finding", () => {
+    const finding = makeTrialFinding({ id: "tf-e2", causes: [] });
+    const session = makeTrialSession({ id: "ts-e2", findings: [finding] });
+    let next = reducer(state, {
+      type: "CREATE_TRIAL_SESSION",
+      projectId,
+      joId,
+      session,
+    });
+    const newCause = makeTrialTextEntry({ id: "c-1", text: "Cause A" });
+    next = reducer(next, {
+      type: "ADD_TRIAL_ENTRY",
+      projectId,
+      joId,
+      sessionId: "ts-e2",
+      findingId: "tf-e2",
+      section: "causes",
+      entry: newCause,
+    });
+    const s = next.projects[0].jos[0].trialSessions!.find((s) => s.id === "ts-e2")!;
+    const f = s.findings.find((f) => f.id === "tf-e2")!;
+    expect(f.causes).toHaveLength(1);
+    expect(f.causes[0].id).toBe("c-1");
+  });
+
+  it("adds a corrective action entry with target, pic, and status", () => {
+    const finding = makeTrialFinding({ id: "tf-e3", correctiveActions: [] });
+    const session = makeTrialSession({ id: "ts-e3", findings: [finding] });
+    let next = reducer(state, {
+      type: "CREATE_TRIAL_SESSION",
+      projectId,
+      joId,
+      session,
+    });
+    const newAction = makeTrialCorrectiveActionEntry({
+      id: "a-1",
+      text: "Action A",
+      targetDate: "2026-09-10",
+      pic: "Doni",
+      status: "Close",
+    });
+    next = reducer(next, {
+      type: "ADD_TRIAL_ENTRY",
+      projectId,
+      joId,
+      sessionId: "ts-e3",
+      findingId: "tf-e3",
+      section: "correctiveActions",
+      entry: newAction,
+    });
+    const s = next.projects[0].jos[0].trialSessions!.find((s) => s.id === "ts-e3")!;
+    const f = s.findings.find((f) => f.id === "tf-e3")!;
+    expect(f.correctiveActions).toHaveLength(1);
+    expect(f.correctiveActions[0].pic).toBe("Doni");
+    expect(f.correctiveActions[0].status).toBe("Close");
+  });
+});
+
+describe("UPDATE_TRIAL_ENTRY", () => {
+  it("updates only the targeted problem entry", () => {
+    const p1 = makeTrialTextEntry({ id: "p-1", text: "Old Problem 1" });
+    const p2 = makeTrialTextEntry({ id: "p-2", text: "Old Problem 2" });
+    const finding = makeTrialFinding({ id: "tf-u1", problems: [p1, p2] });
+    const session = makeTrialSession({ id: "ts-u1", findings: [finding] });
+    let next = reducer(state, {
+      type: "CREATE_TRIAL_SESSION",
+      projectId,
+      joId,
+      session,
+    });
+    next = reducer(next, {
+      type: "UPDATE_TRIAL_ENTRY",
+      projectId,
+      joId,
+      sessionId: "ts-u1",
+      findingId: "tf-u1",
+      section: "problems",
+      entryId: "p-1",
+      updates: { text: "Updated Problem 1" },
+    });
+    const s = next.projects[0].jos[0].trialSessions!.find((s) => s.id === "ts-u1")!;
+    const f = s.findings.find((f) => f.id === "tf-u1")!;
+    expect(f.problems[0].text).toBe("Updated Problem 1");
+    expect(f.problems[1].text).toBe("Old Problem 2");
+  });
+
+  it("updates corrective action fields (targetDate, pic, status)", () => {
+    const a1 = makeTrialCorrectiveActionEntry({
+      id: "a-1",
+      text: "Old Action",
+      pic: "Andi",
+      status: "On Process",
+    });
+    const finding = makeTrialFinding({ id: "tf-u2", correctiveActions: [a1] });
+    const session = makeTrialSession({ id: "ts-u2", findings: [finding] });
+    let next = reducer(state, {
+      type: "CREATE_TRIAL_SESSION",
+      projectId,
+      joId,
+      session,
+    });
+    next = reducer(next, {
+      type: "UPDATE_TRIAL_ENTRY",
+      projectId,
+      joId,
+      sessionId: "ts-u2",
+      findingId: "tf-u2",
+      section: "correctiveActions",
+      entryId: "a-1",
+      updates: { pic: "Joko", status: "Close", targetDate: "2026-09-15" },
+    });
+    const s = next.projects[0].jos[0].trialSessions!.find((s) => s.id === "ts-u2")!;
+    const f = s.findings.find((f) => f.id === "tf-u2")!;
+    expect(f.correctiveActions[0].pic).toBe("Joko");
+    expect(f.correctiveActions[0].status).toBe("Close");
+    expect(f.correctiveActions[0].targetDate).toBe("2026-09-15");
+  });
+});
+
+describe("DELETE_TRIAL_ENTRY", () => {
+  it("deletes targeted entry and re-sequences only that section", () => {
+    const p1 = makeTrialTextEntry({ id: "p-1", order: 1, text: "P1" });
+    const p2 = makeTrialTextEntry({ id: "p-2", order: 2, text: "P2" });
+    const p3 = makeTrialTextEntry({ id: "p-3", order: 3, text: "P3" });
+    const c1 = makeTrialTextEntry({ id: "c-1", order: 1, text: "C1" });
+    const finding = makeTrialFinding({ id: "tf-del1", problems: [p1, p2, p3], causes: [c1] });
+    const session = makeTrialSession({ id: "ts-del1", findings: [finding] });
+    let next = reducer(state, {
+      type: "CREATE_TRIAL_SESSION",
+      projectId,
+      joId,
+      session,
+    });
+    next = reducer(next, {
+      type: "DELETE_TRIAL_ENTRY",
+      projectId,
+      joId,
+      sessionId: "ts-del1",
+      findingId: "tf-del1",
+      section: "problems",
+      entryId: "p-2",
+    });
+    const s = next.projects[0].jos[0].trialSessions!.find((s) => s.id === "ts-del1")!;
+    const f = s.findings.find((f) => f.id === "tf-del1")!;
+    expect(f.problems).toHaveLength(2);
+    expect(f.problems[0].id).toBe("p-1");
+    expect(f.problems[0].order).toBe(1);
+    expect(f.problems[1].id).toBe("p-3");
+    expect(f.problems[1].order).toBe(2);
+    expect(f.causes).toHaveLength(1);
+    expect(f.causes[0].order).toBe(1);
+  });
+});
+
+describe("REORDER_TRIAL_ENTRY", () => {
+  it("reorders entries within targeted section only without affecting others", () => {
+    const p1 = makeTrialTextEntry({ id: "p-1", order: 1, text: "P1" });
+    const p2 = makeTrialTextEntry({ id: "p-2", order: 2, text: "P2" });
+    const c1 = makeTrialTextEntry({ id: "c-1", order: 1, text: "C1" });
+    const c2 = makeTrialTextEntry({ id: "c-2", order: 2, text: "C2" });
+    const finding = makeTrialFinding({ id: "tf-re1", problems: [p1, p2], causes: [c1, c2] });
+    const session = makeTrialSession({ id: "ts-re1", findings: [finding] });
+    let next = reducer(state, {
+      type: "CREATE_TRIAL_SESSION",
+      projectId,
+      joId,
+      session,
+    });
+    next = reducer(next, {
+      type: "REORDER_TRIAL_ENTRY",
+      projectId,
+      joId,
+      sessionId: "ts-re1",
+      findingId: "tf-re1",
+      section: "problems",
+      entryId: "p-2",
+      direction: "up",
+    });
+    const s = next.projects[0].jos[0].trialSessions!.find((s) => s.id === "ts-re1")!;
+    const f = s.findings.find((f) => f.id === "tf-re1")!;
+    expect(f.problems[0].id).toBe("p-2");
+    expect(f.problems[0].order).toBe(1);
+    expect(f.problems[1].id).toBe("p-1");
+    expect(f.problems[1].order).toBe(2);
+    // Causes should not be modified
+    expect(f.causes[0].id).toBe("c-1");
+    expect(f.causes[1].id).toBe("c-2");
+  });
+
+  it("returns original state at boundaries", () => {
+    const p1 = makeTrialTextEntry({ id: "p-1", order: 1 });
+    const finding = makeTrialFinding({ id: "tf-re2", problems: [p1] });
+    const session = makeTrialSession({ id: "ts-re2", findings: [finding] });
+    const next = reducer(state, {
+      type: "CREATE_TRIAL_SESSION",
+      projectId,
+      joId,
+      session,
+    });
+    const resUp = reducer(next, {
+      type: "REORDER_TRIAL_ENTRY",
+      projectId,
+      joId,
+      sessionId: "ts-re2",
+      findingId: "tf-re2",
+      section: "problems",
+      entryId: "p-1",
+      direction: "up",
+    });
+    expect(resUp).toBe(next);
+
+    const resDown = reducer(next, {
+      type: "REORDER_TRIAL_ENTRY",
+      projectId,
+      joId,
+      sessionId: "ts-re2",
+      findingId: "tf-re2",
+      section: "problems",
+      entryId: "p-1",
+      direction: "down",
+    });
+    expect(resDown).toBe(next);
+  });
+});
+
+describe("ADD_TRIAL_ENTRY_PHOTO / REMOVE_TRIAL_ENTRY_PHOTO", () => {
+  it("adds and removes photo on a specific problem entry", () => {
+    const p1 = makeTrialTextEntry({ id: "p-1", photos: [] });
+    const p2 = makeTrialTextEntry({ id: "p-2", photos: [] });
+    const finding = makeTrialFinding({ id: "tf-ph1", problems: [p1, p2] });
+    const session = makeTrialSession({ id: "ts-ph1", findings: [finding] });
     let next = reducer(state, {
       type: "CREATE_TRIAL_SESSION",
       projectId,
@@ -922,34 +1228,88 @@ describe("ADD_TRIAL_FINDING_PHOTO / REMOVE_TRIAL_FINDING_PHOTO", () => {
       session,
     });
 
-    // Add
     next = reducer(next, {
-      type: "ADD_TRIAL_FINDING_PHOTO",
+      type: "ADD_TRIAL_ENTRY_PHOTO",
       projectId,
       joId,
-      sessionId: "ts-ph",
-      findingId: "tf-ph",
-      photo: { id: "photo-1", name: "test.jpg", previewUrl: "blob:test" },
+      sessionId: "ts-ph1",
+      findingId: "tf-ph1",
+      section: "problems",
+      entryId: "p-1",
+      photo: { id: "ph-1", name: "problem1.jpg", previewUrl: "/p1.svg" },
     });
-    let f = next.projects[0].jos[0].trialSessions!
-      .find((s) => s.id === "ts-ph")!
-      .findings.find((f) => f.id === "tf-ph")!;
-    expect(f.photos).toHaveLength(1);
-    expect(f.photos[0].id).toBe("photo-1");
+    let s = next.projects[0].jos[0].trialSessions!.find((s) => s.id === "ts-ph1")!;
+    let f = s.findings.find((f) => f.id === "tf-ph1")!;
+    expect(f.problems[0].photos).toHaveLength(1);
+    expect(f.problems[0].photos[0].id).toBe("ph-1");
+    expect(f.problems[1].photos).toHaveLength(0);
 
-    // Remove
     next = reducer(next, {
-      type: "REMOVE_TRIAL_FINDING_PHOTO",
+      type: "REMOVE_TRIAL_ENTRY_PHOTO",
       projectId,
       joId,
-      sessionId: "ts-ph",
-      findingId: "tf-ph",
-      photoId: "photo-1",
+      sessionId: "ts-ph1",
+      findingId: "tf-ph1",
+      section: "problems",
+      entryId: "p-1",
+      photoId: "ph-1",
     });
-    f = next.projects[0].jos[0].trialSessions!
-      .find((s) => s.id === "ts-ph")!
-      .findings.find((f) => f.id === "tf-ph")!;
-    expect(f.photos).toHaveLength(0);
+    s = next.projects[0].jos[0].trialSessions!.find((s) => s.id === "ts-ph1")!;
+    f = s.findings.find((f) => f.id === "tf-ph1")!;
+    expect(f.problems[0].photos).toHaveLength(0);
+  });
+
+  it("adds and removes photo on cause and corrective action entries", () => {
+    const c1 = makeTrialTextEntry({ id: "c-1", photos: [] });
+    const a1 = makeTrialCorrectiveActionEntry({ id: "a-1", photos: [] });
+    const finding = makeTrialFinding({ id: "tf-ph2", causes: [c1], correctiveActions: [a1] });
+    const session = makeTrialSession({ id: "ts-ph2", findings: [finding] });
+    let next = reducer(state, {
+      type: "CREATE_TRIAL_SESSION",
+      projectId,
+      joId,
+      session,
+    });
+
+    next = reducer(next, {
+      type: "ADD_TRIAL_ENTRY_PHOTO",
+      projectId,
+      joId,
+      sessionId: "ts-ph2",
+      findingId: "tf-ph2",
+      section: "causes",
+      entryId: "c-1",
+      photo: { id: "ph-c", name: "cause.jpg", previewUrl: "/c.svg" },
+    });
+    next = reducer(next, {
+      type: "ADD_TRIAL_ENTRY_PHOTO",
+      projectId,
+      joId,
+      sessionId: "ts-ph2",
+      findingId: "tf-ph2",
+      section: "correctiveActions",
+      entryId: "a-1",
+      photo: { id: "ph-a", name: "action.jpg", previewUrl: "/a.svg" },
+    });
+    let s = next.projects[0].jos[0].trialSessions!.find((s) => s.id === "ts-ph2")!;
+    let f = s.findings.find((f) => f.id === "tf-ph2")!;
+    expect(f.causes[0].photos).toHaveLength(1);
+    expect(f.correctiveActions[0].photos).toHaveLength(1);
+
+    next = reducer(next, {
+      type: "REMOVE_TRIAL_ENTRY_PHOTO",
+      projectId,
+      joId,
+      sessionId: "ts-ph2",
+      findingId: "tf-ph2",
+      section: "correctiveActions",
+      entryId: "a-1",
+      photoId: "ph-a",
+    });
+    s = next.projects[0].jos[0].trialSessions!.find((s) => s.id === "ts-ph2")!;
+    f = s.findings.find((f) => f.id === "tf-ph2")!;
+    expect(f.causes[0].photos).toHaveLength(1);
+    expect(f.correctiveActions[0].photos).toHaveLength(0);
   });
 });
 
@@ -959,11 +1319,14 @@ describe("Missing ID guard", () => {
       { type: "UPDATE_TRIAL_SESSION" as const, projectId, joId, sessionId: "x", updates: {} },
       { type: "DELETE_TRIAL_SESSION" as const, projectId, joId, sessionId: "x" },
       { type: "ADD_TRIAL_FINDING" as const, projectId, joId, sessionId: "x", finding: makeTrialFinding() },
-      { type: "UPDATE_TRIAL_FINDING" as const, projectId, joId, sessionId: "x", findingId: "y", updates: {} },
       { type: "DELETE_TRIAL_FINDING" as const, projectId, joId, sessionId: "x", findingId: "y" },
       { type: "REORDER_TRIAL_FINDING" as const, projectId, joId, sessionId: "x", findingId: "y", direction: "up" as const },
-      { type: "ADD_TRIAL_FINDING_PHOTO" as const, projectId, joId, sessionId: "x", findingId: "y", photo: { id: "z", name: "n", previewUrl: "u" } },
-      { type: "REMOVE_TRIAL_FINDING_PHOTO" as const, projectId, joId, sessionId: "x", findingId: "y", photoId: "z" },
+      { type: "ADD_TRIAL_ENTRY" as const, projectId, joId, sessionId: "x", findingId: "y", section: "problems" as const, entry: makeTrialTextEntry() },
+      { type: "UPDATE_TRIAL_ENTRY" as const, projectId, joId, sessionId: "x", findingId: "y", section: "problems" as const, entryId: "z", updates: {} },
+      { type: "DELETE_TRIAL_ENTRY" as const, projectId, joId, sessionId: "x", findingId: "y", section: "problems" as const, entryId: "z" },
+      { type: "REORDER_TRIAL_ENTRY" as const, projectId, joId, sessionId: "x", findingId: "y", section: "problems" as const, entryId: "z", direction: "up" as const },
+      { type: "ADD_TRIAL_ENTRY_PHOTO" as const, projectId, joId, sessionId: "x", findingId: "y", section: "problems" as const, entryId: "z", photo: { id: "p", name: "n", previewUrl: "u" } },
+      { type: "REMOVE_TRIAL_ENTRY_PHOTO" as const, projectId, joId, sessionId: "x", findingId: "y", section: "problems" as const, entryId: "z", photoId: "p" },
     ];
     for (const action of actions) {
       expect(reducer(state, action)).toBe(state);

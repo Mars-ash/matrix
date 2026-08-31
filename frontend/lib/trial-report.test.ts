@@ -5,26 +5,60 @@ import {
   buildTrialSessionName,
   deriveTrialSessionStatus,
   sortTrialFindings,
+  sortTrialEntries,
+  formatFindingLetter,
   cloneTrialSessionWithoutPhotos,
 } from "./trial-report";
-import type { TrialSession, TrialFinding } from "./types";
+import type {
+  TrialSession,
+  TrialFinding,
+  TrialTextEntry,
+  TrialCorrectiveActionEntry,
+} from "./types";
 
 // ---------------------------------------------------------------------------
 // Helpers for building test data
 // ---------------------------------------------------------------------------
+function makeTextEntry(
+  overrides: Partial<TrialTextEntry> = {}
+): TrialTextEntry {
+  return {
+    id: `te-${Math.random()}`,
+    order: 1,
+    text: "sample text",
+    photos: [],
+    createdAt: "2026-08-27T00:00:00Z",
+    updatedAt: "2026-08-27T00:00:00Z",
+    ...overrides,
+  };
+}
+
+function makeActionEntry(
+  overrides: Partial<TrialCorrectiveActionEntry> = {}
+): TrialCorrectiveActionEntry {
+  return {
+    id: `ca-${Math.random()}`,
+    order: 1,
+    text: "sample action",
+    targetDate: "2026-09-01",
+    pic: "Budi",
+    status: "On Process",
+    photos: [],
+    createdAt: "2026-08-27T00:00:00Z",
+    updatedAt: "2026-08-27T00:00:00Z",
+    ...overrides,
+  };
+}
+
 function makeFinding(
   overrides: Partial<TrialFinding> = {}
 ): TrialFinding {
   return {
     id: `f-${Math.random()}`,
     order: 1,
-    problem: "test problem",
-    cause: "test cause",
-    correctiveAction: "test action",
-    targetDate: "2026-09-01",
-    pic: "Budi",
-    status: "On Process",
-    photos: [],
+    problems: [makeTextEntry({ text: "test problem" })],
+    causes: [makeTextEntry({ text: "test cause" })],
+    correctiveActions: [makeActionEntry({ text: "test action" })],
     createdAt: "2026-08-27T00:00:00Z",
     updatedAt: "2026-08-27T00:00:00Z",
     ...overrides,
@@ -131,6 +165,40 @@ describe("buildTrialSessionName", () => {
 });
 
 // ---------------------------------------------------------------------------
+// formatFindingLetter
+// ---------------------------------------------------------------------------
+describe("formatFindingLetter", () => {
+  it("formats 1-based order to letter A, B, C...", () => {
+    expect(formatFindingLetter(1)).toBe("A");
+    expect(formatFindingLetter(2)).toBe("B");
+    expect(formatFindingLetter(3)).toBe("C");
+    expect(formatFindingLetter(26)).toBe("Z");
+    expect(formatFindingLetter(27)).toBe("AA");
+  });
+
+  it("handles non-positive numbers safely", () => {
+    expect(formatFindingLetter(0)).toBe("A");
+    expect(formatFindingLetter(-1)).toBe("A");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// sortTrialEntries
+// ---------------------------------------------------------------------------
+describe("sortTrialEntries", () => {
+  it("sorts entries by order without mutating the input array", () => {
+    const entries = [
+      { id: "3", order: 3, text: "c" },
+      { id: "1", order: 1, text: "a" },
+      { id: "2", order: 2, text: "b" },
+    ];
+    const sorted = sortTrialEntries(entries);
+    expect(sorted.map((e) => e.text)).toEqual(["a", "b", "c"]);
+    expect(entries[0].id).toBe("3");
+  });
+});
+
+// ---------------------------------------------------------------------------
 // deriveTrialSessionStatus
 // ---------------------------------------------------------------------------
 describe("deriveTrialSessionStatus", () => {
@@ -138,37 +206,69 @@ describe("deriveTrialSessionStatus", () => {
     expect(deriveTrialSessionStatus(makeSession())).toBe("On Process");
   });
 
-  it("returns 'On Process' when any finding is 'On Process'", () => {
+  it("returns 'On Process' when findings have no corrective actions", () => {
     const session = makeSession({
       findings: [
-        makeFinding({ status: "Close" }),
-        makeFinding({ status: "On Process" }),
-        makeFinding({ status: "Close" }),
+        makeFinding({
+          correctiveActions: [],
+        }),
       ],
     });
     expect(deriveTrialSessionStatus(session)).toBe("On Process");
   });
 
-  it("returns 'Close' when all findings are 'Close'", () => {
+  it("returns 'On Process' when any corrective action in any finding is 'On Process'", () => {
     const session = makeSession({
       findings: [
-        makeFinding({ status: "Close" }),
-        makeFinding({ status: "Close" }),
+        makeFinding({
+          correctiveActions: [
+            makeActionEntry({ status: "Close" }),
+            makeActionEntry({ status: "On Process" }),
+          ],
+        }),
+        makeFinding({
+          correctiveActions: [makeActionEntry({ status: "Close" })],
+        }),
+      ],
+    });
+    expect(deriveTrialSessionStatus(session)).toBe("On Process");
+  });
+
+  it("returns 'Close' when all corrective actions across all findings are 'Close'", () => {
+    const session = makeSession({
+      findings: [
+        makeFinding({
+          correctiveActions: [
+            makeActionEntry({ status: "Close" }),
+            makeActionEntry({ status: "Close" }),
+          ],
+        }),
+        makeFinding({
+          correctiveActions: [makeActionEntry({ status: "Close" })],
+        }),
       ],
     });
     expect(deriveTrialSessionStatus(session)).toBe("Close");
   });
 
-  it("returns 'On Process' for a single 'On Process' finding", () => {
+  it("returns 'On Process' for a single 'On Process' corrective action", () => {
     const session = makeSession({
-      findings: [makeFinding({ status: "On Process" })],
+      findings: [
+        makeFinding({
+          correctiveActions: [makeActionEntry({ status: "On Process" })],
+        }),
+      ],
     });
     expect(deriveTrialSessionStatus(session)).toBe("On Process");
   });
 
-  it("returns 'Close' for a single 'Close' finding", () => {
+  it("returns 'Close' for a single 'Close' corrective action", () => {
     const session = makeSession({
-      findings: [makeFinding({ status: "Close" })],
+      findings: [
+        makeFinding({
+          correctiveActions: [makeActionEntry({ status: "Close" })],
+        }),
+      ],
     });
     expect(deriveTrialSessionStatus(session)).toBe("Close");
   });
@@ -180,12 +280,34 @@ describe("deriveTrialSessionStatus", () => {
 describe("sortTrialFindings", () => {
   it("returns findings sorted by order", () => {
     const findings = [
-      makeFinding({ order: 3, problem: "third" }),
-      makeFinding({ order: 1, problem: "first" }),
-      makeFinding({ order: 2, problem: "second" }),
+      makeFinding({ order: 3, id: "f-3" }),
+      makeFinding({ order: 1, id: "f-1" }),
+      makeFinding({ order: 2, id: "f-2" }),
     ];
     const sorted = sortTrialFindings(findings);
-    expect(sorted.map((f) => f.problem)).toEqual(["first", "second", "third"]);
+    expect(sorted.map((f) => f.id)).toEqual(["f-1", "f-2", "f-3"]);
+  });
+
+  it("sorts nested problem, cause, and corrective action entries by order", () => {
+    const finding = makeFinding({
+      order: 1,
+      problems: [
+        makeTextEntry({ order: 2, text: "p2" }),
+        makeTextEntry({ order: 1, text: "p1" }),
+      ],
+      causes: [
+        makeTextEntry({ order: 2, text: "c2" }),
+        makeTextEntry({ order: 1, text: "c1" }),
+      ],
+      correctiveActions: [
+        makeActionEntry({ order: 2, text: "a2" }),
+        makeActionEntry({ order: 1, text: "a1" }),
+      ],
+    });
+    const sorted = sortTrialFindings([finding]);
+    expect(sorted[0].problems.map((p) => p.text)).toEqual(["p1", "p2"]);
+    expect(sorted[0].causes.map((c) => c.text)).toEqual(["c1", "c2"]);
+    expect(sorted[0].correctiveActions.map((a) => a.text)).toEqual(["a1", "a2"]);
   });
 
   it("does not mutate the input array", () => {
@@ -228,57 +350,119 @@ describe("cloneTrialSessionWithoutPhotos", () => {
     expect(cloned.trialDate).toBe("2026-09-01");
   });
 
-  it("copies findings without photos", () => {
+  it("copies findings and nested entries without photos", () => {
+    const samplePhoto = {
+      id: "ph-1",
+      name: "crack.jpg",
+      previewUrl: "/report-placeholder-1.svg",
+      addedAt: "2026-08-27T00:00:00Z",
+    };
     const source = makeSession({
       findings: [
         makeFinding({
           order: 1,
-          problem: "Crack on surface",
-          status: "On Process",
-          photos: [
-            {
-              id: "ph-1",
-              name: "crack.jpg",
-              previewUrl: "/report-placeholder-1.svg",
-              addedAt: "2026-08-27T00:00:00Z",
-            },
+          problems: [
+            makeTextEntry({ order: 1, text: "Crack on surface", photos: [samplePhoto] }),
+            makeTextEntry({ order: 2, text: "Burr on edge", photos: [samplePhoto] }),
+          ],
+          causes: [
+            makeTextEntry({ order: 1, text: "Punch worn", photos: [samplePhoto] }),
+          ],
+          correctiveActions: [
+            makeActionEntry({
+              order: 1,
+              text: "Sharpen punch",
+              targetDate: "2026-09-02",
+              pic: "Andi",
+              status: "Close",
+              photos: [samplePhoto],
+            }),
+            makeActionEntry({
+              order: 2,
+              text: "Replace punch",
+              targetDate: "2026-09-05",
+              pic: "Budi",
+              status: "On Process",
+              photos: [],
+            }),
           ],
         }),
+      ],
+    });
+    const cloned = cloneTrialSessionWithoutPhotos(source);
+    expect(cloned.findings).toHaveLength(1);
+    const f = cloned.findings[0];
+    expect(f.problems).toHaveLength(2);
+    expect(f.problems[0].text).toBe("Crack on surface");
+    expect(f.problems[0].photos).toEqual([]);
+    expect(f.problems[1].text).toBe("Burr on edge");
+    expect(f.problems[1].photos).toEqual([]);
+
+    expect(f.causes).toHaveLength(1);
+    expect(f.causes[0].text).toBe("Punch worn");
+    expect(f.causes[0].photos).toEqual([]);
+
+    expect(f.correctiveActions).toHaveLength(2);
+    expect(f.correctiveActions[0].text).toBe("Sharpen punch");
+    expect(f.correctiveActions[0].targetDate).toBe("2026-09-02");
+    expect(f.correctiveActions[0].pic).toBe("Andi");
+    expect(f.correctiveActions[0].status).toBe("Close");
+    expect(f.correctiveActions[0].photos).toEqual([]);
+    expect(f.correctiveActions[1].text).toBe("Replace punch");
+    expect(f.correctiveActions[1].status).toBe("On Process");
+    expect(f.correctiveActions[1].photos).toEqual([]);
+  });
+
+  it("re-sequences finding and nested entry order values starting at 1", () => {
+    const source = makeSession({
+      findings: [
         makeFinding({
-          order: 2,
-          problem: "Dimension off",
-          status: "Close",
-          photos: [],
+          order: 5,
+          problems: [
+            makeTextEntry({ order: 10, text: "p1" }),
+            makeTextEntry({ order: 20, text: "p2" }),
+          ],
+          causes: [makeTextEntry({ order: 15, text: "c1" })],
+          correctiveActions: [makeActionEntry({ order: 50, text: "a1" })],
+        }),
+        makeFinding({
+          order: 10,
+          problems: [makeTextEntry({ order: 3, text: "p3" })],
+          causes: [],
+          correctiveActions: [],
         }),
       ],
     });
     const cloned = cloneTrialSessionWithoutPhotos(source);
-    expect(cloned.findings).toHaveLength(2);
-    expect(cloned.findings[0].problem).toBe("Crack on surface");
-    expect(cloned.findings[0].status).toBe("On Process");
-    expect(cloned.findings[0].photos).toEqual([]);
-    expect(cloned.findings[1].problem).toBe("Dimension off");
-    expect(cloned.findings[1].photos).toEqual([]);
+    expect(cloned.findings.map((f) => f.order)).toEqual([1, 2]);
+    expect(cloned.findings[0].problems.map((p) => p.order)).toEqual([1, 2]);
+    expect(cloned.findings[0].causes.map((c) => c.order)).toEqual([1]);
+    expect(cloned.findings[0].correctiveActions.map((a) => a.order)).toEqual([1]);
+    expect(cloned.findings[1].problems.map((p) => p.order)).toEqual([1]);
   });
 
-  it("re-sequences finding order values starting at 1", () => {
+  it("generates new IDs for findings and all nested entries", () => {
+    const origFindingId = "orig-f-1";
+    const origProblemId = "orig-p-1";
+    const origCauseId = "orig-c-1";
+    const origActionId = "orig-a-1";
+
     const source = makeSession({
       findings: [
-        makeFinding({ order: 5 }),
-        makeFinding({ order: 10 }),
-        makeFinding({ order: 15 }),
+        makeFinding({
+          id: origFindingId,
+          problems: [makeTextEntry({ id: origProblemId })],
+          causes: [makeTextEntry({ id: origCauseId })],
+          correctiveActions: [makeActionEntry({ id: origActionId })],
+        }),
       ],
     });
     const cloned = cloneTrialSessionWithoutPhotos(source);
-    expect(cloned.findings.map((f) => f.order)).toEqual([1, 2, 3]);
-  });
-
-  it("generates new finding IDs", () => {
-    const source = makeSession({
-      findings: [makeFinding({ id: "original-id" })],
-    });
-    const cloned = cloneTrialSessionWithoutPhotos(source);
-    expect(cloned.findings[0].id).not.toBe("original-id");
+    const f = cloned.findings[0];
+    expect(f.id).not.toBe(origFindingId);
+    expect(f.problems[0].id).not.toBe(origProblemId);
+    expect(f.causes[0].id).not.toBe(origCauseId);
+    expect(f.correctiveActions[0].id).not.toBe(origActionId);
   });
 
   it("does not mutate the source session", () => {
@@ -289,10 +473,14 @@ describe("cloneTrialSessionWithoutPhotos", () => {
       addedAt: "2026-08-27T00:00:00Z",
     };
     const source = makeSession({
-      findings: [makeFinding({ photos: [photo] })],
+      findings: [
+        makeFinding({
+          problems: [makeTextEntry({ photos: [photo] })],
+        }),
+      ],
     });
     cloneTrialSessionWithoutPhotos(source);
-    expect(source.findings[0].photos).toHaveLength(1);
-    expect(source.findings[0].photos[0].id).toBe("ph-1");
+    expect(source.findings[0].problems[0].photos).toHaveLength(1);
+    expect(source.findings[0].problems[0].photos[0].id).toBe("ph-1");
   });
 });

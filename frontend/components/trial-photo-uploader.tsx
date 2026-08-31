@@ -1,24 +1,19 @@
 "use client";
 import React, { useRef, useCallback } from "react";
-import { useAppDispatch } from "@/lib/store";
 import { uid } from "@/lib/format";
+import type { TrialEntryPhoto } from "@/lib/types";
 
 interface TrialPhotoUploaderProps {
-  projectId: string;
-  joId: string;
-  sessionId: string;
-  findingId: string;
-  photos: { id: string; name: string; previewUrl: string }[];
+  photos: TrialEntryPhoto[];
+  onAddPhoto: (photo: { id: string; name: string; previewUrl: string }) => void;
+  onRemovePhoto: (photoId: string, previewUrl: string) => void;
 }
 
 export function TrialPhotoUploader({
-  projectId,
-  joId,
-  sessionId,
-  findingId,
   photos,
+  onAddPhoto,
+  onRemovePhoto,
 }: TrialPhotoUploaderProps) {
-  const dispatch = useAppDispatch();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileAdd = useCallback(
@@ -27,22 +22,15 @@ export function TrialPhotoUploader({
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         const previewUrl = URL.createObjectURL(file);
-        dispatch({
-          type: "ADD_TRIAL_FINDING_PHOTO",
-          projectId,
-          joId,
-          sessionId,
-          findingId,
-          photo: {
-            id: uid(),
-            name: file.name,
-            previewUrl,
-          },
+        onAddPhoto({
+          id: uid(),
+          name: file.name,
+          previewUrl,
         });
       }
       if (fileInputRef.current) fileInputRef.current.value = "";
     },
-    [dispatch, projectId, joId, sessionId, findingId]
+    [onAddPhoto]
   );
 
   const handleRemove = useCallback(
@@ -52,16 +40,9 @@ export function TrialPhotoUploader({
       if (previewUrl.startsWith("blob:")) {
         URL.revokeObjectURL(previewUrl);
       }
-      dispatch({
-        type: "REMOVE_TRIAL_FINDING_PHOTO",
-        projectId,
-        joId,
-        sessionId,
-        findingId,
-        photoId,
-      });
+      onRemovePhoto(photoId, previewUrl);
     },
-    [dispatch, projectId, joId, sessionId, findingId]
+    [onRemovePhoto]
   );
 
   return (
@@ -86,7 +67,7 @@ export function TrialPhotoUploader({
                 alt={photo.name}
                 style={{
                   width: "100%",
-                  height: 72,
+                  height: 140,
                   objectFit: "cover",
                   display: "block",
                   borderRadius: "var(--radius-sm)",
@@ -105,6 +86,7 @@ export function TrialPhotoUploader({
                 {photo.name}
               </div>
               <button
+                type="button"
                 onClick={() => handleRemove(photo.id, photo.previewUrl)}
                 className="trial-photo-remove-btn"
                 aria-label={`Hapus ${photo.name}`}

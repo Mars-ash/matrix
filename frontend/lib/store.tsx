@@ -19,10 +19,15 @@ import type {
   CategoryKind,
   TrialSession,
   TrialFinding,
+  TrialTextEntry,
+  TrialCorrectiveActionEntry,
+  TrialEntryPhoto,
 } from "./types";
 import { INITIAL_PROJECTS } from "./mock-data";
 import { defaultControls } from "./category";
 import { uid } from "./format";
+
+export type TrialEntrySection = "problems" | "causes" | "correctiveActions";
 
 // ---------------------------------------------------------------------------
 // State shape
@@ -195,14 +200,6 @@ export type AppAction =
       finding: TrialFinding;
     }
   | {
-      type: "UPDATE_TRIAL_FINDING";
-      projectId: string;
-      joId: string;
-      sessionId: string;
-      findingId: string;
-      updates: Partial<Omit<TrialFinding, "id" | "photos" | "createdAt">>;
-    }
-  | {
       type: "DELETE_TRIAL_FINDING";
       projectId: string;
       joId: string;
@@ -218,19 +215,63 @@ export type AppAction =
       direction: "up" | "down";
     }
   | {
-      type: "ADD_TRIAL_FINDING_PHOTO";
+      type: "ADD_TRIAL_ENTRY";
       projectId: string;
       joId: string;
       sessionId: string;
       findingId: string;
+      section: TrialEntrySection;
+      entry: TrialTextEntry | TrialCorrectiveActionEntry;
+    }
+  | {
+      type: "UPDATE_TRIAL_ENTRY";
+      projectId: string;
+      joId: string;
+      sessionId: string;
+      findingId: string;
+      section: TrialEntrySection;
+      entryId: string;
+      updates:
+        | Partial<Omit<TrialTextEntry, "id" | "photos" | "createdAt">>
+        | Partial<Omit<TrialCorrectiveActionEntry, "id" | "photos" | "createdAt">>;
+    }
+  | {
+      type: "DELETE_TRIAL_ENTRY";
+      projectId: string;
+      joId: string;
+      sessionId: string;
+      findingId: string;
+      section: TrialEntrySection;
+      entryId: string;
+    }
+  | {
+      type: "REORDER_TRIAL_ENTRY";
+      projectId: string;
+      joId: string;
+      sessionId: string;
+      findingId: string;
+      section: TrialEntrySection;
+      entryId: string;
+      direction: "up" | "down";
+    }
+  | {
+      type: "ADD_TRIAL_ENTRY_PHOTO";
+      projectId: string;
+      joId: string;
+      sessionId: string;
+      findingId: string;
+      section: TrialEntrySection;
+      entryId: string;
       photo: { id: string; name: string; previewUrl: string };
     }
   | {
-      type: "REMOVE_TRIAL_FINDING_PHOTO";
+      type: "REMOVE_TRIAL_ENTRY_PHOTO";
       projectId: string;
       joId: string;
       sessionId: string;
       findingId: string;
+      section: TrialEntrySection;
+      entryId: string;
       photoId: string;
     };
 
@@ -677,22 +718,6 @@ function reducer(state: AppState, action: AppAction): AppState {
       return next;
     }
 
-    case "UPDATE_TRIAL_FINDING": {
-      const project = next.projects.find((p) => p.id === action.projectId);
-      const jo = project?.jos.find((j) => j.id === action.joId);
-      if (!jo) return state;
-      const session = (jo.trialSessions ?? []).find(
-        (s) => s.id === action.sessionId
-      );
-      if (!session) return state;
-      const finding = session.findings.find((f) => f.id === action.findingId);
-      if (!finding) return state;
-      Object.assign(finding, action.updates);
-      finding.updatedAt = new Date().toISOString();
-      session.updatedAt = new Date().toISOString();
-      return next;
-    }
-
     case "DELETE_TRIAL_FINDING": {
       const project = next.projects.find((p) => p.id === action.projectId);
       const jo = project?.jos.find((j) => j.id === action.joId);
@@ -738,7 +763,7 @@ function reducer(state: AppState, action: AppAction): AppState {
       return next;
     }
 
-    case "ADD_TRIAL_FINDING_PHOTO": {
+    case "ADD_TRIAL_ENTRY": {
       const project = next.projects.find((p) => p.id === action.projectId);
       const jo = project?.jos.find((j) => j.id === action.joId);
       if (!jo) return state;
@@ -748,16 +773,31 @@ function reducer(state: AppState, action: AppAction): AppState {
       if (!session) return state;
       const finding = session.findings.find((f) => f.id === action.findingId);
       if (!finding) return state;
-      finding.photos.push({
-        ...action.photo,
-        addedAt: new Date().toISOString(),
-      });
+      if (action.section === "correctiveActions") {
+        if (!finding.correctiveActions) finding.correctiveActions = [];
+        const maxOrder = finding.correctiveActions.reduce(
+          (max, e) => Math.max(max, e.order),
+          0
+        );
+        finding.correctiveActions.push({
+          ...(action.entry as TrialCorrectiveActionEntry),
+          order: action.entry.order || maxOrder + 1,
+        });
+      } else {
+        if (!finding[action.section]) finding[action.section] = [];
+        const list = finding[action.section];
+        const maxOrder = list.reduce((max, e) => Math.max(max, e.order), 0);
+        list.push({
+          ...(action.entry as TrialTextEntry),
+          order: action.entry.order || maxOrder + 1,
+        });
+      }
       finding.updatedAt = new Date().toISOString();
       session.updatedAt = new Date().toISOString();
       return next;
     }
 
-    case "REMOVE_TRIAL_FINDING_PHOTO": {
+    case "UPDATE_TRIAL_ENTRY": {
       const project = next.projects.find((p) => p.id === action.projectId);
       const jo = project?.jos.find((j) => j.id === action.joId);
       if (!jo) return state;
@@ -767,7 +807,159 @@ function reducer(state: AppState, action: AppAction): AppState {
       if (!session) return state;
       const finding = session.findings.find((f) => f.id === action.findingId);
       if (!finding) return state;
-      finding.photos = finding.photos.filter((p) => p.id !== action.photoId);
+      if (action.section === "correctiveActions") {
+        const entry = (finding.correctiveActions ?? []).find(
+          (e) => e.id === action.entryId
+        );
+        if (!entry) return state;
+        Object.assign(entry, action.updates);
+        entry.updatedAt = new Date().toISOString();
+      } else {
+        const entry = (finding[action.section] ?? []).find(
+          (e) => e.id === action.entryId
+        );
+        if (!entry) return state;
+        Object.assign(entry, action.updates);
+        entry.updatedAt = new Date().toISOString();
+      }
+      finding.updatedAt = new Date().toISOString();
+      session.updatedAt = new Date().toISOString();
+      return next;
+    }
+
+    case "DELETE_TRIAL_ENTRY": {
+      const project = next.projects.find((p) => p.id === action.projectId);
+      const jo = project?.jos.find((j) => j.id === action.joId);
+      if (!jo) return state;
+      const session = (jo.trialSessions ?? []).find(
+        (s) => s.id === action.sessionId
+      );
+      if (!session) return state;
+      const finding = session.findings.find((f) => f.id === action.findingId);
+      if (!finding) return state;
+      if (action.section === "correctiveActions") {
+        const list = finding.correctiveActions ?? [];
+        const eIdx = list.findIndex((e) => e.id === action.entryId);
+        if (eIdx === -1) return state;
+        list.splice(eIdx, 1);
+        list
+          .sort((a, b) => a.order - b.order)
+          .forEach((e, i) => {
+            e.order = i + 1;
+          });
+      } else {
+        const list = finding[action.section] ?? [];
+        const eIdx = list.findIndex((e) => e.id === action.entryId);
+        if (eIdx === -1) return state;
+        list.splice(eIdx, 1);
+        list
+          .sort((a, b) => a.order - b.order)
+          .forEach((e, i) => {
+            e.order = i + 1;
+          });
+      }
+      finding.updatedAt = new Date().toISOString();
+      session.updatedAt = new Date().toISOString();
+      return next;
+    }
+
+    case "REORDER_TRIAL_ENTRY": {
+      const project = next.projects.find((p) => p.id === action.projectId);
+      const jo = project?.jos.find((j) => j.id === action.joId);
+      if (!jo) return state;
+      const session = (jo.trialSessions ?? []).find(
+        (s) => s.id === action.sessionId
+      );
+      if (!session) return state;
+      const finding = session.findings.find((f) => f.id === action.findingId);
+      if (!finding) return state;
+      if (action.section === "correctiveActions") {
+        const list = finding.correctiveActions ?? [];
+        const sorted = [...list].sort((a, b) => a.order - b.order);
+        const idx = sorted.findIndex((e) => e.id === action.entryId);
+        if (idx === -1) return state;
+        const swapIdx = action.direction === "up" ? idx - 1 : idx + 1;
+        if (swapIdx < 0 || swapIdx >= sorted.length) return state;
+        [sorted[idx], sorted[swapIdx]] = [sorted[swapIdx], sorted[idx]];
+        sorted.forEach((e, i) => {
+          e.order = i + 1;
+        });
+        finding.correctiveActions = sorted;
+      } else {
+        const list = finding[action.section] ?? [];
+        const sorted = [...list].sort((a, b) => a.order - b.order);
+        const idx = sorted.findIndex((e) => e.id === action.entryId);
+        if (idx === -1) return state;
+        const swapIdx = action.direction === "up" ? idx - 1 : idx + 1;
+        if (swapIdx < 0 || swapIdx >= sorted.length) return state;
+        [sorted[idx], sorted[swapIdx]] = [sorted[swapIdx], sorted[idx]];
+        sorted.forEach((e, i) => {
+          e.order = i + 1;
+        });
+        finding[action.section] = sorted;
+      }
+      finding.updatedAt = new Date().toISOString();
+      session.updatedAt = new Date().toISOString();
+      return next;
+    }
+
+    case "ADD_TRIAL_ENTRY_PHOTO": {
+      const project = next.projects.find((p) => p.id === action.projectId);
+      const jo = project?.jos.find((j) => j.id === action.joId);
+      if (!jo) return state;
+      const session = (jo.trialSessions ?? []).find(
+        (s) => s.id === action.sessionId
+      );
+      if (!session) return state;
+      const finding = session.findings.find((f) => f.id === action.findingId);
+      if (!finding) return state;
+      let targetEntry: TrialTextEntry | TrialCorrectiveActionEntry | undefined;
+      if (action.section === "correctiveActions") {
+        targetEntry = (finding.correctiveActions ?? []).find(
+          (e) => e.id === action.entryId
+        );
+      } else {
+        targetEntry = (finding[action.section] ?? []).find(
+          (e) => e.id === action.entryId
+        );
+      }
+      if (!targetEntry) return state;
+      if (!targetEntry.photos) targetEntry.photos = [];
+      targetEntry.photos.push({
+        ...action.photo,
+        addedAt: new Date().toISOString(),
+      });
+      targetEntry.updatedAt = new Date().toISOString();
+      finding.updatedAt = new Date().toISOString();
+      session.updatedAt = new Date().toISOString();
+      return next;
+    }
+
+    case "REMOVE_TRIAL_ENTRY_PHOTO": {
+      const project = next.projects.find((p) => p.id === action.projectId);
+      const jo = project?.jos.find((j) => j.id === action.joId);
+      if (!jo) return state;
+      const session = (jo.trialSessions ?? []).find(
+        (s) => s.id === action.sessionId
+      );
+      if (!session) return state;
+      const finding = session.findings.find((f) => f.id === action.findingId);
+      if (!finding) return state;
+      let targetEntry: TrialTextEntry | TrialCorrectiveActionEntry | undefined;
+      if (action.section === "correctiveActions") {
+        targetEntry = (finding.correctiveActions ?? []).find(
+          (e) => e.id === action.entryId
+        );
+      } else {
+        targetEntry = (finding[action.section] ?? []).find(
+          (e) => e.id === action.entryId
+        );
+      }
+      if (!targetEntry || !targetEntry.photos) return state;
+      targetEntry.photos = targetEntry.photos.filter(
+        (p: TrialEntryPhoto) => p.id !== action.photoId
+      );
+      targetEntry.updatedAt = new Date().toISOString();
       finding.updatedAt = new Date().toISOString();
       session.updatedAt = new Date().toISOString();
       return next;

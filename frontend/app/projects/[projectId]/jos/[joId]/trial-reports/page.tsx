@@ -1,9 +1,10 @@
 "use client";
-import React, { useState, useCallback, useMemo, use } from "react";
+import React, { useState, useCallback, useMemo, useEffect, use } from "react";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { TrialReportSessionList } from "@/components/trial-report-session-list";
 import { TrialReportEditor } from "@/components/trial-report-editor";
+import { TrialSmartSearch } from "@/components/trial-smart-search";
 import { TrialSessionFormDialog } from "@/components/trial-session-form-dialog";
 import { useAppState, useAppDispatch } from "@/lib/store";
 import { uid } from "@/lib/format";
@@ -33,6 +34,7 @@ export default function TrialReportsPage({ params }: PageProps) {
   const [selectedId, setSelectedId] = useState<string | null>(
     sessions.length > 0 ? sessions[0].id : null
   );
+  const [highlightedFindingId, setHighlightedFindingId] = useState<string | null>(null);
   const [printSelectedIds, setPrintSelectedIds] = useState<string[]>([]);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
@@ -43,6 +45,31 @@ export default function TrialReportsPage({ params }: PageProps) {
     // Selection was invalidated (delete), auto-select first
     setTimeout(() => setSelectedId(sessions[0].id), 0);
   }
+
+  // Handle smart search jump to session and finding
+  const handleSmartSearchSelect = useCallback(
+    (sessionId: string, findingId?: string) => {
+      setSelectedId(sessionId);
+      if (findingId) {
+        setHighlightedFindingId(findingId);
+        // Wait a frame for the editor to render if session changed
+        setTimeout(() => {
+          const el = document.getElementById(`finding-${findingId}`);
+          if (el) {
+            el.scrollIntoView({ behavior: "smooth", block: "center" });
+          }
+        }, 120);
+      }
+    },
+    []
+  );
+
+  // Clear highlight after animation completes
+  useEffect(() => {
+    if (!highlightedFindingId) return;
+    const timer = setTimeout(() => setHighlightedFindingId(null), 2500);
+    return () => clearTimeout(timer);
+  }, [highlightedFindingId]);
 
   const handleCreateSubmit = useCallback(
     (prefix: string, trialDate: string, generatedName: string) => {
@@ -134,7 +161,7 @@ export default function TrialReportsPage({ params }: PageProps) {
         { label: "Trial Reports" },
       ]}
     >
-      {/* JO Context header */}
+      {/* JO Context header + Separate Smart Search Bar */}
       <div className="trial-page-context">
         <div>
           <span style={{ fontSize: 20, fontWeight: 800 }}>
@@ -149,6 +176,14 @@ export default function TrialReportsPage({ params }: PageProps) {
           >
             {jo.product} · {project.customer} · {jo.type}
           </span>
+        </div>
+
+        {/* Dedicated Smart Search (searches session, masalah, penyebab, perbaikan, PIC, target, status) */}
+        <div style={{ minWidth: 320, maxWidth: 460, flex: "1 1 320px" }}>
+          <TrialSmartSearch
+            sessions={sessions}
+            onSelectResult={handleSmartSearchSelect}
+          />
         </div>
       </div>
 
@@ -173,6 +208,7 @@ export default function TrialReportsPage({ params }: PageProps) {
               projectId={projectId}
               joId={joId}
               session={selectedSession}
+              highlightedFindingId={highlightedFindingId}
             />
           ) : (
             <div className="trial-page-empty">

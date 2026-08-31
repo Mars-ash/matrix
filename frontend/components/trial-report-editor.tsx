@@ -10,12 +10,14 @@ interface TrialReportEditorProps {
   projectId: string;
   joId: string;
   session: TrialSession;
+  highlightedFindingId?: string | null;
 }
 
 export function TrialReportEditor({
   projectId,
   joId,
   session,
+  highlightedFindingId = null,
 }: TrialReportEditorProps) {
   const dispatch = useAppDispatch();
   const sortedFindings = sortTrialFindings(session.findings);
@@ -44,13 +46,39 @@ export function TrialReportEditor({
     const newFinding: TrialFinding = {
       id: uid(),
       order: maxOrder + 1,
-      problem: "",
-      cause: "",
-      correctiveAction: "",
-      targetDate: "",
-      pic: "",
-      status: "On Process",
-      photos: [],
+      problems: [
+        {
+          id: uid(),
+          order: 1,
+          text: "",
+          photos: [],
+          createdAt: now,
+          updatedAt: now,
+        },
+      ],
+      causes: [
+        {
+          id: uid(),
+          order: 1,
+          text: "",
+          photos: [],
+          createdAt: now,
+          updatedAt: now,
+        },
+      ],
+      correctiveActions: [
+        {
+          id: uid(),
+          order: 1,
+          text: "",
+          targetDate: "",
+          pic: "",
+          status: "On Process",
+          photos: [],
+          createdAt: now,
+          updatedAt: now,
+        },
+      ],
       createdAt: now,
       updatedAt: now,
     };
@@ -193,6 +221,7 @@ export function TrialReportEditor({
                 displayOrder={idx + 1}
                 isFirst={idx === 0}
                 isLast={idx === sortedFindings.length - 1}
+                isHighlighted={highlightedFindingId === f.id}
               />
             ))}
           </div>

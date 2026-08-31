@@ -149,27 +149,49 @@ export interface ActivityEntry {
 export const TRIAL_FINDING_STATUSES = ["On Process", "Close"] as const;
 export type TrialFindingStatus = (typeof TRIAL_FINDING_STATUSES)[number];
 
-/** A photo attached to a trial finding. */
-export interface TrialFindingPhoto {
+/** A photo attached to a trial finding entry. */
+export interface TrialEntryPhoto {
   id: string;
   name: string;
   previewUrl: string;
   addedAt: string; // ISO-8601
 }
 
-/** A single finding within a trial session. */
+/** Backward compatibility alias. */
+export type TrialFindingPhoto = TrialEntryPhoto;
+
+/** A text entry (Problem or Cause) within a trial finding. */
+export interface TrialTextEntry {
+  id: string;
+  order: number;
+  text: string;
+  photos: TrialEntryPhoto[];
+  createdAt: string; // ISO-8601
+  updatedAt: string; // ISO-8601
+}
+
+/** A corrective action entry within a trial finding. */
+export interface TrialCorrectiveActionEntry {
+  id: string;
+  order: number;
+  text: string;
+  targetDate: string; // YYYY-MM-DD
+  pic: string;
+  status: TrialFindingStatus;
+  photos: TrialEntryPhoto[];
+  createdAt: string; // ISO-8601
+  updatedAt: string; // ISO-8601
+}
+
+/** A single finding (container for problems, causes, corrective actions) within a trial session. */
 export interface TrialFinding {
   id: string;
   order: number;
-  problem: string;
-  cause: string;
-  correctiveAction: string;
-  targetDate: string;
-  pic: string;
-  status: TrialFindingStatus;
-  photos: TrialFindingPhoto[];
-  createdAt: string;
-  updatedAt: string;
+  problems: TrialTextEntry[];
+  causes: TrialTextEntry[];
+  correctiveActions: TrialCorrectiveActionEntry[];
+  createdAt: string; // ISO-8601
+  updatedAt: string; // ISO-8601
 }
 
 /** A trial session belonging to a JO. */

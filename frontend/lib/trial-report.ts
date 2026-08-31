@@ -2,7 +2,11 @@
 // Pure helper functions for trial session management.
 // No React dependency — these are plain functions over domain types.
 // ---------------------------------------------------------------------------
-import type { TrialSession, TrialFinding, TrialFindingStatus } from "./types";
+import type {
+  TrialSession,
+  TrialFinding,
+  TrialFindingStatus,
+} from "./types";
 import { uid } from "./format";
 
 /**
@@ -54,30 +58,65 @@ export function buildTrialSessionName(
 }
 
 /**
- * Derive the aggregate status of a trial session from its findings.
- * - Empty findings → "On Process"
- * - Any finding "On Process" → "On Process"
- * - All findings "Close" → "Close"
+ * Convert a 1-based finding order/number to letters: A, B, C... Z, AA, AB...
+ */
+export function formatFindingLetter(order: number): string {
+  let n = Math.max(1, Math.floor(order));
+  let result = "";
+  while (n > 0) {
+    const rem = (n - 1) % 26;
+    result = String.fromCharCode(65 + rem) + result;
+    n = Math.floor((n - 1) / 26);
+  }
+  return result;
+}
+
+/**
+ * Return a sorted copy of any entry array with an `order` property.
+ * Does not mutate input array.
+ */
+export function sortTrialEntries<T extends { order: number }>(
+  entries: T[]
+): T[] {
+  return [...entries].sort((a, b) => a.order - b.order);
+}
+
+/**
+ * Derive the aggregate status of a trial session from its corrective action entries.
+ * - No findings or no corrective actions → "On Process"
+ * - Any corrective action "On Process" → "On Process"
+ * - All corrective actions "Close" → "Close"
  */
 export function deriveTrialSessionStatus(
   session: TrialSession
 ): TrialFindingStatus {
-  if (session.findings.length === 0) return "On Process";
-  const allClose = session.findings.every((f) => f.status === "Close");
+  const allCorrectiveActions = session.findings.flatMap(
+    (f) => f.correctiveActions ?? []
+  );
+  if (allCorrectiveActions.length === 0) return "On Process";
+  const allClose = allCorrectiveActions.every((a) => a.status === "Close");
   return allClose ? "Close" : "On Process";
 }
 
 /**
- * Return a sorted copy of findings by `order`. Does not mutate input.
+ * Return a sorted copy of findings by `order`, with nested entries also sorted.
+ * Does not mutate input.
  */
 export function sortTrialFindings(findings: TrialFinding[]): TrialFinding[] {
-  return [...findings].sort((a, b) => a.order - b.order);
+  return [...findings]
+    .sort((a, b) => a.order - b.order)
+    .map((f) => ({
+      ...f,
+      problems: sortTrialEntries(f.problems ?? []),
+      causes: sortTrialEntries(f.causes ?? []),
+      correctiveActions: sortTrialEntries(f.correctiveActions ?? []),
+    }));
 }
 
 /**
  * Clone a trial session, generating new IDs and timestamps.
- * Copies finding text and statuses but empties all photos.
- * Re-sequences finding order values starting at 1.
+ * Copies finding text, target dates, PICs, and statuses, but empties all nested photos.
+ * Re-sequences finding and entry order values starting at 1.
  */
 export function cloneTrialSessionWithoutPhotos(
   source: TrialSession,
@@ -88,11 +127,36 @@ export function cloneTrialSessionWithoutPhotos(
   const now = new Date().toISOString();
   const clonedFindings: TrialFinding[] = sortTrialFindings(
     source.findings
-  ).map((f, idx) => ({
+  ).map((f, fIdx) => ({
     ...f,
     id: uid(),
-    order: idx + 1,
-    photos: [],
+    order: fIdx + 1,
+    problems: sortTrialEntries(f.problems ?? []).map((p, pIdx) => ({
+      ...p,
+      id: uid(),
+      order: pIdx + 1,
+      photos: [],
+      createdAt: now,
+      updatedAt: now,
+    })),
+    causes: sortTrialEntries(f.causes ?? []).map((c, cIdx) => ({
+      ...c,
+      id: uid(),
+      order: cIdx + 1,
+      photos: [],
+      createdAt: now,
+      updatedAt: now,
+    })),
+    correctiveActions: sortTrialEntries(f.correctiveActions ?? []).map(
+      (a, aIdx) => ({
+        ...a,
+        id: uid(),
+        order: aIdx + 1,
+        photos: [],
+        createdAt: now,
+        updatedAt: now,
+      })
+    ),
     createdAt: now,
     updatedAt: now,
   }));
