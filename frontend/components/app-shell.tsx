@@ -3,7 +3,7 @@ import React, { type ReactNode, useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAppState } from "@/lib/store";
-import type { JO } from "@/lib/types";
+import type { JO, Project } from "@/lib/types";
 
 interface AppShellProps {
   children: ReactNode;
@@ -16,9 +16,12 @@ interface NotifItem {
   joNumber: string;
   type: "h3" | "hday" | "overdue";
   daysText: string;
+  category: "subcont" | "control";
+  href: string;
+  subText: string;
 }
 
-function buildNotifications(projects: { jos: JO[] }[]): NotifItem[] {
+function buildNotifications(projects: Project[]): NotifItem[] {
   const results: NotifItem[] = [];
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -33,29 +36,41 @@ function buildNotifications(projects: { jos: JO[] }[]): NotifItem[] {
             target.setHours(0, 0, 0, 0);
             const diffDays = Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 
+            const supplierLabel = item.subcontSupplier ? ` · ${item.subcontSupplier}` : "";
+            const href = `/subcont?search=${encodeURIComponent(item.description)}`;
+
             if (diffDays < 0) {
               results.push({
                 id: `${item.id}-subcont`,
-                label: `${item.description} (Subcont)`,
+                label: item.description,
                 joNumber: jo.joNumber,
                 type: "overdue",
                 daysText: `Overdue ${Math.abs(diffDays)}d`,
+                category: "subcont",
+                href,
+                subText: `JO ${jo.joNumber} · Subcont${supplierLabel}`,
               });
             } else if (diffDays === 0) {
               results.push({
                 id: `${item.id}-subcont`,
-                label: `${item.description} (Subcont)`,
+                label: item.description,
                 joNumber: jo.joNumber,
                 type: "hday",
                 daysText: "Hari H",
+                category: "subcont",
+                href,
+                subText: `JO ${jo.joNumber} · Subcont${supplierLabel}`,
               });
             } else if (diffDays <= 3) {
               results.push({
                 id: `${item.id}-subcont`,
-                label: `${item.description} (Subcont)`,
+                label: item.description,
                 joNumber: jo.joNumber,
                 type: "h3",
                 daysText: `H-${diffDays}`,
+                category: "subcont",
+                href,
+                subText: `JO ${jo.joNumber} · Subcont${supplierLabel}`,
               });
             }
           }
@@ -66,30 +81,40 @@ function buildNotifications(projects: { jos: JO[] }[]): NotifItem[] {
               const target = new Date(ctrl.targetDate);
               target.setHours(0, 0, 0, 0);
               const diffDays = Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+              const href = `/projects/${project.id}/jos/${jo.id}#item-${item.id}`;
 
               if (diffDays < 0) {
                 results.push({
                   id: `${item.id}-${ctrl.process}`,
-                  label: `${item.description} (PO Mtl)`,
+                  label: item.description,
                   joNumber: jo.joNumber,
                   type: "overdue",
                   daysText: `Overdue ${Math.abs(diffDays)}d`,
+                  category: "control",
+                  href,
+                  subText: `JO ${jo.joNumber} · PO / Material Arrival`,
                 });
               } else if (diffDays === 0) {
                 results.push({
                   id: `${item.id}-${ctrl.process}`,
-                  label: `${item.description} (PO Mtl)`,
+                  label: item.description,
                   joNumber: jo.joNumber,
                   type: "hday",
                   daysText: "Hari H",
+                  category: "control",
+                  href,
+                  subText: `JO ${jo.joNumber} · PO / Material Arrival`,
                 });
               } else if (diffDays <= 3) {
                 results.push({
                   id: `${item.id}-${ctrl.process}`,
-                  label: `${item.description} (PO Mtl)`,
+                  label: item.description,
                   joNumber: jo.joNumber,
                   type: "h3",
                   daysText: `H-${diffDays}`,
+                  category: "control",
+                  href,
+                  subText: `JO ${jo.joNumber} · PO / Material Arrival`,
                 });
               }
             }
@@ -166,13 +191,13 @@ function NotificationBell() {
             position: "absolute",
             top: "calc(100% + 6px)",
             right: 0,
-            width: 320,
-            maxHeight: 360,
+            width: 340,
+            maxHeight: 420,
             overflowY: "auto",
             backgroundColor: "var(--color-bg-raised)",
             border: "1px solid var(--color-border)",
             borderRadius: 8,
-            boxShadow: "0 8px 24px rgba(0,0,0,0.18)",
+            boxShadow: "0 12px 32px rgba(0,0,0,0.25)",
             zIndex: 100,
           }}
         >
@@ -182,56 +207,121 @@ function NotificationBell() {
               borderBottom: "1px solid var(--color-border)",
               fontSize: 13,
               fontWeight: 600,
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
             }}
           >
-            Notifications
-            {notifications.length > 0 && (
-              <span style={{ fontWeight: 400, color: "var(--color-text-muted)", marginLeft: 6 }}>
-                ({notifications.length})
-              </span>
-            )}
+            <div>
+              Notifications
+              {notifications.length > 0 && (
+                <span style={{ fontWeight: 400, color: "var(--color-text-muted)", marginLeft: 6 }}>
+                  ({notifications.length})
+                </span>
+              )}
+            </div>
+            <Link
+              href="/subcont"
+              onClick={() => setOpen(false)}
+              style={{
+                fontSize: 11,
+                color: "var(--color-accent)",
+                textDecoration: "none",
+                fontWeight: 600,
+              }}
+            >
+              Subcont Tracker →
+            </Link>
           </div>
 
           {notifications.length === 0 ? (
-            <div style={{ padding: "20px 14px", textAlign: "center", fontSize: 12, color: "var(--color-text-muted)" }}>
-              No upcoming deadlines
+            <div style={{ padding: "24px 14px", textAlign: "center", fontSize: 12, color: "var(--color-text-muted)" }}>
+              Tidak ada deadline mendekati
             </div>
           ) : (
             notifications.map((n) => (
-              <div
+              <Link
                 key={n.id}
+                href={n.href}
+                onClick={() => setOpen(false)}
                 style={{
-                  padding: "8px 14px",
-                  borderBottom: "1px solid var(--color-border-subtle)",
+                  padding: "10px 14px",
+                  borderBottom: "1px solid var(--color-border-subtle, var(--color-border))",
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "center",
-                  gap: 8,
+                  gap: 10,
+                  textDecoration: "none",
+                  color: "inherit",
+                  transition: "background 80ms ease",
+                  cursor: "pointer",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = "var(--color-bg-hover)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = "transparent";
                 }}
               >
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div
+                    style={{
+                      fontSize: 12.5,
+                      fontWeight: 600,
+                      color: "var(--color-text)",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
                     {n.label}
                   </div>
-                  <div style={{ fontSize: 11, color: "var(--color-text-muted)" }}>
-                    {n.joNumber}
+                  <div
+                    style={{
+                      fontSize: 11,
+                      color: "var(--color-text-muted)",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 5,
+                      marginTop: 3,
+                    }}
+                  >
+                    {n.category === "subcont" ? (
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: "var(--color-accent)" }}>
+                        <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+                        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+                      </svg>
+                    ) : (
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: "var(--color-text-muted)" }}>
+                        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                        <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+                        <line x1="12" y1="22.08" x2="12" y2="12" />
+                      </svg>
+                    )}
+                    <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {n.subText}
+                    </span>
                   </div>
                 </div>
-                <span
-                  style={{
-                    flexShrink: 0,
-                    fontSize: 10,
-                    fontWeight: 700,
-                    color: typeColor[n.type],
-                    backgroundColor: `color-mix(in srgb, ${typeColor[n.type]} 12%, transparent)`,
-                    padding: "2px 8px",
-                    borderRadius: 4,
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {n.daysText}
-                </span>
-              </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                  <span
+                    style={{
+                      fontSize: 10.5,
+                      fontWeight: 700,
+                      color: typeColor[n.type],
+                      backgroundColor: `color-mix(in srgb, ${typeColor[n.type]} 14%, transparent)`,
+                      padding: "2px 8px",
+                      borderRadius: 4,
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {n.daysText}
+                  </span>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--color-text-muted)", opacity: 0.6 }}>
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
+                </div>
+              </Link>
             ))
           )}
         </div>

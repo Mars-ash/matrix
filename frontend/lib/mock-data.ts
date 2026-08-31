@@ -20,6 +20,18 @@ function id(prefix = "mock"): string {
   return `${prefix}-${++_id}`;
 }
 
+function relativeDate(offsetDays: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + offsetDays);
+  return d.toISOString().split("T")[0];
+}
+
+function relativeIso(offsetDays: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + offsetDays);
+  return d.toISOString();
+}
+
 function partCtrl(
   material: ControlStatus,
   arrival: ControlStatus,
@@ -54,7 +66,17 @@ function partItem(
   mat: string,
   qty: number,
   hrc: string,
-  controls: Control[]
+  controls: Control[],
+  subcontOpts?: {
+    isSubcont?: boolean;
+    subcontSupplier?: string;
+    subcontProcess?: string;
+    subcontStatus?: "In Progress" | "Done";
+    subcontDispatchDate?: string;
+    subcontDoneAt?: string;
+    arrivalTargetDate?: string;
+    subcontNotes?: string;
+  }
 ): Item {
   return {
     id: id("pi"),
@@ -65,6 +87,7 @@ function partItem(
     qty,
     hrc,
     controls,
+    ...subcontOpts,
   };
 }
 
@@ -106,13 +129,32 @@ const parts110: Item[] = [
   partItem("5", "Punch Holder", "400×300×35", "S50C", 1, "",
     partCtrl("Done", "Done", "In Progress", "-", "Not Started", "-", "Not Started")),
   partItem("6", "Die Plate", "400×300×30", "SKD11", 1, "58-60",
-    partCtrl("Done", "Done", "In Progress", "Not Started", "Not Started", "Not Started", "Not Started")),
+    partCtrl("Done", "Done", "Done", "In Progress SC", "Not Started", "Not Started", "Not Started"),
+    {
+      isSubcont: true,
+      subcontSupplier: "CHIYODA",
+      subcontProcess: "Hardening",
+      subcontStatus: "In Progress",
+      subcontDispatchDate: relativeIso(-4),
+      arrivalTargetDate: relativeDate(2),
+      subcontNotes: "Vacuum hardening 58-60 HRC",
+    }),
   partItem("7", "Stripper Plate", "400×300×22", "S50C", 1, "",
     partCtrl("Done", "Done", "Not Started", "-", "Not Started", "-", "Not Started")),
   partItem("8", "Backing Plate", "400×300×16", "S50C", 1, "",
     partCtrl("Done", "Done", "Not Started", "-", "-", "-", "Not Started")),
   partItem("9", "Piercing Punch A", "Ø12×70", "SKD11", 4, "58-60",
-    partCtrl("Done", "Done", "Done", "Done", "Done", "-", "Not Started")),
+    partCtrl("Done", "Done", "Done", "Done", "Done", "-", "Not Started"),
+    {
+      isSubcont: true,
+      subcontSupplier: "PUTRA",
+      subcontProcess: "Grinding",
+      subcontStatus: "Done",
+      subcontDispatchDate: relativeIso(-8),
+      subcontDoneAt: relativeIso(0),
+      arrivalTargetDate: relativeDate(-2),
+      subcontNotes: "Cylindrical grinding Ø12 h6",
+    }),
   partItem("10", "Piercing Punch B", "□10×70", "SKD11", 2, "58-60",
     partCtrl("Done", "Done", "Done", "Done", "Done", "Not Started", "Not Started")),
   partItem("11", "Pilot Pin", "Ø6×60", "SKD11", 4, "58-60",
@@ -126,9 +168,27 @@ const parts110: Item[] = [
   partItem("15", "Spring", "TF30×60", "SWP-A", 6, "",
     partCtrl("Done", "Done", "-", "-", "-", "-", "Not Started")),
   partItem("16", "Blanking Punch", "special", "SKD11", 1, "58-60",
-    partCtrl("Done", "Done", "In Progress", "Not Started", "Not Started", "In Progress", "Not Started")),
+    partCtrl("Done", "Done", "Done", "Done", "Done", "In Progress SC", "Not Started"),
+    {
+      isSubcont: true,
+      subcontSupplier: "PRO-TECH",
+      subcontProcess: "Wirecut",
+      subcontStatus: "In Progress",
+      subcontDispatchDate: relativeIso(-6),
+      arrivalTargetDate: relativeDate(-1),
+      subcontNotes: "Wirecut profile clearance 0.02mm",
+    }),
   partItem("17", "Forming Punch", "special", "SKD11", 1, "58-60",
-    partCtrl("Done", "Done", "In Progress", "Not Started", "Not Started", "Not Started", "Not Started")),
+    partCtrl("Done", "Done", "In Progress SC", "Not Started", "Not Started", "Not Started", "Not Started"),
+    {
+      isSubcont: true,
+      subcontSupplier: "GEMA",
+      subcontProcess: "Machining",
+      subcontStatus: "In Progress",
+      subcontDispatchDate: relativeIso(-2),
+      arrivalTargetDate: relativeDate(0),
+      subcontNotes: "CNC 3D profiling",
+    }),
   partItem("18", "Bending Punch", "special", "SKD11", 1, "58-60",
     partCtrl("Done", "In Progress", "Not Started", "Not Started", "Not Started", "Not Started", "Not Started")),
   partItem("19", "Cam Driver", "80×50×100", "S50C", 1, "",
@@ -545,7 +605,16 @@ const jo111: JO = {
         partItem("2", "Lower Plate", "500×400×50", "S50C", 1, "",
           partCtrl("Done", "Done", "In Progress", "-", "Not Started", "-", "Not Started")),
         partItem("3", "Forming Insert", "80×60×40", "SKD11", 2, "58-60",
-          partCtrl("Done", "Done", "Done", "Done", "In Progress", "Not Started", "Not Started")),
+          partCtrl("Done", "Done", "Done", "In Progress SC", "Not Started", "Not Started", "Not Started"),
+          {
+            isSubcont: true,
+            subcontSupplier: "KANETSU",
+            subcontProcess: "Hardening",
+            subcontStatus: "In Progress",
+            subcontDispatchDate: relativeIso(-3),
+            arrivalTargetDate: relativeDate(5),
+            subcontNotes: "Heat treatment + subzero",
+          }),
         partItem("4", "Guide Post", "Ø32×180", "SK3", 4, "58-60",
           partCtrl("Done", "Done", "Done", "Done", "Done", "-", "Not Started")),
       ],
@@ -565,7 +634,7 @@ const jo111: JO = {
     {
       id: id("act"),
       timestamp: "2026-08-12T11:00:00+07:00",
-      message: "Forming Insert → Grinding → In Progress.",
+      message: "Forming Insert → Hardening → In Progress SC (KANETSU).",
     },
   ],
 };
@@ -589,7 +658,16 @@ const jo112: JO = {
         partItem("1", "Base Plate", "300×200×25", "S50C", 1, "",
           partCtrl("Done", "In Progress", "Not Started", "-", "-", "-", "Not Started")),
         partItem("2", "Locator Block", "50×30×40", "S45C", 4, "",
-          partCtrl("In Progress", "Not Started", "Not Started", "-", "-", "-", "Not Started")),
+          partCtrl("Done", "Done", "In Progress SC", "-", "-", "-", "Not Started"),
+          {
+            isSubcont: true,
+            subcontSupplier: "NCI",
+            subcontProcess: "Machining",
+            subcontStatus: "In Progress",
+            subcontDispatchDate: relativeIso(-5),
+            arrivalTargetDate: relativeDate(-3),
+            subcontNotes: "Machining slot 10mm H7",
+          }),
       ],
     },
   ],

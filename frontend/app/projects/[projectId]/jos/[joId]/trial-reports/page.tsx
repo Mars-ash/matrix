@@ -178,7 +178,7 @@ export default function TrialReportsPage({ params }: PageProps) {
           </span>
         </div>
 
-        {/* Dedicated Smart Search (searches session, masalah, penyebab, perbaikan, PIC, target, status) */}
+        {/* Dedicated Search Bar */}
         <div style={{ minWidth: 320, maxWidth: 460, flex: "1 1 320px" }}>
           <TrialSmartSearch
             sessions={sessions}

@@ -1,6 +1,7 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { useAppState, useAppDispatch } from "@/lib/store";
 import type { Item, Project, JO, Category, Control } from "@/lib/types";
@@ -52,21 +53,31 @@ function formatDate(isoString?: string) {
   return date.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 }
 
-export default function SubcontTrackingPage() {
+function SubcontTrackingContent() {
   const { projects } = useAppState();
   const dispatch = useAppDispatch();
+  const searchParams = useSearchParams();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [groupMode, setGroupMode] = useState<GroupMode>("none");
   const [sortMode, setSortMode] = useState<SortMode>("newest");
-  const currentTime = React.useSyncExternalStore(
-    (cb) => {
-      const interval = setInterval(cb, 10000);
-      return () => clearInterval(interval);
-    },
-    () => Date.now(),
-    () => 0
-  );
+  const [currentTime, setCurrentTime] = useState(0);
+
+  useEffect(() => {
+    setCurrentTime(Date.now());
+    const interval = setInterval(() => {
+      setCurrentTime(Date.now());
+    }, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Sync searchQuery from URL params reactively
+  useEffect(() => {
+    const q = searchParams.get("search") || searchParams.get("q");
+    if (q) {
+      setSearchQuery(q);
+    }
+  }, [searchParams]);
 
   const [editingNotesRow, setEditingNotesRow] = useState<SubcontRow | null>(null);
   const [notesTemp, setNotesTemp] = useState("");
@@ -157,6 +168,15 @@ export default function SubcontTrackingPage() {
       const timeA = a.item.arrivalTargetDate ? new Date(a.item.arrivalTargetDate).getTime() : Infinity;
       const timeB = b.item.arrivalTargetDate ? new Date(b.item.arrivalTargetDate).getTime() : Infinity;
       return timeA - timeB;
+    }
+    if (sortMode === "jo") {
+      return a.jo.joNumber.localeCompare(b.jo.joNumber);
+    }
+    if (sortMode === "supplier") {
+      return (a.item.subcontSupplier || "").localeCompare(b.item.subcontSupplier || "");
+    }
+    if (sortMode === "qty") {
+      return (b.item.qty || 0) - (a.item.qty || 0);
     }
     return 0;
   });
@@ -526,6 +546,18 @@ export default function SubcontTrackingPage() {
             Melewati target kedatangan
           </div>
         </div>
+
+        <div className="card-static" style={{ padding: "10px 14px", display: "flex", flexDirection: "column", gap: 3 }}>
+          <div style={{ fontSize: 10, fontWeight: 600, color: "var(--color-status-done)", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+            Recently Done
+          </div>
+          <div style={{ fontSize: 22, fontWeight: 700, fontFamily: "var(--font-mono)", color: "var(--color-status-done)" }}>
+            {totalRecentlyDone}
+          </div>
+          <div style={{ fontSize: 11, color: "var(--color-text-muted)" }}>
+            Selesai dalam 5 menit
+          </div>
+        </div>
       </div>
 
       {/* Toolbar: Grouping, Sorting, and Search */}
@@ -572,6 +604,9 @@ export default function SubcontTrackingPage() {
             >
               <option value="newest">Terbaru Diinput</option>
               <option value="deadline">Target Arrival Terdekat</option>
+              <option value="jo">Nomor JO</option>
+              <option value="supplier">Nama Supplier</option>
+              <option value="qty">Jumlah Qty (Terbanyak)</option>
             </select>
           </div>
 
@@ -635,5 +670,13 @@ export default function SubcontTrackingPage() {
         />
       </Dialog>
     </AppShell>
+  );
+}
+
+export default function SubcontTrackingPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: 24, fontSize: 13, color: "var(--color-text-muted)" }}>Loading Subcont Tracker...</div>}>
+      <SubcontTrackingContent />
+    </Suspense>
   );
 }
