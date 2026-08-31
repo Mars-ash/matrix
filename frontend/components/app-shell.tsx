@@ -37,7 +37,7 @@ function buildNotifications(projects: Project[]): NotifItem[] {
             const diffDays = Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 
             const supplierLabel = item.subcontSupplier ? ` · ${item.subcontSupplier}` : "";
-            const href = `/subcont?search=${encodeURIComponent(item.description)}`;
+            const href = `/subcont?item=${item.id}#subcont-item-${item.id}`;
 
             if (diffDays < 0) {
               results.push({
@@ -81,7 +81,7 @@ function buildNotifications(projects: Project[]): NotifItem[] {
               const target = new Date(ctrl.targetDate);
               target.setHours(0, 0, 0, 0);
               const diffDays = Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-              const href = `/projects/${project.id}/jos/${jo.id}#item-${item.id}`;
+              const href = `/projects/${project.id}/jos/${jo.id}?item=${item.id}#item-${item.id}`;
 
               if (diffDays < 0) {
                 results.push({

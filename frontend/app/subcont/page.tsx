@@ -62,6 +62,7 @@ function SubcontTrackingContent() {
   const [groupMode, setGroupMode] = useState<GroupMode>("none");
   const [sortMode, setSortMode] = useState<SortMode>("newest");
   const [currentTime, setCurrentTime] = useState(0);
+  const [highlightedItemId, setHighlightedItemId] = useState<string | null>(null);
 
   useEffect(() => {
     setCurrentTime(Date.now());
@@ -71,8 +72,26 @@ function SubcontTrackingContent() {
     return () => clearInterval(interval);
   }, []);
 
-  // Sync searchQuery from URL params reactively
+  // Clear highlight animation after 2.5s
   useEffect(() => {
+    if (!highlightedItemId) return;
+    const timer = setTimeout(() => setHighlightedItemId(null), 2500);
+    return () => clearTimeout(timer);
+  }, [highlightedItemId]);
+
+  // Handle direct item jump from notifications or URL
+  useEffect(() => {
+    const targetItemId = searchParams.get("item");
+    if (targetItemId) {
+      setHighlightedItemId(targetItemId);
+      setTimeout(() => {
+        const el = document.getElementById(`subcont-item-${targetItemId}`);
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      }, 150);
+    }
+
     const q = searchParams.get("search") || searchParams.get("q");
     if (q) {
       setSearchQuery(q);
@@ -204,7 +223,12 @@ function SubcontTrackingContent() {
             const isDone = row.item.subcontStatus === "Done";
 
             return (
-              <tr key={row.item.id} style={{ opacity: isDone ? 0.75 : 1 }}>
+              <tr
+                key={row.item.id}
+                id={`subcont-item-${row.item.id}`}
+                className={highlightedItemId === row.item.id ? "row-highlight" : undefined}
+                style={{ opacity: isDone ? 0.75 : 1 }}
+              >
                 {/* JO */}
                 <td>
                   <Link

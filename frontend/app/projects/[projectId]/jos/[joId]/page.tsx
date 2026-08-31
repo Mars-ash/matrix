@@ -77,6 +77,22 @@ export default function JoDetailPage({ params }: PageProps) {
     return () => clearTimeout(timer);
   }, [highlightedItemId]);
 
+  // Handle direct item jump from URL or notification link
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const urlParams = new URLSearchParams(window.location.search);
+    const targetItemId = urlParams.get("item") || window.location.hash.replace("#item-", "").replace("#", "");
+    if (targetItemId) {
+      setHighlightedItemId(targetItemId);
+      setTimeout(() => {
+        const el = document.getElementById(`item-${targetItemId}`);
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      }, 150);
+    }
+  }, []);
+
   // Bulk selection handlers
   const handleToggleSelectItem = useCallback((itemId: string) => {
     setSelectedItemIds((prev) =>
