@@ -1,4 +1,4 @@
-# Simple PO / PO Mtl Item Tracking Design
+# PO Tracker Page Design
 
 Date: 2026-09-01
 Project: MATRIX Project Controlling
@@ -6,83 +6,137 @@ Scope: Frontend prototype only, in-memory state
 
 ## 1. Purpose
 
-Add simple per-item tracking for `PO` and `PO Mtl` without introducing a separate tracker page or widening the JO process table.
+Add a dedicated `PO Tracker` page for monitoring item-level `PO` and `PO Mtl` work, with behavior similar to the existing `SC Tracker`.
 
-The current process table already has:
-
-- `PO Mtl` / `Material` for Part rows
-- `PO` for Component rows
-- `Arrival` as a separate process column
-
-This design keeps that structure and adds lightweight detail fields behind the existing `PO` / `PO Mtl` cell.
+The page solves the problem of checking PO/PO Mtl progress item by item from inside each JO table. It gives users one consolidated tracker view while keeping initial PO input and bulk start actions inside the JO page.
 
 ## 2. Approved Direction
 
-Use the existing `PO` / `PO Mtl` process cell as the control point.
+Create a dedicated PO Tracker page.
 
-When a user clicks the cell, open a compact detail dialog or panel for that item and process. The detail is saved per item row, not shared across multiple items.
+The PO Tracker page uses the same general table structure and workflow style as `SC Tracker`, with these column changes:
 
-The cell remains visually compact in the table.
+- Replace `Proses` with `No. PO`.
+- Replace `Delivery` with `Tanggal PO`.
 
-## 3. Data Ownership
+The PO Tracker table columns are:
 
-Tracking is per item.
+```text
+JO | Item | Qty | Supplier | No. PO | Tanggal PO | Target Arrival | Status | Notes
+```
 
-Each Part item may store PO Mtl tracking detail.
+## 3. Source Of Rows
 
-Each Component item may store PO tracking detail.
+PO Tracker rows come from existing item process controls:
 
-The tracking detail belongs to the item row and does not create a global PO object.
+- Part item `Material` process is displayed as `PO Mtl`.
+- Component item `PO` process is displayed as `PO`.
 
-## 4. Fields
+Default state:
 
-The simple tracking detail contains:
+- New/default `PO Mtl` and `PO` controls start as `Not Started`.
+- `Not Started` rows are not shown in PO Tracker.
 
-- `Status`
-- `PO No`
-- `Supplier`
-- `Target Arrival`
-- `Notes`
+Tracker visibility:
 
-`Status` uses the existing process statuses:
+- When the user starts PO/PO Mtl from the JO page, the status changes to `In Progress`.
+- Once status is `In Progress`, `Problem`, or recently `Done`, the item appears in PO Tracker.
+- `Done` rows may follow the same temporary visibility pattern as SC Tracker, then archive from the active view.
 
-- `Done`
-- `In Progress`
+## 4. Input Ownership
+
+Initial PO/PO Mtl input stays on the JO page.
+
+The intended start flow is:
+
+1. User selects one or more item rows in the JO page.
+2. User runs a bulk operation such as `Start PO`.
+3. User chooses whether the target process is `PO Mtl` or `PO`, depending on item kind.
+4. User fills shared fields once:
+   - `No. PO`
+   - `Supplier`
+   - `Tanggal PO`
+   - `Target Arrival`
+   - `Notes`
+5. System sets each matching selected item process to `In Progress`.
+6. Those items automatically appear in PO Tracker.
+
+Users may still edit individual PO details later from the JO page or PO Tracker.
+
+## 5. PO Tracker Page Behavior
+
+The PO Tracker page should support:
+
+- Search by JO, item number, item description, supplier, and PO number.
+- Grouping by:
+  - All
+  - Per JO
+  - Per Supplier
+- Sorting by:
+  - Tanggal PO
+  - Target Arrival
+  - JO
+  - Supplier
+  - Qty
+- Inline editing for:
+  - Qty
+  - Supplier
+  - No. PO
+  - Tanggal PO
+  - Target Arrival
+  - Status
+  - Notes
+
+The page should link each row back to the related JO.
+
+## 6. Status Rules
+
+PO/PO Mtl uses the existing process status values:
+
 - `Not Started`
+- `In Progress`
+- `Done`
 - `Problem`
 - `-`
 
-`Problem` keeps the existing behavior where notes are required.
+`In Progress SC` is not part of PO Tracker workflow.
 
-## 5. Table Behavior
+`Problem` requires notes, consistent with existing process status behavior.
 
-The JO table should not gain permanent extra columns for `PO No`, `Supplier`, or `Target Arrival`.
+`Done` means the PO/PO Mtl step is completed. It does not automatically mark `Arrival` as `Done`.
 
-The cell display should stay compact and show only useful summary information, for example:
+## 7. Arrival Relationship
 
-```text
-In Progress
-PO-0012 - Target 2026-09-12
-```
+`PO` / `PO Mtl` and `Arrival` remain separate process controls.
 
-If `Target Arrival` is overdue and the item `Arrival` process is not `Done`, the cell should show a warning state.
+- `PO` / `PO Mtl` tracks the order/purchasing step.
+- `Arrival` tracks the physical arrival of material or component.
 
-## 6. Arrival Relationship
+Changing PO/PO Mtl status does not automatically change Arrival status.
 
-`PO` / `PO Mtl` and `Arrival` remain separate controls.
+If `Target Arrival` is overdue and the sibling `Arrival` process is not `Done`, the PO Tracker row should show a warning.
 
-- `PO` / `PO Mtl` means the purchasing or material-order process is being tracked.
-- `Arrival` means the material or component has physically arrived.
+## 8. KPI Cards
 
-Changing `PO` / `PO Mtl` does not automatically mark `Arrival` as `Done`.
+Use SC Tracker-style KPI cards, adjusted for PO:
 
-## 7. Explicit Non-Goals
+- `PO Aktif`
+- `Mendekati Arrival`
+- `Overdue`
+- `Recently Done`
+
+`Recently Done` may use the same short post-completion visibility behavior as SC Tracker.
+
+## 9. Navigation
+
+Add PO Tracker navigation near the existing SC Tracker entry point.
+
+The existing JO page remains the main place to select items and run start/bulk actions.
+
+## 10. Explicit Non-Goals
 
 Do not add:
 
-- A new global PO tracker page
-- A new large tracker table
-- Shared PO records across multiple items
 - Backend persistence
 - PostgreSQL changes
 - Laravel API endpoints
@@ -99,27 +153,31 @@ Do not change:
 
 - JO progress formula
 - Category progress formula
-- Subcont tracker behavior
+- SC Tracker behavior
 - Trial Report behavior
 - Existing process photo behavior
 
-## 8. Prototype Constraints
+## 11. Prototype Constraints
 
 All data remains frontend-only and in-memory.
 
-Refresh may reset PO / PO Mtl tracking data to mock baseline.
+Refresh may reset PO Tracker data to mock baseline.
 
-The implementation should reuse existing process-cell patterns, status handling, dialogs, and styling conventions.
+The implementation should reuse existing SC Tracker patterns where practical.
 
-## 9. Acceptance Criteria
+## 12. Acceptance Criteria
 
-- User can edit simple PO Mtl tracking detail for a Part item.
-- User can edit simple PO tracking detail for a Component item.
-- Tracking is stored per item row.
-- The JO table remains compact and does not add permanent PO detail columns.
-- The PO / PO Mtl cell shows status and optional summary detail.
-- Overdue `Target Arrival` is visibly warned when `Arrival` is not `Done`.
-- `Arrival` remains a separate process control.
-- `Problem` status still requires notes.
-- JO and category progress calculations continue to use existing process status rules.
-- No backend, database, localStorage, or global tracker page is added.
+- New/default Part `PO Mtl` and Component `PO` controls start as `Not Started`.
+- PO Tracker does not show untouched `Not Started` PO/PO Mtl rows.
+- JO page provides a bulk operation to start PO/PO Mtl for selected items.
+- Bulk start sets matching selected PO/PO Mtl controls to `In Progress`.
+- Bulk start records `No. PO`, `Supplier`, `Tanggal PO`, `Target Arrival`, and `Notes`.
+- Started PO/PO Mtl items automatically appear in PO Tracker.
+- PO Tracker columns are `JO`, `Item`, `Qty`, `Supplier`, `No. PO`, `Tanggal PO`, `Target Arrival`, `Status`, and `Notes`.
+- PO Tracker supports search, grouping, sorting, and inline editing similar to SC Tracker.
+- PO Tracker row links back to the related JO.
+- Overdue `Target Arrival` is visibly warned when sibling `Arrival` is not `Done`.
+- `Arrival` remains a separate process control and is not auto-marked by PO changes.
+- `Problem` status requires notes.
+- No backend, database, localStorage, or PO photos are added.
+

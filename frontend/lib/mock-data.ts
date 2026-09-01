@@ -205,6 +205,14 @@ const parts110: Item[] = [
 parts110[parts110.length - 1].controls[1].notes =
   "Anomalous source value (12) — requires verification.";
 
+// Sample PO Mtl tracking on Lifter (Part)
+parts110[20].controls[0].poTracking = {
+  poNo: "PO-MTL-2601",
+  supplier: "PT Baja Makmur",
+  targetArrival: relativeDate(-1),
+  notes: "Material SKD11 blok",
+};
+
 const components110: Item[] = [
   compItem("1", "Coil Spring", "TF25×40", "SWP-A", 4, "", compCtrl("Done", "Done")),
   compItem("2", "Socket Head Cap Screw", "M10×35", "SCM435", 12, "", compCtrl("Done", "Done")),
@@ -220,6 +228,14 @@ const components110: Item[] = [
   compItem("12", "Guide Bushing", "MYKP 38-50", "Brass", 4, "", compCtrl("Done", "Done")),
   compItem("13", "Shank", "Ø40", "S45C", 1, "", compCtrl("Done", "In Progress")),
 ];
+
+// Sample PO tracking on Urethane Pad (Component)
+components110[7].controls[0].poTracking = {
+  poNo: "PO-MIS-8821",
+  supplier: "Misumi Indonesia",
+  targetArrival: relativeDate(2),
+  notes: "Standard urethane pad hardness 90",
+};
 
 // ---------------------------------------------------------------------------
 // Mock trial sessions for JO 126.110

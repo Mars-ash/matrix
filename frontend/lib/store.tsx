@@ -22,6 +22,7 @@ import type {
   TrialTextEntry,
   TrialCorrectiveActionEntry,
   TrialEntryPhoto,
+  PoTrackingDetail,
 } from "./types";
 import { INITIAL_PROJECTS } from "./mock-data";
 import { defaultControls } from "./category";
@@ -165,6 +166,17 @@ export type AppAction =
       itemId: string;
       process: string;
       photoId: string;
+    }
+  | {
+      type: "UPDATE_PO_TRACKING";
+      projectId: string;
+      joId: string;
+      categoryId: string;
+      itemId: string;
+      process: "PO" | "Material";
+      status: ControlStatus;
+      problemNotes: string;
+      tracking: PoTrackingDetail;
     }
   | {
       type: "CREATE_TRIAL_SESSION";
@@ -445,6 +457,49 @@ function reducer(state: AppState, action: AppAction): AppState {
       if (!control) return state;
 
       control.targetDate = action.targetDate;
+      return next;
+    }
+
+    case "UPDATE_PO_TRACKING": {
+      const project = next.projects.find((p) => p.id === action.projectId);
+      const jo = project?.jos.find((j) => j.id === action.joId);
+      const cat = jo?.categories.find((c) => c.id === action.categoryId);
+      const item = cat?.items.find((i) => i.id === action.itemId);
+      if (!item) return state;
+
+      const control = item.controls.find((c) => c.process === action.process);
+      if (!control) return state;
+
+      if (action.process !== "PO" && action.process !== "Material") {
+        return state;
+      }
+
+      const trimmedProblemNotes = (action.problemNotes || "").trim();
+      if (action.status === "Problem" && !trimmedProblemNotes) {
+        return state;
+      }
+
+      control.status = action.status;
+      control.notes = action.status === "Problem" ? trimmedProblemNotes : "";
+      control.poTracking = {
+        poNo: (action.tracking.poNo || "").trim(),
+        supplier: (action.tracking.supplier || "").trim(),
+        targetArrival: (action.tracking.targetArrival || "").trim(),
+        notes: (action.tracking.notes || "").trim(),
+      };
+
+      if (action.status === "In Progress" && !control.inProgressAt) {
+        control.inProgressAt = new Date().toISOString();
+      }
+
+      const processLabel = action.process === "Material" ? "PO Mtl" : "PO";
+      const poSummary = control.poTracking.poNo ? ` (${control.poTracking.poNo})` : "";
+      addActivity(
+        jo!,
+        `Updated ${processLabel}${poSummary} on ${item.description} → ${action.status}${
+          control.notes ? `. Note: ${control.notes}` : ""
+        }`
+      );
       return next;
     }
 

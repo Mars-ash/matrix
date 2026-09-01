@@ -3,6 +3,8 @@ import React, { useState } from "react";
 import type { Control, ControlStatus } from "@/lib/types";
 import { StatusSelect } from "./status-select";
 import { ProcessPhotoDialog } from "./process-photo-dialog";
+import { PoTrackingDialog } from "./po-tracking-dialog";
+import { poTrackingSummary, getPoTrackingDeadline, isPoTrackingProcess } from "@/lib/po-tracking";
 import { useAppDispatch } from "@/lib/store";
 
 interface ProcessControlCellProps {
@@ -12,6 +14,7 @@ interface ProcessControlCellProps {
   categoryId: string;
   itemId: string;
   itemDescription: string;
+  arrivalStatus?: ControlStatus;
   onStatusChange: (newStatus: ControlStatus, notes: string) => void;
 }
 
@@ -37,12 +40,6 @@ function getDeadlineBadge(targetDate?: string, status?: ControlStatus): { text: 
   return null;
 }
 
-function formatDate(isoString?: string) {
-  if (!isoString) return "-";
-  const date = new Date(isoString);
-  return date.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
-}
-
 export function ProcessControlCell({
   control,
   projectId,
@@ -50,26 +47,53 @@ export function ProcessControlCell({
   categoryId,
   itemId,
   itemDescription,
+  arrivalStatus,
   onStatusChange,
 }: ProcessControlCellProps) {
   const dispatch = useAppDispatch();
   const [photoDialogOpen, setPhotoDialogOpen] = useState(false);
+  const [poDialogOpen, setPoDialogOpen] = useState(false);
   const photoCount = control.photos?.length ?? 0;
 
-  const isPoMaterial = control.process === "PO" || control.process === "Material";
+  const isPoMaterial = isPoTrackingProcess(control.process);
   const isArrival = control.process === "Arrival";
   const showArrivalDatePicker = isArrival && (control.status !== "Done" || Boolean(control.targetDate));
   const deadline = isArrival ? getDeadlineBadge(control.targetDate, control.status) : null;
+
+  const poSummary = isPoMaterial ? poTrackingSummary(control) : null;
+  const poDeadline = isPoMaterial
+    ? getPoTrackingDeadline(control.poTracking?.targetArrival, arrivalStatus)
+    : null;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
       <StatusSelect value={control.status} notes={control.notes} onChange={onStatusChange} process={control.process} />
 
-      {/* PO Mtl: Auto Start Date display */}
-      {isPoMaterial && control.status === "In Progress" && control.inProgressAt && (
-        <span style={{ fontSize: 10, color: "var(--color-text-muted)", whiteSpace: "nowrap" }}>
-          Start: {formatDate(control.inProgressAt)}
-        </span>
+      {/* PO / PO Mtl: Compact summary and trigger to open PoTrackingDialog */}
+      {isPoMaterial && (
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, marginTop: 2 }}>
+          <button
+            type="button"
+            className="po-tracking-trigger"
+            onClick={() => setPoDialogOpen(true)}
+            title={poSummary ? `Detail: ${poSummary}` : `Buka detail ${control.process === "Material" ? "PO Mtl" : "PO"}`}
+          >
+            {poSummary ? (
+              <span className="po-tracking-summary-text">{poSummary}</span>
+            ) : (
+              <span className="po-tracking-empty-btn">+ Detail</span>
+            )}
+          </button>
+
+          {poDeadline && (
+            <span
+              className={`po-deadline-badge po-deadline-${poDeadline.state}`}
+              title={`Target Kedatangan: ${control.poTracking?.targetArrival}`}
+            >
+              {poDeadline.text}
+            </span>
+          )}
+        </div>
       )}
 
       {/* Arrival: Compact Target Arrival Date Input */}
@@ -137,6 +161,21 @@ export function ProcessControlCell({
         categoryId={categoryId}
         itemId={itemId}
       />
+
+      {isPoMaterial && (
+        <PoTrackingDialog
+          open={poDialogOpen}
+          onClose={() => setPoDialogOpen(false)}
+          control={control}
+          itemDescription={itemDescription}
+          projectId={projectId}
+          joId={joId}
+          categoryId={categoryId}
+          itemId={itemId}
+          arrivalStatus={arrivalStatus}
+        />
+      )}
     </div>
   );
 }
+

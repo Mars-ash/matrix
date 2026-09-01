@@ -114,34 +114,38 @@ export function ControlTable({
                   <td style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>{item.material}</td>
                   <td style={{ textAlign: "center" }}>{item.qty}</td>
                   <td style={{ fontSize: 12, color: "var(--color-text-secondary)", textAlign: "center" }}>{item.hrc || "-"}</td>
-                  {processes.map((processName) => {
-                    const control = item.controls.find((c) => c.process === processName);
-                    if (!control) return <td key={processName} style={{ textAlign: "center" }}>-</td>;
-                    return (
-                      <td key={processName} style={{ textAlign: "center" }}>
-                        <ProcessControlCell
-                          control={control}
-                          projectId={projectId}
-                          joId={joId}
-                          categoryId={category.id}
-                          itemId={item.id}
-                          itemDescription={item.description}
-                          onStatusChange={(newStatus, notes) => {
-                            dispatch({
-                              type: "UPDATE_STATUS",
-                              projectId,
-                              joId,
-                              categoryId: category.id,
-                              itemId: item.id,
-                              process: processName,
-                              status: newStatus,
-                              notes,
-                            });
-                          }}
-                        />
-                      </td>
-                    );
-                  })}
+                  {(() => {
+                    const arrivalControl = item.controls.find((c) => c.process === "Arrival");
+                    return processes.map((processName) => {
+                      const control = item.controls.find((c) => c.process === processName);
+                      if (!control) return <td key={processName} style={{ textAlign: "center" }}>-</td>;
+                      return (
+                        <td key={processName} style={{ textAlign: "center" }}>
+                          <ProcessControlCell
+                            control={control}
+                            arrivalStatus={arrivalControl?.status}
+                            projectId={projectId}
+                            joId={joId}
+                            categoryId={category.id}
+                            itemId={item.id}
+                            itemDescription={item.description}
+                            onStatusChange={(newStatus, notes) => {
+                              dispatch({
+                                type: "UPDATE_STATUS",
+                                projectId,
+                                joId,
+                                categoryId: category.id,
+                                itemId: item.id,
+                                process: processName,
+                                status: newStatus,
+                                notes,
+                              });
+                            }}
+                          />
+                        </td>
+                      );
+                    });
+                  })()}
                 </tr>
               );
             })}

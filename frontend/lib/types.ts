@@ -93,6 +93,13 @@ export interface ProcessPhoto {
   addedAt: string; // ISO-8601
 }
 
+export interface PoTrackingDetail {
+  poNo: string;
+  supplier: string;
+  targetArrival: string; // YYYY-MM-DD
+  notes: string;
+}
+
 /** A single process-control cell. */
 export interface Control {
   process: ProcessName;
@@ -101,6 +108,7 @@ export interface Control {
   photos?: ProcessPhoto[];
   inProgressAt?: string; // Date string when marked "In Progress"
   targetDate?: string; // YYYY-MM-DD
+  poTracking?: PoTrackingDetail;
 }
 
 /** An item (part or component row) within a category. */

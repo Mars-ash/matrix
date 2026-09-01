@@ -75,13 +75,34 @@ function buildNotifications(projects: Project[]): NotifItem[] {
             }
           }
 
-          // 2. Material Arrival notifications
+          // 2. Material Arrival and PO notifications
+          const arrivalCtrl = item.controls.find((c) => c.process === "Arrival");
           for (const ctrl of item.controls) {
-            if ((ctrl.process === "Arrival" || ctrl.process === "Material" || ctrl.process === "PO") && ctrl.targetDate && ctrl.status !== "Done") {
-              const target = new Date(ctrl.targetDate);
+            const isPoMtl = ctrl.process === "Material" || ctrl.process === "PO";
+            const isArrival = ctrl.process === "Arrival";
+            if (!isPoMtl && !isArrival) continue;
+
+            const targetDateStr = isPoMtl
+              ? ctrl.poTracking?.targetArrival || ctrl.targetDate
+              : ctrl.targetDate;
+
+            const isDone = isPoMtl
+              ? arrivalCtrl?.status === "Done" || (ctrl.status === "Done" && !ctrl.poTracking?.targetArrival)
+              : ctrl.status === "Done";
+
+            if (targetDateStr && !isDone) {
+              const target = new Date(targetDateStr);
               target.setHours(0, 0, 0, 0);
               const diffDays = Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
               const href = `/projects/${project.id}/jos/${jo.id}?item=${item.id}#item-${item.id}`;
+
+              const processLabel =
+                ctrl.process === "Material"
+                  ? "PO Mtl"
+                  : ctrl.process === "PO"
+                  ? "PO"
+                  : "Material Arrival";
+              const supplierInfo = ctrl.poTracking?.supplier ? ` · ${ctrl.poTracking.supplier}` : "";
 
               if (diffDays < 0) {
                 results.push({
@@ -92,7 +113,7 @@ function buildNotifications(projects: Project[]): NotifItem[] {
                   daysText: `Overdue ${Math.abs(diffDays)}d`,
                   category: "control",
                   href,
-                  subText: `JO ${jo.joNumber} · PO / Material Arrival`,
+                  subText: `JO ${jo.joNumber} · ${processLabel}${supplierInfo}`,
                 });
               } else if (diffDays === 0) {
                 results.push({
@@ -103,7 +124,7 @@ function buildNotifications(projects: Project[]): NotifItem[] {
                   daysText: "Hari H",
                   category: "control",
                   href,
-                  subText: `JO ${jo.joNumber} · PO / Material Arrival`,
+                  subText: `JO ${jo.joNumber} · ${processLabel}${supplierInfo}`,
                 });
               } else if (diffDays <= 3) {
                 results.push({
@@ -114,7 +135,7 @@ function buildNotifications(projects: Project[]): NotifItem[] {
                   daysText: `H-${diffDays}`,
                   category: "control",
                   href,
-                  subText: `JO ${jo.joNumber} · PO / Material Arrival`,
+                  subText: `JO ${jo.joNumber} · ${processLabel}${supplierInfo}`,
                 });
               }
             }
