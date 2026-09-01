@@ -1076,6 +1076,15 @@ textarea.input {
   margin-top: 4px;
 }
 
+.trial-findings-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .trial-findings-list {
   flex-direction: column;
   gap: 12px;
@@ -1087,7 +1096,11 @@ textarea.input {
   border-radius: var(--radius-md);
   background: var(--color-bg);
   padding: 14px;
-  transition: border-color .1s;
+  transition: border-color .15s ease, background-color .15s ease;
+}
+
+.trial-finding-card.is-collapsed {
+  padding: 10px 14px;
 }
 
 .trial-finding-card:hover {
@@ -1097,17 +1110,96 @@ textarea.input {
 .trial-finding-header {
   justify-content: space-between;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   margin-bottom: 12px;
   display: flex;
   border-bottom: 1px solid var(--color-border);
   padding-bottom: 8px;
+  cursor: pointer;
+  user-select: none;
+  border-radius: var(--radius-sm);
+  transition: background-color .1s;
+}
+
+.trial-finding-card.is-collapsed .trial-finding-header {
+  margin-bottom: 0;
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.trial-finding-header:hover .trial-finding-number {
+  color: var(--color-accent);
+}
+
+.trial-finding-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+  flex: 1;
+}
+
+.trial-finding-header-right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.trial-finding-chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  border-radius: var(--radius-sm);
+  transition: transform 0.2s ease, color 0.1s ease;
+}
+
+.trial-finding-chevron:hover {
+  color: var(--color-text);
+}
+
+.trial-finding-chevron.is-open {
+  transform: rotate(0deg);
+}
+
+.trial-finding-chevron:not(.is-open) {
+  transform: rotate(-90deg);
+}
+
+.trial-finding-count-badge {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  background: var(--color-bg-raised);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 2px 8px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.trial-finding-snippet {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-style: italic;
 }
 
 .trial-finding-number {
   color: var(--color-text);
   font-size: 15px;
   font-weight: 800;
+  transition: color 0.15s ease;
 }
 
 .trial-finding-status-select {

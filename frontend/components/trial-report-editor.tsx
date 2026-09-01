@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { TrialFindingCard } from "./trial-finding-card";
 import { useAppDispatch } from "@/lib/store";
 import { uid } from "@/lib/format";
@@ -22,6 +22,46 @@ export function TrialReportEditor({
   const dispatch = useAppDispatch();
   const sortedFindings = sortTrialFindings(session.findings);
   const derivedStatus = deriveTrialSessionStatus(session);
+
+  // Set of expanded finding IDs (default: empty set -> all collapsed)
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+
+  // Reset expanded findings when session changes
+  useEffect(() => {
+    setExpandedIds(new Set());
+  }, [session.id]);
+
+  // Auto-expand highlighted finding if smart search jumps to it
+  useEffect(() => {
+    if (highlightedFindingId) {
+      setExpandedIds((prev) => {
+        if (prev.has(highlightedFindingId)) return prev;
+        const next = new Set(prev);
+        next.add(highlightedFindingId);
+        return next;
+      });
+    }
+  }, [highlightedFindingId]);
+
+  const handleToggleFinding = useCallback((findingId: string) => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(findingId)) {
+        next.delete(findingId);
+      } else {
+        next.add(findingId);
+      }
+      return next;
+    });
+  }, []);
+
+  const handleExpandAll = useCallback(() => {
+    setExpandedIds(new Set(session.findings.map((f) => f.id)));
+  }, [session.findings]);
+
+  const handleCollapseAll = useCallback(() => {
+    setExpandedIds(new Set());
+  }, []);
 
   const updateSession = (
     updates: Partial<
@@ -88,6 +128,12 @@ export function TrialReportEditor({
       joId,
       sessionId: session.id,
       finding: newFinding,
+    });
+    // Ensure newly created finding starts expanded so user can immediately edit it
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      next.add(newFinding.id);
+      return next;
     });
   };
 
@@ -182,17 +228,34 @@ export function TrialReportEditor({
 
       {/* Findings */}
       <div className="trial-findings-section">
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: 12,
-          }}
-        >
-          <h3 style={{ fontSize: 15, fontWeight: 600, margin: 0 }}>
-            Temuan ({sortedFindings.length})
-          </h3>
+        <div className="trial-findings-section-header">
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            <h3 style={{ fontSize: 15, fontWeight: 600, margin: 0 }}>
+              Temuan ({sortedFindings.length})
+            </h3>
+            {sortedFindings.length > 0 && (
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={handleExpandAll}
+                  style={{ fontSize: 11, padding: "2px 8px" }}
+                  title="Buka semua temuan"
+                >
+                  Buka Semua
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={handleCollapseAll}
+                  style={{ fontSize: 11, padding: "2px 8px" }}
+                  title="Tutup semua temuan"
+                >
+                  Tutup Semua
+                </button>
+              </div>
+            )}
+          </div>
           <button className="btn btn-primary btn-sm" onClick={handleAddFinding}>
             + Tambah Temuan
           </button>
@@ -222,6 +285,8 @@ export function TrialReportEditor({
                 isFirst={idx === 0}
                 isLast={idx === sortedFindings.length - 1}
                 isHighlighted={highlightedFindingId === f.id}
+                isOpen={expandedIds.has(f.id)}
+                onToggleOpen={() => handleToggleFinding(f.id)}
               />
             ))}
           </div>

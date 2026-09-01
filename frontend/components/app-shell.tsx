@@ -230,7 +230,7 @@ function NotificationBell() {
                 fontWeight: 600,
               }}
             >
-              Subcont Tracker →
+              SC Tracker →
             </Link>
           </div>
 
@@ -345,7 +345,7 @@ export function AppShell({ children, breadcrumbs }: AppShellProps) {
 
           <nav style={{ display: "flex", gap: 16 }}>
             <Link href="/subcont" style={{ color: "var(--color-text)", textDecoration: "none", fontSize: 14, fontWeight: 500 }}>
-              Subcont Tracker
+              SC Tracker
             </Link>
           </nav>
         </div>

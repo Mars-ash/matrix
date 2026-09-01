@@ -1,9 +1,13 @@
 "use client";
-import React, { useState, useCallback, type KeyboardEvent } from "react";
+import React, { useState, useCallback, useEffect, type KeyboardEvent } from "react";
 import { TrialPhotoUploader } from "./trial-photo-uploader";
 import { useAppDispatch } from "@/lib/store";
 import { uid } from "@/lib/format";
-import { formatFindingLetter, sortTrialEntries } from "@/lib/trial-report";
+import {
+  formatFindingLetter,
+  sortTrialEntries,
+  deriveTrialFindingStatus,
+} from "@/lib/trial-report";
 import type {
   TrialFinding,
   TrialTextEntry,
@@ -97,6 +101,8 @@ interface TrialFindingCardProps {
   isFirst: boolean;
   isLast: boolean;
   isHighlighted?: boolean;
+  isOpen?: boolean;
+  onToggleOpen?: () => void;
 }
 
 export function TrialFindingCard({
@@ -108,13 +114,38 @@ export function TrialFindingCard({
   isFirst,
   isLast,
   isHighlighted = false,
+  isOpen,
+  onToggleOpen,
 }: TrialFindingCardProps) {
   const dispatch = useAppDispatch();
   const findingLetter = formatFindingLetter(displayOrder);
 
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = isOpen !== undefined ? isOpen : internalOpen;
+
+  const toggleOpen = useCallback(() => {
+    if (onToggleOpen) {
+      onToggleOpen();
+    } else {
+      setInternalOpen((prev) => !prev);
+    }
+  }, [onToggleOpen]);
+
+  useEffect(() => {
+    if (isHighlighted && !open) {
+      if (onToggleOpen) {
+        onToggleOpen();
+      } else {
+        setInternalOpen(true);
+      }
+    }
+  }, [isHighlighted, open, onToggleOpen]);
+
   const sortedProblems = sortTrialEntries(finding.problems ?? []);
   const sortedCauses = sortTrialEntries(finding.causes ?? []);
   const sortedActions = sortTrialEntries(finding.correctiveActions ?? []);
+  const findingStatus = deriveTrialFindingStatus(finding);
+  const firstProblemSnippet = sortedProblems[0]?.text?.trim();
 
   // Finding-level operations
   const handleDeleteFinding = () => {
@@ -296,14 +327,75 @@ export function TrialFindingCard({
   return (
     <div
       id={`finding-${finding.id}`}
-      className={`trial-finding-card ${isHighlighted ? "finding-highlight" : ""}`}
+      className={`trial-finding-card ${isHighlighted ? "finding-highlight" : ""} ${
+        !open ? "is-collapsed" : ""
+      }`}
     >
       {/* Finding header */}
-      <div className="trial-finding-header">
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <div
+        className="trial-finding-header"
+        onClick={toggleOpen}
+        role="button"
+        tabIndex={0}
+        aria-expanded={open}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            toggleOpen();
+          }
+        }}
+      >
+        <div className="trial-finding-header-left">
+          <button
+            type="button"
+            className={`trial-finding-chevron ${open ? "is-open" : ""}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleOpen();
+            }}
+            aria-label={open ? "Tutup temuan" : "Buka temuan"}
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </button>
+
           <span className="trial-finding-number">Temuan {findingLetter}</span>
+
+          <span
+            className={`trial-status-badge-sm ${
+              findingStatus === "Close"
+                ? "trial-status-close"
+                : "trial-status-on-process"
+            }`}
+          >
+            {findingStatus}
+          </span>
+
+          <span className="trial-finding-count-badge">
+            {sortedProblems.length} Masalah · {sortedCauses.length} Penyebab · {sortedActions.length} Perbaikan
+          </span>
+
+          {!open && firstProblemSnippet && (
+            <span className="trial-finding-snippet" title={firstProblemSnippet}>
+              &ldquo;{firstProblemSnippet}&rdquo;
+            </span>
+          )}
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+
+        <div
+          className="trial-finding-header-right"
+          onClick={(e) => e.stopPropagation()}
+        >
           <button
             type="button"
             className="btn btn-secondary btn-sm"
@@ -339,6 +431,9 @@ export function TrialFindingCard({
           </button>
         </div>
       </div>
+
+      {open && (
+        <div className="trial-finding-body">
 
       {/* 1. Uraian Masalah Section */}
       <div className="trial-section-block">
@@ -627,6 +722,8 @@ export function TrialFindingCard({
           </div>
         )}
       </div>
+      </div>
+      )}
     </div>
   );
 }

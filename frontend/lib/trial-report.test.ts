@@ -4,6 +4,7 @@ import {
   formatTrialDateSuffix,
   buildTrialSessionName,
   deriveTrialSessionStatus,
+  deriveTrialFindingStatus,
   sortTrialFindings,
   sortTrialEntries,
   formatFindingLetter,
@@ -482,5 +483,50 @@ describe("cloneTrialSessionWithoutPhotos", () => {
     cloneTrialSessionWithoutPhotos(source);
     expect(source.findings[0].problems[0].photos).toHaveLength(1);
     expect(source.findings[0].problems[0].photos[0].id).toBe("ph-1");
+  });
+});
+
+describe("deriveTrialFindingStatus", () => {
+  it("returns 'On Process' if finding has no corrective actions", () => {
+    const finding = makeFinding({ correctiveActions: [] });
+    expect(deriveTrialFindingStatus(finding)).toBe("On Process");
+  });
+
+  it("returns 'On Process' if any corrective action is 'On Process'", () => {
+    const finding = makeFinding({
+      correctiveActions: [
+        makeActionEntry({ status: "Close" }),
+        makeActionEntry({ status: "On Process" }),
+      ],
+    });
+    expect(deriveTrialFindingStatus(finding)).toBe("On Process");
+  });
+
+  it("returns 'Close' if all corrective actions are 'Close'", () => {
+    const finding = makeFinding({
+      correctiveActions: [
+        makeActionEntry({ status: "Close" }),
+        makeActionEntry({ status: "Close" }),
+      ],
+    });
+    expect(deriveTrialFindingStatus(finding)).toBe("Close");
+  });
+});
+
+describe("deriveTrialSessionStatus", () => {
+  it("returns 'On Process' if session has no corrective actions", () => {
+    const session = makeSession({ findings: [makeFinding({ correctiveActions: [] })] });
+    expect(deriveTrialSessionStatus(session)).toBe("On Process");
+  });
+
+  it("returns 'Close' when all findings are Close", () => {
+    const session = makeSession({
+      findings: [
+        makeFinding({
+          correctiveActions: [makeActionEntry({ status: "Close" })],
+        }),
+      ],
+    });
+    expect(deriveTrialSessionStatus(session)).toBe("Close");
   });
 });

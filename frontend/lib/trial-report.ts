@@ -99,6 +99,21 @@ export function deriveTrialSessionStatus(
 }
 
 /**
+ * Derive the status of an individual finding from its corrective actions.
+ * - No corrective actions -> "On Process"
+ * - Any corrective action "On Process" -> "On Process"
+ * - All corrective actions "Close" -> "Close"
+ */
+export function deriveTrialFindingStatus(
+  finding: TrialFinding
+): TrialFindingStatus {
+  const actions = finding.correctiveActions ?? [];
+  if (actions.length === 0) return "On Process";
+  const allClose = actions.every((a) => a.status === "Close");
+  return allClose ? "Close" : "On Process";
+}
+
+/**
  * Return a sorted copy of findings by `order`, with nested entries also sorted.
  * Does not mutate input.
  */
