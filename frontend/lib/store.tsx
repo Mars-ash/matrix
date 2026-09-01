@@ -507,6 +507,13 @@ function reducer(state: AppState, action: AppAction): AppState {
         }
       }
 
+      if (action.status === "Done") {
+        const arrivalCtrl = item.controls.find((c) => c.process === "Arrival");
+        if (arrivalCtrl) {
+          arrivalCtrl.status = "Done";
+        }
+      }
+
       if (action.status === "In Progress") {
         control.inProgressAt = action.tracking.poDate
           ? new Date(action.tracking.poDate).toISOString()
@@ -635,7 +642,7 @@ function reducer(state: AppState, action: AppAction): AppState {
             const proc = cat.kind === "Part" ? "Material" : "PO";
             const ctrl = item.controls.find((c) => c.process === proc);
             if (ctrl) {
-              ctrl.status = "In Progress";
+              ctrl.status = "Done";
               ctrl.inProgressAt = action.poDate
                 ? new Date(action.poDate).toISOString()
                 : new Date().toISOString();
@@ -651,9 +658,10 @@ function reducer(state: AppState, action: AppAction): AppState {
                 ctrl.targetDate = action.targetArrival.trim();
               }
             }
-            if (action.targetArrival) {
-              const arrivalCtrl = item.controls.find((c) => c.process === "Arrival");
-              if (arrivalCtrl) {
+            const arrivalCtrl = item.controls.find((c) => c.process === "Arrival");
+            if (arrivalCtrl) {
+              arrivalCtrl.status = "Not Started";
+              if (action.targetArrival) {
                 arrivalCtrl.targetDate = action.targetArrival.trim();
               }
             }

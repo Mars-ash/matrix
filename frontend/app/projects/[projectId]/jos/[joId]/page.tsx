@@ -563,21 +563,15 @@ export default function JoDetailPage({ params }: PageProps) {
               onClick={() => {
                 if (singlePoItem) {
                   dispatch({
-                    type: "UPDATE_PO_TRACKING",
+                    type: "BULK_SEND_PO",
                     projectId,
                     joId,
-                    categoryId: singlePoItem.categoryId,
-                    itemId: singlePoItem.item.id,
-                    process: singlePoItem.process,
-                    status: "In Progress",
-                    problemNotes: "",
-                    tracking: {
-                      supplier: poSupplier,
-                      poNo: poNo,
-                      poDate: poDate,
-                      targetArrival: poTargetArrival,
-                      notes: poNotes,
-                    },
+                    itemIds: [singlePoItem.item.id],
+                    supplier: poSupplier,
+                    poNo: poNo,
+                    poDate: poDate,
+                    targetArrival: poTargetArrival,
+                    notes: poNotes,
                   });
                   setSinglePoItem(null);
                 } else if (activeBulkModal === "po") {

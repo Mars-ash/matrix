@@ -79,7 +79,12 @@ describe("ADD_ITEM", () => {
     const newItem = updatedCat.items.find((i) => i.description === "New Part");
     expect(newItem).toBeDefined();
     expect(newItem!.controls).toHaveLength(7); // Part = 7 processes
-    expect(newItem!.controls.every((c) => c.status === "-")).toBe(true);
+    const mtl = newItem!.controls.find((c) => c.process === "Material")!;
+    const arr = newItem!.controls.find((c) => c.process === "Arrival")!;
+    expect(mtl.status).toBe("Not Started");
+    expect(arr.status).toBe("Not Started");
+    const others = newItem!.controls.filter((c) => c.process !== "Material" && c.process !== "Arrival");
+    expect(others.every((c) => c.status === "-")).toBe(true);
   });
 
   it("adds an item with 2 controls to a Component category", () => {
@@ -107,7 +112,7 @@ describe("ADD_ITEM", () => {
     );
     expect(newItem).toBeDefined();
     expect(newItem!.controls).toHaveLength(2); // Component = PO + Arrival
-    expect(newItem!.controls.every((c) => c.status === "-")).toBe(true);
+    expect(newItem!.controls.every((c) => c.status === "Not Started")).toBe(true);
   });
 
   it("preserves subcont metadata and arrival target date", () => {
@@ -325,7 +330,9 @@ describe("UPDATE_PO_TRACKING", () => {
 
     const updatedItem = next.projects[0].jos[0].categories[1].items[0];
     const poControl = updatedItem.controls.find((c) => c.process === "PO")!;
+    const arrivalControl = updatedItem.controls.find((c) => c.process === "Arrival")!;
     expect(poControl.status).toBe("Done");
+    expect(arrivalControl.status).toBe("Done");
     expect(poControl.poTracking?.supplier).toBe("MISUMI");
     expect(poControl.poTracking?.poNo).toBe("PO-COMP-1002");
     expect(next.projects[0].jos[0].activities[0].message).toContain("PO");
@@ -394,7 +401,7 @@ describe("UPDATE_PO_TRACKING", () => {
 });
 
 describe("BULK_SEND_PO", () => {
-  it("bulk dispatches PO for selected items and updates status, inProgressAt, poTracking, and Arrival targetDate", () => {
+  it("bulk dispatches PO for selected items and updates status to Done, Arrival to Not Started, poTracking, and Arrival targetDate", () => {
     const jo = state.projects[0].jos[0];
     const cat = jo.categories[0];
     const itemIds = [cat.items[0].id, cat.items[1].id];
@@ -419,13 +426,15 @@ describe("BULK_SEND_PO", () => {
     const mtl2 = item2.controls.find((c) => c.process === "Material")!;
     const arr2 = item2.controls.find((c) => c.process === "Arrival")!;
 
-    expect(mtl1.status).toBe("In Progress");
+    expect(mtl1.status).toBe("Done");
+    expect(arr1.status).toBe("Not Started");
     expect(mtl1.poTracking?.poNo).toBe("PO-BULK-001");
     expect(mtl1.poTracking?.supplier).toBe("PT Baja Makmur");
     expect(mtl1.poTracking?.targetArrival).toBe("2026-09-08");
     expect(arr1.targetDate).toBe("2026-09-08");
 
-    expect(mtl2.status).toBe("In Progress");
+    expect(mtl2.status).toBe("Done");
+    expect(arr2.status).toBe("Not Started");
     expect(mtl2.poTracking?.poNo).toBe("PO-BULK-001");
     expect(arr2.targetDate).toBe("2026-09-08");
 

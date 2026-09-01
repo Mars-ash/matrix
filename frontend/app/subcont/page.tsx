@@ -101,6 +101,33 @@ function SubcontTrackingContent() {
   const [editingNotesRow, setEditingNotesRow] = useState<SubcontRow | null>(null);
   const [notesTemp, setNotesTemp] = useState("");
 
+  const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set());
+  const [isBulkStatusOpen, setIsBulkStatusOpen] = useState(false);
+  const [bulkStatus, setBulkStatus] = useState<"In Progress" | "Done">("Done");
+
+  const toggleSelectRow = (itemId: string) => {
+    setSelectedItemIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(itemId)) next.delete(itemId);
+      else next.add(itemId);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = (tableRows: SubcontRow[]) => {
+    const tableIds = tableRows.map((r) => r.item.id);
+    const allSelected = tableIds.length > 0 && tableIds.every((id) => selectedItemIds.has(id));
+    setSelectedItemIds((prev) => {
+      const next = new Set(prev);
+      if (allSelected) {
+        tableIds.forEach((id) => next.delete(id));
+      } else {
+        tableIds.forEach((id) => next.add(id));
+      }
+      return next;
+    });
+  };
+
   // Collect all items marked as Subcont
   const rawSubcontRows: SubcontRow[] = [];
   let itemCounter = 0;
@@ -201,132 +228,113 @@ function SubcontTrackingContent() {
   });
 
   // Table Renderer helper
-  const renderTable = (rows: SubcontRow[]) => (
-    <div className="table-scroll">
-      <table className="control-table">
-        <thead>
-          <tr>
-            <th style={{ minWidth: 80 }}>JO</th>
-            <th style={{ minWidth: 160 }}>Item</th>
-            <th style={{ minWidth: 60, textAlign: "center" }}>Qty</th>
-            <th style={{ minWidth: 120 }}>Supplier</th>
-            <th style={{ minWidth: 90, textAlign: "center" }}>Proses</th>
-            <th style={{ minWidth: 90, textAlign: "center" }}>Delivery</th>
-            <th style={{ minWidth: 130, textAlign: "center" }}>Target Arrival</th>
-            <th style={{ minWidth: 90, textAlign: "center" }}>Status</th>
-            <th style={{ width: 50, textAlign: "center" }}>Notes</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => {
-            const notif = getNotification(row.item.arrivalTargetDate, row.item.subcontStatus);
-            const isDone = row.item.subcontStatus === "Done";
+  const renderTable = (rows: SubcontRow[]) => {
+    const isAllSelected = rows.length > 0 && rows.every((r) => selectedItemIds.has(r.item.id));
 
-            return (
-              <tr
-                key={row.item.id}
-                id={`subcont-item-${row.item.id}`}
-                className={highlightedItemId === row.item.id ? "row-highlight" : undefined}
-                style={{ opacity: isDone ? 0.75 : 1 }}
-              >
-                {/* JO */}
-                <td>
-                  <Link
-                    href={`/projects/${row.project.id}/jos/${row.jo.id}`}
-                    style={{ color: "var(--color-accent)", textDecoration: "none", fontWeight: 600, fontSize: 13 }}
-                  >
-                    {row.jo.joNumber}
-                  </Link>
-                </td>
+    return (
+      <div className="table-scroll">
+        <table className="control-table">
+          <thead>
+            <tr>
+              <th style={{ width: 36, textAlign: "center" }}>
+                <input
+                  type="checkbox"
+                  checked={isAllSelected}
+                  onChange={() => toggleSelectAll(rows)}
+                  style={{ cursor: "pointer" }}
+                  aria-label="Pilih semua part"
+                />
+              </th>
+              <th style={{ minWidth: 80 }}>JO</th>
+              <th style={{ minWidth: 160 }}>Item</th>
+              <th style={{ minWidth: 60, textAlign: "center" }}>Qty</th>
+              <th style={{ minWidth: 120 }}>Supplier</th>
+              <th style={{ minWidth: 90, textAlign: "center" }}>Proses</th>
+              <th style={{ minWidth: 90, textAlign: "center" }}>Delivery</th>
+              <th style={{ minWidth: 130, textAlign: "center" }}>Target Arrival</th>
+              <th style={{ minWidth: 90, textAlign: "center" }}>Status</th>
+              <th style={{ width: 50, textAlign: "center" }}>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => {
+              const notif = getNotification(row.item.arrivalTargetDate, row.item.subcontStatus);
+              const isDone = row.item.subcontStatus === "Done";
+              const isSelected = selectedItemIds.has(row.item.id);
 
-                {/* Item */}
-                <td>
-                  <div style={{ fontWeight: 600, fontSize: 13 }}>{row.item.description}</div>
-                  <div style={{ fontSize: 11, color: "var(--color-text-muted)" }}>No. {row.item.no}</div>
-                </td>
-
-                {/* Qty (editable) */}
-                <td style={{ textAlign: "center" }}>
-                  <input
-                    type="number"
-                    className="input"
-                    style={{
-                      fontSize: 12,
-                      padding: "4px 6px",
-                      width: 55,
-                      textAlign: "center",
-                      display: "inline-block",
-                      margin: "0 auto",
-                    }}
-                    min={1}
-                    value={row.item.qty ?? 1}
-                    onChange={(e) => {
-                      const val = parseInt(e.target.value, 10);
-                      dispatch({
-                        type: "UPDATE_ITEM_SUBCONT",
-                        projectId: row.project.id,
-                        joId: row.jo.id,
-                        categoryId: row.category.id,
-                        itemId: row.item.id,
-                        isSubcont: true,
-                        qty: isNaN(val) ? 1 : val,
-                      });
-                    }}
-                  />
-                </td>
-
-                {/* Supplier (dropdown) */}
-                <td>
-                  <select
-                    className="select"
-                    style={{
-                      fontSize: 12,
-                      padding: "4px 22px 4px 8px",
-                      minWidth: 110,
-                      width: "100%",
-                    }}
-                    value={row.item.subcontSupplier || ""}
-                    onChange={(e) => {
-                      dispatch({
-                        type: "UPDATE_ITEM_SUBCONT",
-                        projectId: row.project.id,
-                        joId: row.jo.id,
-                        categoryId: row.category.id,
-                        itemId: row.item.id,
-                        isSubcont: true,
-                        subcontSupplier: e.target.value,
-                      });
-                    }}
-                  >
-                    <option value="">—</option>
-                    {SUBCONT_SUPPLIERS.map((sup) => (
-                      <option key={sup} value={sup}>
-                        {sup}
-                      </option>
-                    ))}
-                  </select>
-                </td>
-
-                {/* Proses (auto) */}
-                <td style={{ textAlign: "center", fontSize: 12, fontWeight: 500 }}>
-                  {row.item.subcontProcess ||
-                    row.item.controls.find((c) => c.status === "In Progress SC")?.process ||
-                    "-"}
-                </td>
-
-                {/* Delivery */}
-                <td style={{ textAlign: "center", fontSize: 12 }}>
-                  {row.item.subcontDispatchDate ? formatDate(row.item.subcontDispatchDate) : "-"}
-                </td>
-
-                {/* Target Arrival */}
-                <td style={{ textAlign: "center" }}>
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
+              return (
+                <tr
+                  key={row.item.id}
+                  id={`subcont-item-${row.item.id}`}
+                  className={`${highlightedItemId === row.item.id ? "row-highlight" : ""} ${isSelected ? "row-selected" : ""}`.trim() || undefined}
+                  style={{ opacity: isDone ? 0.75 : 1 }}
+                >
+                  <td style={{ textAlign: "center" }}>
                     <input
-                      type="date"
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => toggleSelectRow(row.item.id)}
+                      style={{ cursor: "pointer" }}
+                      aria-label={`Pilih ${row.item.description}`}
+                    />
+                  </td>
+                  {/* JO */}
+                  <td>
+                    <Link
+                      href={`/projects/${row.project.id}/jos/${row.jo.id}`}
+                      style={{ color: "var(--color-accent)", textDecoration: "none", fontWeight: 600, fontSize: 13 }}
+                    >
+                      {row.jo.joNumber}
+                    </Link>
+                  </td>
+
+                  {/* Item */}
+                  <td>
+                    <div style={{ fontWeight: 600, fontSize: 13 }}>{row.item.description}</div>
+                    <div style={{ fontSize: 11, color: "var(--color-text-muted)" }}>No. {row.item.no}</div>
+                  </td>
+
+                  {/* Qty (editable) */}
+                  <td style={{ textAlign: "center" }}>
+                    <input
+                      type="number"
                       className="input"
-                      style={{ padding: "3px 6px", fontSize: 12, textAlign: "center" }}
-                      value={row.item.arrivalTargetDate || ""}
+                      style={{
+                        fontSize: 12,
+                        padding: "4px 6px",
+                        width: 55,
+                        textAlign: "center",
+                        display: "inline-block",
+                        margin: "0 auto",
+                      }}
+                      min={1}
+                      value={row.item.qty ?? 1}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value, 10);
+                        dispatch({
+                          type: "UPDATE_ITEM_SUBCONT",
+                          projectId: row.project.id,
+                          joId: row.jo.id,
+                          categoryId: row.category.id,
+                          itemId: row.item.id,
+                          isSubcont: true,
+                          qty: isNaN(val) ? 1 : val,
+                        });
+                      }}
+                    />
+                  </td>
+
+                  {/* Supplier (dropdown) */}
+                  <td>
+                    <select
+                      className="select"
+                      style={{
+                        fontSize: 12,
+                        padding: "4px 22px 4px 8px",
+                        minWidth: 110,
+                        width: "100%",
+                      }}
+                      value={row.item.subcontSupplier || ""}
                       onChange={(e) => {
                         dispatch({
                           type: "UPDATE_ITEM_SUBCONT",
@@ -335,98 +343,140 @@ function SubcontTrackingContent() {
                           categoryId: row.category.id,
                           itemId: row.item.id,
                           isSubcont: true,
-                          arrivalTargetDate: e.target.value,
+                          subcontSupplier: e.target.value,
                         });
                       }}
-                    />
-                    {notif && (
-                      <span
-                        style={{
-                          fontSize: 10,
-                          fontWeight: 700,
-                          color: notif.color,
-                          background: `color-mix(in srgb, ${notif.color} 12%, transparent)`,
-                          padding: "1px 6px",
-                          borderRadius: 3,
+                    >
+                      <option value="">—</option>
+                      {SUBCONT_SUPPLIERS.map((sup) => (
+                        <option key={sup} value={sup}>
+                          {sup}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+
+                  {/* Proses (auto) */}
+                  <td style={{ textAlign: "center", fontSize: 12, fontWeight: 500 }}>
+                    {row.item.subcontProcess ||
+                      row.item.controls.find((c) => c.status === "In Progress SC")?.process ||
+                      "-"}
+                  </td>
+
+                  {/* Delivery */}
+                  <td style={{ textAlign: "center", fontSize: 12 }}>
+                    {row.item.subcontDispatchDate ? formatDate(row.item.subcontDispatchDate) : "-"}
+                  </td>
+
+                  {/* Target Arrival */}
+                  <td style={{ textAlign: "center" }}>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
+                      <input
+                        type="date"
+                        className="input"
+                        style={{ padding: "3px 6px", fontSize: 12, textAlign: "center" }}
+                        value={row.item.arrivalTargetDate || ""}
+                        onChange={(e) => {
+                          dispatch({
+                            type: "UPDATE_ITEM_SUBCONT",
+                            projectId: row.project.id,
+                            joId: row.jo.id,
+                            categoryId: row.category.id,
+                            itemId: row.item.id,
+                            isSubcont: true,
+                            arrivalTargetDate: e.target.value,
+                          });
                         }}
-                      >
-                        {notif.text}
-                      </span>
-                    )}
-                  </div>
-                </td>
+                      />
+                      {notif && (
+                        <span
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 700,
+                            color: notif.color,
+                            background: `color-mix(in srgb, ${notif.color} 12%, transparent)`,
+                            padding: "1px 6px",
+                            borderRadius: 3,
+                          }}
+                        >
+                          {notif.text}
+                        </span>
+                      )}
+                    </div>
+                  </td>
 
-                {/* Status (dropdown) */}
-                <td style={{ textAlign: "center" }}>
-                  <select
-                    className="select"
-                    value={row.item.subcontStatus || "In Progress"}
-                    onChange={(e) => {
-                      dispatch({
-                        type: "UPDATE_ITEM_SUBCONT",
-                        projectId: row.project.id,
-                        joId: row.jo.id,
-                        categoryId: row.category.id,
-                        itemId: row.item.id,
-                        isSubcont: true,
-                        subcontStatus: e.target.value as "In Progress" | "Done",
-                      });
-                    }}
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 600,
-                      padding: "4px 18px 4px 8px",
-                      minWidth: 100,
-                      backgroundColor:
-                        (row.item.subcontStatus || "In Progress") === "Done"
-                          ? "var(--color-status-done-bg)"
-                          : "var(--color-status-in-progress-bg)",
-                      color:
-                        (row.item.subcontStatus || "In Progress") === "Done"
-                          ? "var(--color-status-done)"
-                          : "var(--color-status-in-progress)",
-                      borderColor: "transparent",
-                      textAlign: "center",
-                    }}
-                  >
-                    {SUBCONT_STATUSES.map((s) => (
-                      <option key={s} value={s}>{s}</option>
-                    ))}
-                  </select>
-                </td>
+                  {/* Status (dropdown) */}
+                  <td style={{ textAlign: "center" }}>
+                    <select
+                      className="select"
+                      value={row.item.subcontStatus || "In Progress"}
+                      onChange={(e) => {
+                        dispatch({
+                          type: "UPDATE_ITEM_SUBCONT",
+                          projectId: row.project.id,
+                          joId: row.jo.id,
+                          categoryId: row.category.id,
+                          itemId: row.item.id,
+                          isSubcont: true,
+                          subcontStatus: e.target.value as "In Progress" | "Done",
+                        });
+                      }}
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 600,
+                        padding: "4px 18px 4px 8px",
+                        minWidth: 100,
+                        backgroundColor:
+                          (row.item.subcontStatus || "In Progress") === "Done"
+                            ? "var(--color-status-done-bg)"
+                            : "var(--color-status-in-progress-bg)",
+                        color:
+                          (row.item.subcontStatus || "In Progress") === "Done"
+                            ? "var(--color-status-done)"
+                            : "var(--color-status-in-progress)",
+                        borderColor: "transparent",
+                        textAlign: "center",
+                      }}
+                    >
+                      {SUBCONT_STATUSES.map((s) => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                  </td>
 
-                {/* Notes */}
-                <td style={{ textAlign: "center" }}>
-                  <button
-                    onClick={() => {
-                      setEditingNotesRow(row);
-                      setNotesTemp(row.item.subcontNotes || "");
-                    }}
-                    title={row.item.subcontNotes || "Add note"}
-                    style={{
-                      background: "none",
-                      border: "none",
-                      cursor: "pointer",
-                      padding: "4px 6px",
-                      borderRadius: 4,
-                      color: row.item.subcontNotes ? "#3b82f6" : "var(--color-text-muted)",
-                      fontSize: 14,
-                      lineHeight: 1,
-                    }}
-                  >
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M13.5 2.5l-1-1-9 9-.5 2.5 2.5-.5 9-9z" />
-                      <path d="M11 3l2 2" />
-                    </svg>
-                  </button>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  );
+                  {/* Notes */}
+                  <td style={{ textAlign: "center" }}>
+                    <button
+                      onClick={() => {
+                        setEditingNotesRow(row);
+                        setNotesTemp(row.item.subcontNotes || "");
+                      }}
+                      title={row.item.subcontNotes || "Add note"}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        padding: "4px 6px",
+                        borderRadius: 4,
+                        color: row.item.subcontNotes ? "#3b82f6" : "var(--color-text-muted)",
+                        fontSize: 14,
+                        lineHeight: 1,
+                      }}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M13.5 2.5l-1-1-9 9-.5 2.5 2.5-.5 9-9z" />
+                        <path d="M11 3l2 2" />
+                      </svg>
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
 
   // Grouping builders
   const renderGroupedContent = () => {
@@ -692,6 +742,99 @@ function SubcontTrackingContent() {
           onChange={(e) => setNotesTemp(e.target.value)}
           autoFocus
         />
+      </Dialog>
+
+      {/* Floating Bulk Action Bar */}
+      {selectedItemIds.size > 0 && (
+        <div
+          style={{
+            position: "fixed",
+            bottom: 24,
+            left: "50%",
+            transform: "translateX(-50%)",
+            backgroundColor: "#ffffff",
+            border: "1px solid var(--color-border)",
+            boxShadow: "0 10px 30px rgba(0, 0, 0, 0.18), 0 2px 6px rgba(0, 0, 0, 0.08)",
+            borderRadius: "var(--radius-lg)",
+            padding: "10px 18px",
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            zIndex: 90,
+            animation: "slideUp 160ms ease",
+          }}
+        >
+          <span style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text)" }}>
+            {selectedItemIds.size} item terpilih
+          </span>
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={() => setIsBulkStatusOpen(true)}
+          >
+            Ubah Status
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={() => setSelectedItemIds(new Set())}
+          >
+            ✕ Batal
+          </button>
+        </div>
+      )}
+
+      {/* Bulk Status Dialog */}
+      <Dialog
+        open={isBulkStatusOpen}
+        onClose={() => setIsBulkStatusOpen(false)}
+        title={`Ubah Status (${selectedItemIds.size} Item)`}
+        footer={
+          <>
+            <button
+              className="btn btn-secondary"
+              onClick={() => setIsBulkStatusOpen(false)}
+            >
+              Batal
+            </button>
+            <button
+              className="btn btn-primary"
+              onClick={() => {
+                const selectedRows = rawSubcontRows.filter((r) => selectedItemIds.has(r.item.id));
+                for (const row of selectedRows) {
+                  dispatch({
+                    type: "UPDATE_ITEM_SUBCONT",
+                    projectId: row.project.id,
+                    joId: row.jo.id,
+                    categoryId: row.category.id,
+                    itemId: row.item.id,
+                    isSubcont: true,
+                    subcontStatus: bulkStatus,
+                  });
+                }
+                setIsBulkStatusOpen(false);
+                setSelectedItemIds(new Set());
+              }}
+            >
+              Simpan Status
+            </button>
+          </>
+        }
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div>
+            <label className="label">Pilih Status Baru</label>
+            <select
+              className="select"
+              value={bulkStatus}
+              onChange={(e) => setBulkStatus(e.target.value as "In Progress" | "Done")}
+              style={{ width: "100%" }}
+            >
+              <option value="In Progress">In Progress</option>
+              <option value="Done">Done</option>
+            </select>
+          </div>
+        </div>
       </Dialog>
     </AppShell>
   );

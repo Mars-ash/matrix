@@ -53,6 +53,37 @@ function PoTrackerContent() {
   const [editingNotesRow, setEditingNotesRow] = useState<PoTrackingRow | null>(null);
   const [notesTemp, setNotesTemp] = useState("");
 
+  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
+  const [isBulkStatusOpen, setIsBulkStatusOpen] = useState(false);
+  const [bulkStatus, setBulkStatus] = useState<ControlStatus>("Done");
+  const [bulkProblemNotes, setBulkProblemNotes] = useState("");
+
+  const getRowKey = (row: PoTrackingRow) => `${row.item.id}-${row.process}`;
+
+  const toggleSelectRow = (row: PoTrackingRow) => {
+    const key = getRowKey(row);
+    setSelectedKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = (tableRows: PoTrackingRow[]) => {
+    const tableKeys = tableRows.map(getRowKey);
+    const allSelected = tableKeys.length > 0 && tableKeys.every((k) => selectedKeys.has(k));
+    setSelectedKeys((prev) => {
+      const next = new Set(prev);
+      if (allSelected) {
+        tableKeys.forEach((k) => next.delete(k));
+      } else {
+        tableKeys.forEach((k) => next.add(k));
+      }
+      return next;
+    });
+  };
+
   useEffect(() => {
     if (!targetItemId) return;
     const timer = window.setTimeout(() => {
@@ -116,163 +147,186 @@ function PoTrackerContent() {
     });
   };
 
-  const renderTable = (tableRows: PoTrackingRow[]) => (
-    <div className="table-scroll">
-      <table className="control-table">
-        <thead>
-          <tr>
-            <th style={{ minWidth: 80 }}>JO</th>
-            <th style={{ minWidth: 170 }}>Item</th>
-            <th style={{ minWidth: 60, textAlign: "center" }}>Qty</th>
-            <th style={{ minWidth: 130 }}>Supplier</th>
-            <th style={{ minWidth: 125 }}>No. PO</th>
-            <th style={{ minWidth: 115, textAlign: "center" }}>PO Date</th>
-            <th style={{ minWidth: 145, textAlign: "center" }}>Target Arrival</th>
-            <th style={{ minWidth: 115, textAlign: "center" }}>Status</th>
-            <th style={{ width: 54, textAlign: "center" }}>Notes</th>
-          </tr>
-        </thead>
-        <tbody>
-          {tableRows.map((row) => {
-            const deadline = getPoTrackingDeadline(row.targetArrival, row.arrivalStatus);
-            const warningColor = deadline ? deadlineColor(deadline.state) : "";
+  const renderTable = (tableRows: PoTrackingRow[]) => {
+    const isAllSelected = tableRows.length > 0 && tableRows.every((r) => selectedKeys.has(getRowKey(r)));
 
-            return (
-              <tr
-                key={`${row.item.id}-${row.process}`}
-                id={`po-item-${row.item.id}`}
-                className={targetItemId === row.item.id ? "row-highlight" : undefined}
-              >
-                <td>
-                  <Link
-                    href={`/projects/${row.project.id}/jos/${row.jo.id}?item=${row.item.id}#item-${row.item.id}`}
-                    style={{ color: "var(--color-accent)", textDecoration: "none", fontWeight: 600, fontSize: 13 }}
-                  >
-                    {row.jo.joNumber}
-                  </Link>
-                </td>
-                <td>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                    <span style={{ fontWeight: 600, fontSize: 13 }}>{row.item.description}</span>
-                    <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>
-                      No. {row.item.no} - {row.trackerLabel}
-                    </span>
-                  </div>
-                </td>
-                <td style={{ textAlign: "center" }}>
-                  <input
-                    type="number"
-                    className="input"
-                    min={1}
-                    value={row.item.qty ?? 1}
-                    onChange={(event) => {
-                      const qty = Number.parseInt(event.target.value, 10);
-                      updateRow(row, {}, { qty: Number.isNaN(qty) ? 1 : qty });
-                    }}
-                    style={{ fontSize: 12, padding: "4px 6px", width: 55, textAlign: "center" }}
-                    aria-label={`Qty for ${row.item.description}`}
-                  />
-                </td>
-                <td>
-                  <input
-                    className="input"
-                    value={row.supplier}
-                    onChange={(event) => updateRow(row, { supplier: event.target.value })}
-                    placeholder="-"
-                    style={{ fontSize: 12, padding: "4px 7px", width: "100%" }}
-                    aria-label={`Supplier for ${row.item.description}`}
-                  />
-                </td>
-                <td>
-                  <input
-                    className="input"
-                    value={row.poNo}
-                    onChange={(event) => updateRow(row, { poNo: event.target.value })}
-                    placeholder="-"
-                    style={{ fontSize: 12, padding: "4px 7px", width: "100%" }}
-                    aria-label={`PO number for ${row.item.description}`}
-                  />
-                </td>
-                <td style={{ textAlign: "center" }}>
-                  <input
-                    type="date"
-                    className="input"
-                    value={row.poDate}
-                    onChange={(event) => updateRow(row, { poDate: event.target.value })}
-                    title={row.poDate ? formatDate(row.poDate) : "Set PO date"}
-                    style={{ fontSize: 12, padding: "3px 6px", textAlign: "center" }}
-                    aria-label={`PO date for ${row.item.description}`}
-                  />
-                </td>
-                <td style={{ textAlign: "center" }}>
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
+    return (
+      <div className="table-scroll">
+        <table className="control-table">
+          <thead>
+            <tr>
+              <th style={{ width: 36, textAlign: "center" }}>
+                <input
+                  type="checkbox"
+                  checked={isAllSelected}
+                  onChange={() => toggleSelectAll(tableRows)}
+                  style={{ cursor: "pointer" }}
+                  aria-label="Pilih semua part"
+                />
+              </th>
+              <th style={{ minWidth: 80 }}>JO</th>
+              <th style={{ minWidth: 170 }}>Item</th>
+              <th style={{ minWidth: 60, textAlign: "center" }}>Qty</th>
+              <th style={{ minWidth: 130 }}>Supplier</th>
+              <th style={{ minWidth: 125 }}>No. PO</th>
+              <th style={{ minWidth: 115, textAlign: "center" }}>PO Date</th>
+              <th style={{ minWidth: 145, textAlign: "center" }}>Target Arrival</th>
+              <th style={{ minWidth: 115, textAlign: "center" }}>Status</th>
+              <th style={{ width: 54, textAlign: "center" }}>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            {tableRows.map((row) => {
+              const deadline = getPoTrackingDeadline(row.targetArrival, row.arrivalStatus);
+              const warningColor = deadline ? deadlineColor(deadline.state) : "";
+              const isSelected = selectedKeys.has(getRowKey(row));
+
+              return (
+                <tr
+                  key={`${row.item.id}-${row.process}`}
+                  id={`po-item-${row.item.id}`}
+                  className={`${targetItemId === row.item.id ? "row-highlight" : ""} ${isSelected ? "row-selected" : ""}`.trim() || undefined}
+                >
+                  <td style={{ textAlign: "center" }}>
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => toggleSelectRow(row)}
+                      style={{ cursor: "pointer" }}
+                      aria-label={`Pilih ${row.item.description}`}
+                    />
+                  </td>
+                  <td>
+                    <Link
+                      href={`/projects/${row.project.id}/jos/${row.jo.id}?item=${row.item.id}#item-${row.item.id}`}
+                      style={{ color: "var(--color-accent)", textDecoration: "none", fontWeight: 600, fontSize: 13 }}
+                    >
+                      {row.jo.joNumber}
+                    </Link>
+                  </td>
+                  <td>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                      <span style={{ fontWeight: 600, fontSize: 13 }}>{row.item.description}</span>
+                      <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>
+                        No. {row.item.no} - {row.trackerLabel}
+                      </span>
+                    </div>
+                  </td>
+                  <td style={{ textAlign: "center" }}>
+                    <input
+                      type="number"
+                      className="input"
+                      min={1}
+                      value={row.item.qty ?? 1}
+                      onChange={(event) => {
+                        const qty = Number.parseInt(event.target.value, 10);
+                        updateRow(row, {}, { qty: Number.isNaN(qty) ? 1 : qty });
+                      }}
+                      style={{ fontSize: 12, padding: "4px 6px", width: 55, textAlign: "center" }}
+                      aria-label={`Qty for ${row.item.description}`}
+                    />
+                  </td>
+                  <td>
+                    <input
+                      className="input"
+                      value={row.supplier}
+                      onChange={(event) => updateRow(row, { supplier: event.target.value })}
+                      placeholder="-"
+                      style={{ fontSize: 12, padding: "4px 7px", width: "100%" }}
+                      aria-label={`Supplier for ${row.item.description}`}
+                    />
+                  </td>
+                  <td>
+                    <input
+                      className="input"
+                      value={row.poNo}
+                      onChange={(event) => updateRow(row, { poNo: event.target.value })}
+                      placeholder="-"
+                      style={{ fontSize: 12, padding: "4px 7px", width: "100%" }}
+                      aria-label={`PO number for ${row.item.description}`}
+                    />
+                  </td>
+                  <td style={{ textAlign: "center" }}>
                     <input
                       type="date"
                       className="input"
-                      value={row.targetArrival}
-                      onChange={(event) => updateRow(row, { targetArrival: event.target.value })}
-                      title={row.targetArrival ? formatDate(row.targetArrival) : "Set target arrival"}
+                      value={row.poDate}
+                      onChange={(event) => updateRow(row, { poDate: event.target.value })}
+                      title={row.poDate ? formatDate(row.poDate) : "Set PO date"}
                       style={{ fontSize: 12, padding: "3px 6px", textAlign: "center" }}
-                      aria-label={`Target arrival for ${row.item.description}`}
+                      aria-label={`PO date for ${row.item.description}`}
                     />
-                    {deadline && (
-                      <span
-                        style={{
-                          fontSize: 10,
-                          fontWeight: 700,
-                          color: warningColor,
-                          background: `color-mix(in srgb, ${warningColor} 12%, transparent)`,
-                          padding: "1px 6px",
-                          borderRadius: 3,
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {deadline.text}
-                      </span>
-                    )}
-                  </div>
-                </td>
-                <td style={{ textAlign: "center" }}>
-                  <StatusSelect
-                    value={row.control.status}
-                    notes={row.control.notes}
-                    process={row.process}
-                    allowedStatuses={PO_STATUS_CHOICES}
-                    onChange={(status, problemNotes) => updateRow(row, {}, { status, problemNotes })}
-                  />
-                </td>
-                <td style={{ textAlign: "center" }}>
-                  <button
-                    onClick={() => {
-                      setEditingNotesRow(row);
-                      setNotesTemp(row.notes);
-                    }}
-                    title={row.notes || "Add note"}
-                    style={{
-                      background: "none",
-                      border: "none",
-                      cursor: "pointer",
-                      padding: "4px 6px",
-                      borderRadius: 4,
-                      color: row.notes ? "var(--color-accent)" : "var(--color-text-muted)",
-                      fontSize: 14,
-                      lineHeight: 1,
-                    }}
-                    aria-label={`Edit PO notes for ${row.item.description}`}
-                  >
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M13.5 2.5l-1-1-9 9-.5 2.5 2.5-.5 9-9z" />
-                      <path d="M11 3l2 2" />
-                    </svg>
-                  </button>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  );
+                  </td>
+                  <td style={{ textAlign: "center" }}>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
+                      <input
+                        type="date"
+                        className="input"
+                        value={row.targetArrival}
+                        onChange={(event) => updateRow(row, { targetArrival: event.target.value })}
+                        title={row.targetArrival ? formatDate(row.targetArrival) : "Set target arrival"}
+                        style={{ fontSize: 12, padding: "3px 6px", textAlign: "center" }}
+                        aria-label={`Target arrival for ${row.item.description}`}
+                      />
+                      {deadline && (
+                        <span
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 700,
+                            color: warningColor,
+                            background: `color-mix(in srgb, ${warningColor} 12%, transparent)`,
+                            padding: "1px 6px",
+                            borderRadius: 3,
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {deadline.text}
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  <td style={{ textAlign: "center" }}>
+                    <StatusSelect
+                      value={row.control.status}
+                      notes={row.control.notes}
+                      process={row.process}
+                      allowedStatuses={PO_STATUS_CHOICES}
+                      onChange={(status, problemNotes) => updateRow(row, {}, { status, problemNotes })}
+                    />
+                  </td>
+                  <td style={{ textAlign: "center" }}>
+                    <button
+                      onClick={() => {
+                        setEditingNotesRow(row);
+                        setNotesTemp(row.notes);
+                      }}
+                      title={row.notes || "Add note"}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        padding: "4px 6px",
+                        borderRadius: 4,
+                        color: row.notes ? "var(--color-accent)" : "var(--color-text-muted)",
+                        fontSize: 14,
+                        lineHeight: 1,
+                      }}
+                      aria-label={`Edit PO notes for ${row.item.description}`}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M13.5 2.5l-1-1-9 9-.5 2.5 2.5-.5 9-9z" />
+                        <path d="M11 3l2 2" />
+                      </svg>
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
 
   const renderGroupedContent = () => {
     if (visibleRows.length === 0) {
@@ -351,14 +405,6 @@ function PoTrackerContent() {
           </div>
           <div style={{ fontSize: 22, fontWeight: 700, fontFamily: "var(--font-mono)", color: "var(--color-status-problem)" }}>{stats.overdue}</div>
           <div style={{ fontSize: 11, color: "var(--color-text-muted)" }}>Melewati target kedatangan</div>
-        </div>
-
-        <div className="card-static" style={{ padding: "10px 14px", display: "flex", flexDirection: "column", gap: 3 }}>
-          <div style={{ fontSize: 10, fontWeight: 600, color: "var(--color-status-done)", textTransform: "uppercase", letterSpacing: "0.04em" }}>
-            Done
-          </div>
-          <div style={{ fontSize: 22, fontWeight: 700, fontFamily: "var(--font-mono)", color: "var(--color-status-done)" }}>{stats.done}</div>
-          <div style={{ fontSize: 11, color: "var(--color-text-muted)" }}>PO Mtl dan PO selesai</div>
         </div>
       </div>
 
@@ -446,6 +492,119 @@ function PoTrackerContent() {
           onChange={(event) => setNotesTemp(event.target.value)}
           autoFocus
         />
+      </Dialog>
+
+      {/* Floating Bulk Action Bar */}
+      {selectedKeys.size > 0 && (
+        <div
+          style={{
+            position: "fixed",
+            bottom: 24,
+            left: "50%",
+            transform: "translateX(-50%)",
+            backgroundColor: "#ffffff",
+            border: "1px solid var(--color-border)",
+            boxShadow: "0 10px 30px rgba(0, 0, 0, 0.18), 0 2px 6px rgba(0, 0, 0, 0.08)",
+            borderRadius: "var(--radius-lg)",
+            padding: "10px 18px",
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            zIndex: 90,
+            animation: "slideUp 160ms ease",
+          }}
+        >
+          <span style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text)" }}>
+            {selectedKeys.size} item terpilih
+          </span>
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={() => setIsBulkStatusOpen(true)}
+          >
+            Ubah Status
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={() => setSelectedKeys(new Set())}
+          >
+            ✕ Batal
+          </button>
+        </div>
+      )}
+
+      {/* Bulk Status Dialog */}
+      <Dialog
+        open={isBulkStatusOpen}
+        onClose={() => setIsBulkStatusOpen(false)}
+        title={`Ubah Status (${selectedKeys.size} Item)`}
+        footer={
+          <>
+            <button
+              className="btn btn-secondary"
+              onClick={() => setIsBulkStatusOpen(false)}
+            >
+              Batal
+            </button>
+            <button
+              className="btn btn-primary"
+              disabled={bulkStatus === "Problem" && !bulkProblemNotes.trim()}
+              onClick={() => {
+                const selectedRows = rows.filter((r) => selectedKeys.has(getRowKey(r)));
+                for (const row of selectedRows) {
+                  updateRow(
+                    row,
+                    {},
+                    {
+                      status: bulkStatus,
+                      problemNotes: bulkStatus === "Problem" ? bulkProblemNotes : "",
+                    }
+                  );
+                }
+                setIsBulkStatusOpen(false);
+                setSelectedKeys(new Set());
+                setBulkProblemNotes("");
+              }}
+            >
+              Simpan Status
+            </button>
+          </>
+        }
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div>
+            <label className="label">Pilih Status Baru</label>
+            <select
+              className="select"
+              value={bulkStatus}
+              onChange={(e) => setBulkStatus(e.target.value as ControlStatus)}
+              style={{ width: "100%" }}
+            >
+              {PO_STATUS_CHOICES.map((st) => (
+                <option key={st} value={st}>
+                  {st}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {bulkStatus === "Problem" && (
+            <div>
+              <label className="label">
+                Catatan Problem <span style={{ color: "var(--color-status-problem)" }}>*</span>
+              </label>
+              <textarea
+                className="input"
+                rows={3}
+                placeholder="Jelaskan kendala / problem yang terjadi..."
+                value={bulkProblemNotes}
+                onChange={(e) => setBulkProblemNotes(e.target.value)}
+                autoFocus
+              />
+            </div>
+          )}
+        </div>
       </Dialog>
     </AppShell>
   );

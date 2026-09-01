@@ -42,12 +42,15 @@ export function isComponentCategory(key: string): key is ComponentCategoryKey {
   return (COMPONENT_CATEGORIES as readonly string[]).includes(key);
 }
 
-/** Create default controls for a new item (all statuses set to `-`). */
+/** Create default controls for a new item (PO and Arrival default to `Not Started`, others to `-`). */
 export function defaultControls(kind: CategoryKind): Control[] {
   const processes = processesForKind(kind);
   return processes.map((process) => ({
     process,
-    status: "-" as const,
+    status:
+      process === "Material" || process === "PO" || process === "Arrival"
+        ? ("Not Started" as const)
+        : ("-" as const),
     notes: "",
   }));
 }
