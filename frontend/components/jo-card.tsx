@@ -7,9 +7,11 @@ import { joProgress, joProblemCount } from "@/lib/progress";
 interface JoCardProps {
   jo: JO;
   projectId: string;
+  projectName?: string;
+  customer?: string;
 }
 
-export function JoCard({ jo, projectId }: JoCardProps) {
+export function JoCard({ jo, projectId, projectName, customer }: JoCardProps) {
   const progress = joProgress(jo);
   const problems = joProblemCount(jo);
   const pctText = progress === null ? "–" : `${Math.round(progress)}%`;
@@ -67,9 +69,33 @@ export function JoCard({ jo, projectId }: JoCardProps) {
         )}
 
         {/* Product name */}
-        <div style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>
+        <div style={{ fontSize: 12, color: "var(--color-text)", fontWeight: 500 }}>
           {jo.product}
         </div>
+
+        {/* Project & Customer */}
+        {(projectName || customer) && (
+          <div
+            style={{
+              fontSize: 11,
+              color: "var(--color-text-muted)",
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {projectName && (
+              <span style={{ fontWeight: 500, color: "var(--color-text-secondary)" }}>
+                {projectName}
+              </span>
+            )}
+            {projectName && customer && <span style={{ opacity: 0.6 }}>·</span>}
+            {customer && <span>{customer}</span>}
+          </div>
+        )}
 
         {/* Footer: type + problems */}
         <div

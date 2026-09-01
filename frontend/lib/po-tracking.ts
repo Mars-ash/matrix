@@ -1,75 +1,139 @@
-import type { Control, ControlStatus } from "./types";
+import type { Category, Control, ControlStatus, Item, JO, Project } from "./types";
 
-/**
- * Checks if the process is a PO tracking process ("PO" or "Material").
- */
-export function isPoTrackingProcess(process: string): process is "PO" | "Material" {
-  return process === "PO" || process === "Material";
+export interface PoTrackingRow {
+  project: Project;
+  jo: JO;
+  category: Category;
+  item: Item;
+  control: Control;
+  arrivalStatus?: ControlStatus;
+  process: PoTrackingProcess;
+  trackerLabel: string;
+  supplier: string;
+  poNo: string;
+  poDate: string;
+  targetArrival: string;
+  notes: string;
+  originalIndex: number;
 }
 
-/**
- * Returns the human-readable PO tracking label for the process ("PO" or "PO Mtl").
- */
+export type PoTrackingSortMode = "newest" | "deadline" | "jo" | "supplier" | "qty";
+export type PoTrackingProcess = "Material" | "PO";
+
+export function isPoTrackingProcess(process: string): process is PoTrackingProcess {
+  return process === "Material" || process === "PO";
+}
+
 export function poTrackingLabel(process: string): string {
   return process === "Material" ? "PO Mtl" : process === "PO" ? "PO" : process;
 }
 
-/**
- * Returns a compact summary string for a PO/Material control's poTracking detail,
- * or null if no summary information is available.
- */
-export function poTrackingSummary(control: Control): string | null {
-  const t = control.poTracking;
-  if (!t) return null;
-  const poNo = t.poNo?.trim();
-  const supplier = t.supplier?.trim();
-  const targetArrival = t.targetArrival?.trim();
+export function collectPoTrackingRows(projects: Project[]): PoTrackingRow[] {
+  const rows: PoTrackingRow[] = [];
+  let originalIndex = 0;
 
-  if (poNo && supplier) {
-    return `${poNo} · ${supplier}`;
+  for (const project of projects) {
+    for (const jo of project.jos) {
+      for (const category of jo.categories) {
+        for (const item of category.items) {
+          const arrivalControl = item.controls.find((control) => control.process === "Arrival");
+
+          for (const control of item.controls) {
+            if (!isPoTrackingProcess(control.process)) continue;
+
+            const tracking = control.poTracking;
+            rows.push({
+              project,
+              jo,
+              category,
+              item,
+              control,
+              arrivalStatus: arrivalControl?.status,
+              process: control.process,
+              trackerLabel: poTrackingLabel(control.process),
+              supplier: tracking?.supplier ?? "",
+              poNo: tracking?.poNo ?? "",
+              poDate: tracking?.poDate ?? "",
+              targetArrival: tracking?.targetArrival ?? control.targetDate ?? "",
+              notes: tracking?.notes ?? control.notes ?? "",
+              originalIndex,
+            });
+            originalIndex++;
+          }
+        }
+      }
+    }
   }
-  if (poNo) {
-    return poNo;
-  }
-  if (supplier) {
-    return supplier;
-  }
-  if (targetArrival) {
-    return `Target: ${targetArrival}`;
-  }
-  return null;
+
+  return rows;
 }
 
-/**
- * Calculates deadline warning state for PO/PO Mtl tracking based on targetArrival and sibling Arrival control status.
- * Warning is shown ONLY if targetArrival is set and Arrival status is not "Done".
- */
+export function filterPoTrackingRows(rows: PoTrackingRow[], searchQuery: string): PoTrackingRow[] {
+  const query = searchQuery.trim().toLowerCase();
+  if (!query) return rows;
+
+  return rows.filter((row) =>
+    [
+      row.jo.joNumber,
+      row.item.no,
+      row.item.description,
+      row.supplier,
+      row.poNo,
+      row.trackerLabel,
+    ].some((value) => value.toLowerCase().includes(query))
+  );
+}
+
+export function sortPoTrackingRows(rows: PoTrackingRow[], sortMode: PoTrackingSortMode): PoTrackingRow[] {
+  return [...rows].sort((a, b) => {
+    if (sortMode === "newest") {
+      const dateA = a.poDate ? new Date(a.poDate).getTime() : 0;
+      const dateB = b.poDate ? new Date(b.poDate).getTime() : 0;
+      if (dateB !== dateA) return dateB - dateA;
+      return b.originalIndex - a.originalIndex;
+    }
+    if (sortMode === "deadline") {
+      const timeA = a.targetArrival ? new Date(a.targetArrival).getTime() : Infinity;
+      const timeB = b.targetArrival ? new Date(b.targetArrival).getTime() : Infinity;
+      return timeA - timeB;
+    }
+    if (sortMode === "jo") {
+      return a.jo.joNumber.localeCompare(b.jo.joNumber);
+    }
+    if (sortMode === "supplier") {
+      return a.supplier.localeCompare(b.supplier);
+    }
+    if (sortMode === "qty") {
+      return (b.item.qty || 0) - (a.item.qty || 0);
+    }
+    return 0;
+  });
+}
+
 export function getPoTrackingDeadline(
   targetArrival: string | undefined,
   arrivalStatus: ControlStatus | undefined,
   today: Date = new Date()
-): { state: "overdue" | "today" | "soon"; text: string } | null {
+): { state: "overdue" | "today" | "soon"; text: string; diffDays: number } | null {
   if (!targetArrival || arrivalStatus === "Done") return null;
 
   const todayStart = new Date(today);
   todayStart.setHours(0, 0, 0, 0);
 
-  const targetDate = new Date(targetArrival);
-  targetDate.setHours(0, 0, 0, 0);
+  const target = new Date(targetArrival);
+  target.setHours(0, 0, 0, 0);
+  if (Number.isNaN(target.getTime())) return null;
 
-  if (isNaN(targetDate.getTime())) return null;
-
-  const diffTime = targetDate.getTime() - todayStart.getTime();
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  const diffDays = Math.ceil((target.getTime() - todayStart.getTime()) / (1000 * 60 * 60 * 24));
 
   if (diffDays < 0) {
-    return { state: "overdue", text: `Overdue ${Math.abs(diffDays)}d` };
+    return { state: "overdue", text: `Overdue ${Math.abs(diffDays)}d`, diffDays };
   }
   if (diffDays === 0) {
-    return { state: "today", text: "Hari H" };
+    return { state: "today", text: "Hari H", diffDays };
   }
   if (diffDays <= 3) {
-    return { state: "soon", text: `H-${diffDays}` };
+    return { state: "soon", text: `H-${diffDays}`, diffDays };
   }
   return null;
 }

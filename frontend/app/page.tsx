@@ -126,7 +126,13 @@ export default function DashboardPage() {
               }}
             >
               {project.jos.map((jo) => (
-                <JoCard key={jo.id} jo={jo} projectId={project.id} />
+                <JoCard
+                  key={jo.id}
+                  jo={jo}
+                  projectId={project.id}
+                  projectName={project.name}
+                  customer={project.customer}
+                />
               ))}
             </div>
           )}

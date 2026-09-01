@@ -1,136 +1,202 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
+import type { Project } from "./types";
 import {
+  collectPoTrackingRows,
+  filterPoTrackingRows,
+  getPoTrackingDeadline,
   isPoTrackingProcess,
   poTrackingLabel,
-  poTrackingSummary,
-  getPoTrackingDeadline,
+  sortPoTrackingRows,
 } from "./po-tracking";
-import type { Control } from "./types";
 
-describe("po-tracking helpers", () => {
-  describe("isPoTrackingProcess", () => {
-    it("returns true for 'PO' and 'Material'", () => {
-      expect(isPoTrackingProcess("PO")).toBe(true);
-      expect(isPoTrackingProcess("Material")).toBe(true);
-    });
+const projects: Project[] = [
+  {
+    id: "project-1",
+    name: "Demo Project",
+    customer: "Demo Customer",
+    jos: [
+      {
+        id: "jo-1",
+        joNumber: "126.300",
+        product: "Demo Die",
+        type: "PROGRESSIVE",
+        categories: [
+          {
+            id: "cat-part",
+            label: "PART",
+            kind: "Part",
+            isCustom: false,
+            items: [
+              {
+                id: "part-1",
+                no: "P1",
+                description: "Upper Plate",
+                dimension: "100x50",
+                material: "S50C",
+                qty: 1,
+                hrc: "",
+                controls: [
+                  {
+                    process: "Material",
+                    status: "In Progress",
+                    notes: "",
+                    poTracking: {
+                      supplier: "PT Baja",
+                      poNo: "PO-MTL-001",
+                      poDate: "2026-09-01",
+                      targetArrival: "2026-09-04",
+                      notes: "Cut to size",
+                    },
+                  },
+                  { process: "Arrival", status: "Not Started", notes: "" },
+                  { process: "Machining", status: "Not Started", notes: "" },
+                ],
+              },
+            ],
+          },
+          {
+            id: "cat-component",
+            label: "COMPONENT",
+            kind: "Component",
+            isCustom: false,
+            items: [
+              {
+                id: "component-1",
+                no: "C1",
+                description: "Guide Pin",
+                dimension: "D20x80",
+                material: "SUJ2",
+                qty: 4,
+                hrc: "",
+                controls: [
+                  {
+                    process: "PO",
+                    status: "Done",
+                    notes: "",
+                    poTracking: {
+                      supplier: "MISUMI",
+                      poNo: "PO-COMP-002",
+                      poDate: "2026-08-30",
+                      targetArrival: "2026-09-02",
+                      notes: "",
+                    },
+                  },
+                  { process: "Arrival", status: "Done", notes: "" },
+                ],
+              },
+            ],
+          },
+        ],
+        activities: [],
+      },
+    ],
+  },
+];
 
-    it("returns false for non-PO processes", () => {
-      expect(isPoTrackingProcess("Machining")).toBe(false);
-      expect(isPoTrackingProcess("Arrival")).toBe(false);
-      expect(isPoTrackingProcess("Assembly")).toBe(false);
-      expect(isPoTrackingProcess("")).toBe(false);
-    });
+describe("PO tracking helpers", () => {
+  it("identifies only Material and PO as PO tracking processes", () => {
+    expect(isPoTrackingProcess("Material")).toBe(true);
+    expect(isPoTrackingProcess("PO")).toBe(true);
+    expect(isPoTrackingProcess("Arrival")).toBe(false);
+    expect(isPoTrackingProcess("Machining")).toBe(false);
   });
 
-  describe("poTrackingLabel", () => {
-    it("returns 'PO' for PO process and 'PO Mtl' for Material process", () => {
-      expect(poTrackingLabel("PO")).toBe("PO");
-      expect(poTrackingLabel("Material")).toBe("PO Mtl");
-    });
+  it("labels Part Material rows as PO Mtl and Component PO rows as PO", () => {
+    expect(poTrackingLabel("Material")).toBe("PO Mtl");
+    expect(poTrackingLabel("PO")).toBe("PO");
   });
 
-  describe("poTrackingSummary", () => {
-    it("returns null when control has no poTracking or empty values", () => {
-      const c1: Control = { process: "PO", status: "Not Started", notes: "" };
-      expect(poTrackingSummary(c1)).toBeNull();
+  it("collects Part PO Mtl and Component PO rows across projects", () => {
+    const rows = collectPoTrackingRows(projects);
 
-      const c2: Control = {
-        process: "PO",
-        status: "In Progress",
-        notes: "",
-        poTracking: { poNo: "", supplier: "", targetArrival: "", notes: "" },
-      };
-      expect(poTrackingSummary(c2)).toBeNull();
-    });
-
-    it("returns poNo if provided", () => {
-      const c: Control = {
-        process: "Material",
-        status: "In Progress",
-        notes: "",
-        poTracking: { poNo: "PO-MTL-001", supplier: "", targetArrival: "", notes: "" },
-      };
-      expect(poTrackingSummary(c)).toBe("PO-MTL-001");
-    });
-
-    it("returns poNo with supplier if both provided", () => {
-      const c: Control = {
-        process: "PO",
-        status: "In Progress",
-        notes: "",
-        poTracking: { poNo: "PO-099", supplier: "PT Baja Utama", targetArrival: "", notes: "" },
-      };
-      expect(poTrackingSummary(c)).toBe("PO-099 · PT Baja Utama");
-    });
-
-    it("falls back to supplier when poNo is empty", () => {
-      const c: Control = {
-        process: "Material",
-        status: "In Progress",
-        notes: "",
-        poTracking: { poNo: "", supplier: "PT Steel Indo", targetArrival: "", notes: "" },
-      };
-      expect(poTrackingSummary(c)).toBe("PT Steel Indo");
-    });
-
-    it("falls back to targetArrival when poNo and supplier are empty", () => {
-      const c: Control = {
-        process: "PO",
-        status: "In Progress",
-        notes: "",
-        poTracking: { poNo: "", supplier: "", targetArrival: "2026-09-15", notes: "" },
-      };
-      expect(poTrackingSummary(c)).toBe("Target: 2026-09-15");
-    });
+    expect(rows).toHaveLength(2);
+    expect(rows.map((row) => row.trackerLabel)).toEqual(["PO Mtl", "PO"]);
+    expect(rows.map((row) => row.poNo)).toEqual(["PO-MTL-001", "PO-COMP-002"]);
+    expect(rows.map((row) => row.process)).toEqual(["Material", "PO"]);
   });
 
-  describe("getPoTrackingDeadline", () => {
-    const today = new Date("2026-09-01T00:00:00");
+  it("keeps row references and falls back to control target date", () => {
+    const fallbackProjects = structuredClone(projects);
+    const materialControl =
+      fallbackProjects[0].jos[0].categories[0].items[0].controls[0];
+    materialControl.targetDate = "2026-09-08";
+    materialControl.poTracking = {
+      supplier: "PT Fallback",
+      poNo: "PO-FALLBACK",
+      poDate: "2026-09-03",
+      notes: "Use control target date",
+    };
 
-    it("returns null when targetArrival is empty or undefined", () => {
-      expect(getPoTrackingDeadline(undefined, "Not Started", today)).toBeNull();
-      expect(getPoTrackingDeadline("", "In Progress", today)).toBeNull();
+    const [row] = collectPoTrackingRows(fallbackProjects);
+
+    expect(row.project.id).toBe("project-1");
+    expect(row.jo.id).toBe("jo-1");
+    expect(row.category.id).toBe("cat-part");
+    expect(row.item.id).toBe("part-1");
+    expect(row.control.process).toBe("Material");
+    expect(row.originalIndex).toBe(0);
+    expect(row.targetArrival).toBe("2026-09-08");
+  });
+
+  it("filters rows by JO, item, supplier, PO number, and tracker label", () => {
+    const rows = collectPoTrackingRows(projects);
+
+    expect(filterPoTrackingRows(rows, "126.300")).toHaveLength(2);
+    expect(filterPoTrackingRows(rows, "P1")).toHaveLength(1);
+    expect(filterPoTrackingRows(rows, "Upper")).toHaveLength(1);
+    expect(filterPoTrackingRows(rows, "MISUMI")).toHaveLength(1);
+    expect(filterPoTrackingRows(rows, "PO-MTL-001")).toHaveLength(1);
+    expect(filterPoTrackingRows(rows, "PO Mtl")).toHaveLength(1);
+  });
+
+  it("sorts rows by procurement fields without mutating the original list", () => {
+    const rows = collectPoTrackingRows(projects);
+    const originalOrder = rows.map((row) => row.item.id);
+
+    expect(sortPoTrackingRows(rows, "newest").map((row) => row.item.id)).toEqual([
+      "part-1",
+      "component-1",
+    ]);
+    expect(sortPoTrackingRows(rows, "deadline").map((row) => row.item.id)).toEqual([
+      "component-1",
+      "part-1",
+    ]);
+    expect(sortPoTrackingRows(rows, "qty").map((row) => row.item.id)).toEqual([
+      "component-1",
+      "part-1",
+    ]);
+    expect(rows.map((row) => row.item.id)).toEqual(originalOrder);
+  });
+
+  it("uses sibling Arrival completion to suppress target arrival warnings", () => {
+    expect(
+      getPoTrackingDeadline("2026-09-02", "Not Started", new Date("2026-09-01T00:00:00+07:00"))
+    ).toEqual({ state: "soon", text: "H-1", diffDays: 1 });
+
+    expect(
+      getPoTrackingDeadline("2026-09-02", "Done", new Date("2026-09-01T00:00:00+07:00"))
+    ).toBeNull();
+  });
+
+  it("returns overdue, today, soon, and empty deadline states", () => {
+    const today = new Date("2026-09-01T00:00:00+07:00");
+
+    expect(getPoTrackingDeadline("2026-08-30", "In Progress", today)).toEqual({
+      state: "overdue",
+      text: "Overdue 2d",
+      diffDays: -2,
     });
-
-    it("returns null when Arrival status is Done", () => {
-      expect(getPoTrackingDeadline("2026-08-25", "Done", today)).toBeNull();
-      expect(getPoTrackingDeadline("2026-09-01", "Done", today)).toBeNull();
-      expect(getPoTrackingDeadline("2026-09-02", "Done", today)).toBeNull();
+    expect(getPoTrackingDeadline("2026-09-01", "In Progress", today)).toEqual({
+      state: "today",
+      text: "Hari H",
+      diffDays: 0,
     });
-
-    it("returns overdue when targetArrival is in the past and Arrival is not Done", () => {
-      const res = getPoTrackingDeadline("2026-08-29", "In Progress", today);
-      expect(res).toEqual({
-        state: "overdue",
-        text: "Overdue 3d",
-      });
+    expect(getPoTrackingDeadline("2026-09-04", "In Progress", today)).toEqual({
+      state: "soon",
+      text: "H-3",
+      diffDays: 3,
     });
-
-    it("returns today when targetArrival is today and Arrival is not Done", () => {
-      const res = getPoTrackingDeadline("2026-09-01", "Not Started", today);
-      expect(res).toEqual({
-        state: "today",
-        text: "Hari H",
-      });
-    });
-
-    it("returns soon when targetArrival is within 3 days in the future and Arrival is not Done", () => {
-      const res1 = getPoTrackingDeadline("2026-09-02", "In Progress", today);
-      expect(res1).toEqual({
-        state: "soon",
-        text: "H-1",
-      });
-
-      const res3 = getPoTrackingDeadline("2026-09-04", "In Progress", today);
-      expect(res3).toEqual({
-        state: "soon",
-        text: "H-3",
-      });
-    });
-
-    it("returns null when targetArrival is more than 3 days in the future", () => {
-      const res = getPoTrackingDeadline("2026-09-10", "In Progress", today);
-      expect(res).toBeNull();
-    });
+    expect(getPoTrackingDeadline("", "In Progress", today)).toBeNull();
+    expect(getPoTrackingDeadline("not-a-date", "In Progress", today)).toBeNull();
   });
 });

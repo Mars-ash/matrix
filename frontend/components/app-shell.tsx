@@ -1,9 +1,8 @@
 "use client";
 import React, { type ReactNode, useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { useAppState } from "@/lib/store";
-import type { JO, Project } from "@/lib/types";
+import type { Project } from "@/lib/types";
 
 interface AppShellProps {
   children: ReactNode;
@@ -16,7 +15,7 @@ interface NotifItem {
   joNumber: string;
   type: "h3" | "hday" | "overdue";
   daysText: string;
-  category: "subcont" | "control";
+  category: "subcont" | "po";
   href: string;
   subText: string;
 }
@@ -75,33 +74,13 @@ function buildNotifications(projects: Project[]): NotifItem[] {
             }
           }
 
-          // 2. Material Arrival and PO notifications
-          const arrivalCtrl = item.controls.find((c) => c.process === "Arrival");
+          // 2. Material Arrival notifications
           for (const ctrl of item.controls) {
-            const isPoMtl = ctrl.process === "Material" || ctrl.process === "PO";
-            const isArrival = ctrl.process === "Arrival";
-            if (!isPoMtl && !isArrival) continue;
-
-            const targetDateStr = isPoMtl
-              ? ctrl.poTracking?.targetArrival || ctrl.targetDate
-              : ctrl.targetDate;
-
-            const isDone = isPoMtl
-              ? arrivalCtrl?.status === "Done" || (ctrl.status === "Done" && !ctrl.poTracking?.targetArrival)
-              : ctrl.status === "Done";
-
-            if (targetDateStr && !isDone) {
-              const target = new Date(targetDateStr);
+            if ((ctrl.process === "Arrival" || ctrl.process === "Material" || ctrl.process === "PO") && ctrl.targetDate && ctrl.status !== "Done") {
+              const target = new Date(ctrl.targetDate);
               target.setHours(0, 0, 0, 0);
               const diffDays = Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-              const href = `/projects/${project.id}/jos/${jo.id}?item=${item.id}#item-${item.id}`;
-
-              const processLabel =
-                ctrl.process === "Material"
-                  ? "PO Mtl"
-                  : ctrl.process === "PO"
-                  ? "PO"
-                  : "Material Arrival";
+              const href = `/po-tracker?item=${item.id}#po-item-${item.id}`;
               const supplierInfo = ctrl.poTracking?.supplier ? ` · ${ctrl.poTracking.supplier}` : "";
 
               if (diffDays < 0) {
@@ -111,9 +90,9 @@ function buildNotifications(projects: Project[]): NotifItem[] {
                   joNumber: jo.joNumber,
                   type: "overdue",
                   daysText: `Overdue ${Math.abs(diffDays)}d`,
-                  category: "control",
+                  category: "po",
                   href,
-                  subText: `JO ${jo.joNumber} · ${processLabel}${supplierInfo}`,
+                  subText: `JO ${jo.joNumber} · PO / Material${supplierInfo}`,
                 });
               } else if (diffDays === 0) {
                 results.push({
@@ -122,9 +101,9 @@ function buildNotifications(projects: Project[]): NotifItem[] {
                   joNumber: jo.joNumber,
                   type: "hday",
                   daysText: "Hari H",
-                  category: "control",
+                  category: "po",
                   href,
-                  subText: `JO ${jo.joNumber} · ${processLabel}${supplierInfo}`,
+                  subText: `JO ${jo.joNumber} · PO / Material${supplierInfo}`,
                 });
               } else if (diffDays <= 3) {
                 results.push({
@@ -133,9 +112,9 @@ function buildNotifications(projects: Project[]): NotifItem[] {
                   joNumber: jo.joNumber,
                   type: "h3",
                   daysText: `H-${diffDays}`,
-                  category: "control",
+                  category: "po",
                   href,
-                  subText: `JO ${jo.joNumber} · ${processLabel}${supplierInfo}`,
+                  subText: `JO ${jo.joNumber} · PO / Material${supplierInfo}`,
                 });
               }
             }
@@ -153,6 +132,7 @@ function buildNotifications(projects: Project[]): NotifItem[] {
 function NotificationBell() {
   const { projects } = useAppState();
   const [open, setOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<"po" | "subcont">("po");
   const ref = useRef<HTMLDivElement>(null);
   const notifications = buildNotifications(projects);
 
@@ -163,6 +143,10 @@ function NotificationBell() {
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
+
+  const poNotifications = notifications.filter((n) => n.category === "po");
+  const subcontNotifications = notifications.filter((n) => n.category === "subcont");
+  const activeList = activeTab === "po" ? poNotifications : subcontNotifications;
 
   const typeColor = {
     overdue: "var(--color-status-problem)",
@@ -212,8 +196,8 @@ function NotificationBell() {
             position: "absolute",
             top: "calc(100% + 6px)",
             right: 0,
-            width: 340,
-            maxHeight: 420,
+            width: 350,
+            maxHeight: 440,
             overflowY: "auto",
             backgroundColor: "var(--color-bg-raised)",
             border: "1px solid var(--color-border)",
@@ -224,43 +208,119 @@ function NotificationBell() {
         >
           <div
             style={{
-              padding: "10px 14px",
+              padding: "8px 12px",
               borderBottom: "1px solid var(--color-border)",
               fontSize: 13,
               fontWeight: 600,
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
+              gap: 8,
             }}
           >
-            <div>
-              Notifications
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span>Notifications</span>
               {notifications.length > 0 && (
-                <span style={{ fontWeight: 400, color: "var(--color-text-muted)", marginLeft: 6 }}>
+                <span style={{ fontWeight: 500, color: "var(--color-text-muted)", fontSize: 11 }}>
                   ({notifications.length})
                 </span>
               )}
             </div>
-            <Link
-              href="/subcont"
-              onClick={() => setOpen(false)}
+
+            {/* Switch Button PO / Subcont */}
+            <div
               style={{
-                fontSize: 11,
-                color: "var(--color-accent)",
-                textDecoration: "none",
-                fontWeight: 600,
+                display: "inline-flex",
+                background: "var(--color-bg)",
+                padding: 2,
+                borderRadius: "var(--radius-sm, 6px)",
+                border: "1px solid var(--color-border)",
               }}
             >
-              SC Tracker →
-            </Link>
+              <button
+                type="button"
+                onClick={() => setActiveTab("po")}
+                style={{
+                  padding: "3px 8px",
+                  fontSize: 11,
+                  fontWeight: activeTab === "po" ? 700 : 500,
+                  color: activeTab === "po" ? "var(--color-text)" : "var(--color-text-muted)",
+                  backgroundColor: activeTab === "po" ? "var(--color-bg-raised)" : "transparent",
+                  border: "none",
+                  borderRadius: 4,
+                  cursor: "pointer",
+                  boxShadow: activeTab === "po" ? "0 1px 2px rgba(0,0,0,0.12)" : "none",
+                  transition: "all 120ms ease",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 4,
+                }}
+              >
+                PO
+                {poNotifications.length > 0 && (
+                  <span
+                    style={{
+                      fontSize: 9,
+                      fontWeight: 700,
+                      backgroundColor: "color-mix(in srgb, var(--color-status-problem) 18%, transparent)",
+                      color: "var(--color-status-problem)",
+                      padding: "0 4px",
+                      borderRadius: 8,
+                      minWidth: 14,
+                      textAlign: "center",
+                    }}
+                  >
+                    {poNotifications.length}
+                  </span>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab("subcont")}
+                style={{
+                  padding: "3px 8px",
+                  fontSize: 11,
+                  fontWeight: activeTab === "subcont" ? 700 : 500,
+                  color: activeTab === "subcont" ? "var(--color-text)" : "var(--color-text-muted)",
+                  backgroundColor: activeTab === "subcont" ? "var(--color-bg-raised)" : "transparent",
+                  border: "none",
+                  borderRadius: 4,
+                  cursor: "pointer",
+                  boxShadow: activeTab === "subcont" ? "0 1px 2px rgba(0,0,0,0.12)" : "none",
+                  transition: "all 120ms ease",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 4,
+                }}
+              >
+                SC
+                {subcontNotifications.length > 0 && (
+                  <span
+                    style={{
+                      fontSize: 9,
+                      fontWeight: 700,
+                      backgroundColor: "color-mix(in srgb, var(--color-status-problem) 18%, transparent)",
+                      color: "var(--color-status-problem)",
+                      padding: "0 4px",
+                      borderRadius: 8,
+                      minWidth: 14,
+                      textAlign: "center",
+                    }}
+                  >
+                    {subcontNotifications.length}
+                  </span>
+                )}
+              </button>
+            </div>
           </div>
 
-          {notifications.length === 0 ? (
-            <div style={{ padding: "24px 14px", textAlign: "center", fontSize: 12, color: "var(--color-text-muted)" }}>
-              Tidak ada deadline mendekati
+          {activeList.length === 0 ? (
+            <div style={{ padding: "28px 14px", textAlign: "center", fontSize: 12, color: "var(--color-text-muted)" }}>
+              {activeTab === "po" ? "Tidak ada deadline PO mendekati" : "Tidak ada deadline SC mendekati"}
             </div>
           ) : (
-            notifications.map((n) => (
+            activeList.map((n) => (
               <Link
                 key={n.id}
                 href={n.href}
@@ -345,6 +405,31 @@ function NotificationBell() {
               </Link>
             ))
           )}
+
+          {/* Popover Footer link */}
+          <div
+            style={{
+              padding: "8px 12px",
+              borderTop: "1px solid var(--color-border)",
+              backgroundColor: "var(--color-bg)",
+              display: "flex",
+              justifyContent: "flex-end",
+              alignItems: "center",
+            }}
+          >
+            <Link
+              href={activeTab === "po" ? "/po-tracker" : "/subcont"}
+              onClick={() => setOpen(false)}
+              style={{
+                fontSize: 11,
+                color: "var(--color-accent)",
+                textDecoration: "none",
+                fontWeight: 600,
+              }}
+            >
+              {activeTab === "po" ? "Buka PO Tracker →" : "Buka SC Tracker →"}
+            </Link>
+          </div>
         </div>
       )}
     </div>
@@ -352,8 +437,6 @@ function NotificationBell() {
 }
 
 export function AppShell({ children, breadcrumbs }: AppShellProps) {
-  const pathname = usePathname();
-
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
       {/* Top Header */}
@@ -365,6 +448,9 @@ export function AppShell({ children, breadcrumbs }: AppShellProps) {
           </Link>
 
           <nav style={{ display: "flex", gap: 16 }}>
+            <Link href="/po-tracker" style={{ color: "var(--color-text)", textDecoration: "none", fontSize: 14, fontWeight: 500 }}>
+              PO Tracker
+            </Link>
             <Link href="/subcont" style={{ color: "var(--color-text)", textDecoration: "none", fontSize: 14, fontWeight: 500 }}>
               SC Tracker
             </Link>

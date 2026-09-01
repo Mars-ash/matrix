@@ -12,7 +12,8 @@ import { Dialog } from "@/components/dialog";
 import { useAppState, useAppDispatch } from "@/lib/store";
 import { joProgress, joProblemCount, categoryProgress } from "@/lib/progress";
 import { formatProgress } from "@/lib/format";
-import { SUBCONT_SUPPLIERS, type ControlStatus } from "@/lib/types";
+import { SUBCONT_SUPPLIERS, type ControlStatus, type Item } from "@/lib/types";
+import { poTrackingLabel } from "@/lib/po-tracking";
 
 interface PageProps {
   params: Promise<{ projectId: string; joId: string }>;
@@ -40,7 +41,7 @@ export default function JoDetailPage({ params }: PageProps) {
 
   // Bulk operation states
   const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
-  const [activeBulkModal, setActiveBulkModal] = useState<"arrival" | "status" | "subcont" | null>(null);
+  const [activeBulkModal, setActiveBulkModal] = useState<"po" | "status" | "subcont" | null>(null);
   const [bulkArrivalDate, setBulkArrivalDate] = useState("");
   const [bulkStatusProcesses, setBulkStatusProcesses] = useState<string[]>(["Machining"]);
   const [bulkStatusValue, setBulkStatusValue] = useState<ControlStatus>("In Progress");
@@ -48,6 +49,18 @@ export default function JoDetailPage({ params }: PageProps) {
   const [bulkSubcontProcess, setBulkSubcontProcess] = useState("Machining");
   const [bulkSubcontSupplier, setBulkSubcontSupplier] = useState("");
   const [bulkSubcontArrivalDate, setBulkSubcontArrivalDate] = useState("");
+
+  // Kirim PO states (for both bulk and single item trigger)
+  const [singlePoItem, setSinglePoItem] = useState<{
+    categoryId: string;
+    item: Item;
+    process: "Material" | "PO";
+  } | null>(null);
+  const [poSupplier, setPoSupplier] = useState("");
+  const [poNo, setPoNo] = useState("");
+  const [poDate, setPoDate] = useState("");
+  const [poTargetArrival, setPoTargetArrival] = useState("");
+  const [poNotes, setPoNotes] = useState("");
 
   const project = projects.find((p) => p.id === projectId);
   const jo = project?.jos.find((j) => j.id === joId);
@@ -109,6 +122,30 @@ export default function JoDetailPage({ params }: PageProps) {
         return prev.filter((id) => !itemIds.includes(id));
       }
     });
+  }, []);
+
+  const handleRequestSendPo = useCallback(
+    (payload: { categoryId: string; item: Item; process: "Material" | "PO" }) => {
+      const { item, process } = payload;
+      const ctrl = item.controls.find((c) => c.process === process);
+      const arrivalCtrl = item.controls.find((c) => c.process === "Arrival");
+      setPoSupplier(ctrl?.poTracking?.supplier || "");
+      setPoNo(ctrl?.poTracking?.poNo || "");
+      setPoDate(ctrl?.poTracking?.poDate || new Date().toISOString().split("T")[0]);
+      setPoTargetArrival(ctrl?.poTracking?.targetArrival || arrivalCtrl?.targetDate || "");
+      setPoNotes(ctrl?.poTracking?.notes || "");
+      setSinglePoItem(payload);
+    },
+    []
+  );
+
+  const handleOpenBulkPoModal = useCallback(() => {
+    setPoSupplier("");
+    setPoNo("");
+    setPoDate(new Date().toISOString().split("T")[0]);
+    setPoTargetArrival("");
+    setPoNotes("");
+    setActiveBulkModal("po");
   }, []);
 
   return (
@@ -324,6 +361,7 @@ export default function JoDetailPage({ params }: PageProps) {
               selectedItemIds={selectedItemIds}
               onToggleSelectItem={handleToggleSelectItem}
               onToggleSelectAllCategory={handleToggleSelectAllCategory}
+              onRequestSendPo={handleRequestSendPo}
             />
           </section>
         ))}
@@ -461,9 +499,9 @@ export default function JoDetailPage({ params }: PageProps) {
             <button
               type="button"
               className="btn btn-secondary btn-sm bulk-action-btn"
-              onClick={() => setActiveBulkModal("arrival")}
+              onClick={handleOpenBulkPoModal}
             >
-              Set Target Arrival
+              Kirim PO
             </button>
 
             <button
@@ -476,7 +514,7 @@ export default function JoDetailPage({ params }: PageProps) {
 
             <button
               type="button"
-              className="btn btn-primary btn-sm bulk-action-btn"
+              className="btn btn-secondary btn-sm bulk-action-btn"
               onClick={() => setActiveBulkModal("subcont")}
             >
               Kirim Subcont
@@ -497,44 +535,134 @@ export default function JoDetailPage({ params }: PageProps) {
         </div>
       )}
 
-      {/* Bulk Target Arrival Dialog */}
+      {/* Kirim PO Dialog (Bulk & Single Item) */}
       <Dialog
-        open={activeBulkModal === "arrival"}
-        onClose={() => setActiveBulkModal(null)}
-        title="Set Target Arrival (Bulk)"
+        open={activeBulkModal === "po" || singlePoItem !== null}
+        onClose={() => {
+          setActiveBulkModal(null);
+          setSinglePoItem(null);
+        }}
+        title={
+          singlePoItem
+            ? `Kirim PO — ${singlePoItem.item.description} (${poTrackingLabel(singlePoItem.process)})`
+            : `Kirim PO (Bulk — ${selectedItemIds.length} Part Terpilih)`
+        }
         footer={
           <>
-            <button className="btn btn-secondary" onClick={() => setActiveBulkModal(null)}>
+            <button
+              className="btn btn-secondary"
+              onClick={() => {
+                setActiveBulkModal(null);
+                setSinglePoItem(null);
+              }}
+            >
               Batal
             </button>
             <button
               className="btn btn-primary"
-              disabled={!bulkArrivalDate}
               onClick={() => {
-                dispatch({
-                  type: "BULK_UPDATE_TARGET_ARRIVAL",
-                  projectId,
-                  joId,
-                  itemIds: selectedItemIds,
-                  targetDate: bulkArrivalDate,
-                });
-                setActiveBulkModal(null);
-                setSelectedItemIds([]);
+                if (singlePoItem) {
+                  dispatch({
+                    type: "UPDATE_PO_TRACKING",
+                    projectId,
+                    joId,
+                    categoryId: singlePoItem.categoryId,
+                    itemId: singlePoItem.item.id,
+                    process: singlePoItem.process,
+                    status: "In Progress",
+                    problemNotes: "",
+                    tracking: {
+                      supplier: poSupplier,
+                      poNo: poNo,
+                      poDate: poDate,
+                      targetArrival: poTargetArrival,
+                      notes: poNotes,
+                    },
+                  });
+                  setSinglePoItem(null);
+                } else if (activeBulkModal === "po") {
+                  dispatch({
+                    type: "BULK_SEND_PO",
+                    projectId,
+                    joId,
+                    itemIds: selectedItemIds,
+                    supplier: poSupplier,
+                    poNo: poNo,
+                    poDate: poDate,
+                    targetArrival: poTargetArrival,
+                    notes: poNotes,
+                  });
+                  setActiveBulkModal(null);
+                  setSelectedItemIds([]);
+                }
               }}
             >
-              Terapkan ({selectedItemIds.length} Part)
+              {singlePoItem ? "Simpan & Kirim PO" : `Kirim PO (${selectedItemIds.length} Part)`}
             </button>
           </>
         }
       >
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <label className="label">Tanggal Target Kedatangan</label>
-          <input
-            type="date"
-            className="input"
-            value={bulkArrivalDate}
-            onChange={(e) => setBulkArrivalDate(e.target.value)}
-          />
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div>
+            <label className="label">No. PO</label>
+            <input
+              type="text"
+              className="input"
+              value={poNo}
+              onChange={(e) => setPoNo(e.target.value)}
+              autoFocus
+            />
+          </div>
+
+          <div>
+            <label className="label">Tanggal PO</label>
+            <input
+              type="date"
+              className="input"
+              value={poDate}
+              onChange={(e) => setPoDate(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className="label">Pilih Supplier / Vendor</label>
+            <input
+              type="text"
+              className="input"
+              list="po-supplier-options"
+              placeholder="Pilih atau ketik nama supplier..."
+              value={poSupplier}
+              onChange={(e) => setPoSupplier(e.target.value)}
+            />
+            <datalist id="po-supplier-options">
+              {SUBCONT_SUPPLIERS.map((sup) => (
+                <option key={sup} value={sup}>{sup}</option>
+              ))}
+              <option value="PT Baja Makmur">PT Baja Makmur</option>
+              <option value="MISUMI">MISUMI</option>
+              <option value="FUTABA">FUTABA</option>
+            </datalist>
+          </div>
+
+          <div>
+            <label className="label">Estimasi Target Kedatangan (Target Arrival)</label>
+            <input
+              type="date"
+              className="input"
+              value={poTargetArrival}
+              onChange={(e) => setPoTargetArrival(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className="label">Catatan (Notes)</label>
+            <textarea
+              className="input"
+              rows={2}
+              value={poNotes}
+              onChange={(e) => setPoNotes(e.target.value)}
+            />
+          </div>
         </div>
       </Dialog>
 

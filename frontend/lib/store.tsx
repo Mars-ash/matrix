@@ -15,6 +15,7 @@ import type {
   JO,
   Item,
   ControlStatus,
+  PoTracking,
   JoType,
   CategoryKind,
   TrialSession,
@@ -22,11 +23,11 @@ import type {
   TrialTextEntry,
   TrialCorrectiveActionEntry,
   TrialEntryPhoto,
-  PoTrackingDetail,
 } from "./types";
 import { INITIAL_PROJECTS } from "./mock-data";
 import { defaultControls } from "./category";
 import { uid } from "./format";
+import { isPoTrackingProcess, poTrackingLabel } from "./po-tracking";
 
 export type TrialEntrySection = "problems" | "causes" | "correctiveActions";
 
@@ -105,6 +106,18 @@ export type AppAction =
       targetDate: string;
     }
   | {
+      type: "UPDATE_PO_TRACKING";
+      projectId: string;
+      joId: string;
+      categoryId: string;
+      itemId: string;
+      process: "Material" | "PO";
+      status: ControlStatus;
+      problemNotes: string;
+      tracking: PoTracking;
+      qty?: number;
+    }
+  | {
       type: "BULK_UPDATE_TARGET_ARRIVAL";
       projectId: string;
       joId: string;
@@ -129,6 +142,17 @@ export type AppAction =
       process: string;
       supplier?: string;
       arrivalTargetDate?: string;
+    }
+  | {
+      type: "BULK_SEND_PO";
+      projectId: string;
+      joId: string;
+      itemIds: string[];
+      supplier?: string;
+      poNo?: string;
+      poDate?: string;
+      targetArrival?: string;
+      notes?: string;
     }
   | {
       type: "FINISH_JO";
@@ -166,17 +190,6 @@ export type AppAction =
       itemId: string;
       process: string;
       photoId: string;
-    }
-  | {
-      type: "UPDATE_PO_TRACKING";
-      projectId: string;
-      joId: string;
-      categoryId: string;
-      itemId: string;
-      process: "PO" | "Material";
-      status: ControlStatus;
-      problemNotes: string;
-      tracking: PoTrackingDetail;
     }
   | {
       type: "CREATE_TRIAL_SESSION";
@@ -465,40 +478,48 @@ function reducer(state: AppState, action: AppAction): AppState {
       const jo = project?.jos.find((j) => j.id === action.joId);
       const cat = jo?.categories.find((c) => c.id === action.categoryId);
       const item = cat?.items.find((i) => i.id === action.itemId);
-      if (!item) return state;
+      if (!item || !isPoTrackingProcess(action.process)) return state;
 
       const control = item.controls.find((c) => c.process === action.process);
       if (!control) return state;
 
-      if (action.process !== "PO" && action.process !== "Material") {
+      if (action.status === "Problem" && !action.problemNotes.trim()) {
         return state;
       }
 
-      const trimmedProblemNotes = (action.problemNotes || "").trim();
-      if (action.status === "Problem" && !trimmedProblemNotes) {
-        return state;
-      }
-
+      const prevStatus = control.status;
       control.status = action.status;
-      control.notes = action.status === "Problem" ? trimmedProblemNotes : "";
+      control.notes = action.status === "Problem" ? action.problemNotes.trim() : "";
       control.poTracking = {
-        poNo: (action.tracking.poNo || "").trim(),
-        supplier: (action.tracking.supplier || "").trim(),
-        targetArrival: (action.tracking.targetArrival || "").trim(),
-        notes: (action.tracking.notes || "").trim(),
+        ...control.poTracking,
+        supplier: action.tracking.supplier?.trim() ?? "",
+        poNo: action.tracking.poNo?.trim() ?? "",
+        poDate: action.tracking.poDate?.trim() ?? "",
+        targetArrival: action.tracking.targetArrival?.trim() ?? "",
+        notes: action.tracking.notes?.trim() ?? "",
       };
 
-      if (action.status === "In Progress" && !control.inProgressAt) {
-        control.inProgressAt = new Date().toISOString();
+      if (action.tracking.targetArrival) {
+        control.targetDate = action.tracking.targetArrival.trim();
+        const arrivalCtrl = item.controls.find((c) => c.process === "Arrival");
+        if (arrivalCtrl) {
+          arrivalCtrl.targetDate = action.tracking.targetArrival.trim();
+        }
       }
 
-      const processLabel = action.process === "Material" ? "PO Mtl" : "PO";
-      const poSummary = control.poTracking.poNo ? ` (${control.poTracking.poNo})` : "";
+      if (action.status === "In Progress") {
+        control.inProgressAt = action.tracking.poDate
+          ? new Date(action.tracking.poDate).toISOString()
+          : new Date().toISOString();
+      }
+
+      if (action.qty !== undefined && action.qty > 0) {
+        item.qty = action.qty;
+      }
+
       addActivity(
         jo!,
-        `Updated ${processLabel}${poSummary} on ${item.description} → ${action.status}${
-          control.notes ? `. Note: ${control.notes}` : ""
-        }`
+        `${item.description} → ${poTrackingLabel(action.process)}: ${prevStatus} → ${action.status}`
       );
       return next;
     }
@@ -598,6 +619,52 @@ function reducer(state: AppState, action: AppAction): AppState {
       addActivity(
         jo,
         `Bulk dispatched ${count} parts to Subcont (${action.process}${action.supplier ? ` - ${action.supplier}` : ""}).`
+      );
+      return next;
+    }
+
+    case "BULK_SEND_PO": {
+      const project = next.projects.find((p) => p.id === action.projectId);
+      const jo = project?.jos.find((j) => j.id === action.joId);
+      if (!jo) return state;
+
+      let count = 0;
+      for (const cat of jo.categories) {
+        for (const item of cat.items) {
+          if (action.itemIds.includes(item.id)) {
+            const proc = cat.kind === "Part" ? "Material" : "PO";
+            const ctrl = item.controls.find((c) => c.process === proc);
+            if (ctrl) {
+              ctrl.status = "In Progress";
+              ctrl.inProgressAt = action.poDate
+                ? new Date(action.poDate).toISOString()
+                : new Date().toISOString();
+              ctrl.poTracking = {
+                ...ctrl.poTracking,
+                supplier: action.supplier?.trim() ?? "",
+                poNo: action.poNo?.trim() ?? "",
+                poDate: action.poDate?.trim() ?? "",
+                targetArrival: action.targetArrival?.trim() ?? "",
+                notes: action.notes?.trim() ?? "",
+              };
+              if (action.targetArrival) {
+                ctrl.targetDate = action.targetArrival.trim();
+              }
+            }
+            if (action.targetArrival) {
+              const arrivalCtrl = item.controls.find((c) => c.process === "Arrival");
+              if (arrivalCtrl) {
+                arrivalCtrl.targetDate = action.targetArrival.trim();
+              }
+            }
+            count++;
+          }
+        }
+      }
+
+      addActivity(
+        jo,
+        `Bulk sent PO (${action.poNo || "-"} ${action.supplier ? `- ${action.supplier}` : ""}) for ${count} parts.`
       );
       return next;
     }
@@ -1052,4 +1119,3 @@ export function useAppDispatch(): Dispatch<AppAction> {
 
 // Expose reducer for testing without React rendering.
 export { reducer, initialState };
-

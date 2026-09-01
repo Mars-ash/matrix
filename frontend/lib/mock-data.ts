@@ -205,12 +205,26 @@ const parts110: Item[] = [
 parts110[parts110.length - 1].controls[1].notes =
   "Anomalous source value (12) — requires verification.";
 
-// Sample PO Mtl tracking on Lifter (Part)
 parts110[20].controls[0].poTracking = {
-  poNo: "PO-MTL-2601",
   supplier: "PT Baja Makmur",
+  poNo: "PO-MTL-126110-021",
+  poDate: relativeDate(-2),
+  targetArrival: relativeDate(2),
+  notes: "SKD11 rough size requested.",
+};
+parts110[21].controls[0].poTracking = {
+  supplier: "PT Sinar Steel",
+  poNo: "PO-MTL-126110-022",
+  poDate: relativeDate(-4),
   targetArrival: relativeDate(-1),
-  notes: "Material SKD11 blok",
+  notes: "Waiting supplier confirmation.",
+};
+parts110[0].controls[0].poTracking = {
+  supplier: "PT Baja Makmur",
+  poNo: "PO-MTL-126110-001",
+  poDate: relativeDate(-12),
+  targetArrival: relativeDate(-8),
+  notes: "Material received.",
 };
 
 const components110: Item[] = [
@@ -229,12 +243,26 @@ const components110: Item[] = [
   compItem("13", "Shank", "Ø40", "S45C", 1, "", compCtrl("Done", "In Progress")),
 ];
 
-// Sample PO tracking on Urethane Pad (Component)
 components110[7].controls[0].poTracking = {
-  poNo: "PO-MIS-8821",
-  supplier: "Misumi Indonesia",
-  targetArrival: relativeDate(2),
-  notes: "Standard urethane pad hardness 90",
+  supplier: "MISUMI",
+  poNo: "PO-COMP-126110-008",
+  poDate: relativeDate(-1),
+  targetArrival: relativeDate(3),
+  notes: "Check stock before confirm.",
+};
+components110[8].controls[0].poTracking = {
+  supplier: "LOCAL SPRING",
+  poNo: "PO-COMP-126110-009",
+  poDate: relativeDate(-3),
+  targetArrival: relativeDate(0),
+  notes: "Urgent for assembly preparation.",
+};
+components110[9].controls[0].poTracking = {
+  supplier: "",
+  poNo: "",
+  poDate: "",
+  targetArrival: relativeDate(5),
+  notes: "Need supplier selection.",
 };
 
 // ---------------------------------------------------------------------------

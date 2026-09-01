@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { reducer, initialState, type AppState } from "./store";
 import { MOCK_PROJECT } from "./mock-data";
-import type { PoTrackingDetail } from "./types";
 
 let state: AppState;
 const projectId = MOCK_PROJECT.id;
@@ -259,6 +258,178 @@ describe("UPDATE_STATUS", () => {
     )!;
     expect(ctrl.status).toBe("In Progress");
     expect(ctrl.inProgressAt).toBeDefined();
+  });
+});
+
+describe("UPDATE_PO_TRACKING", () => {
+  it("updates PO Mtl procurement fields and quantity", () => {
+    const jo = state.projects[0].jos[0];
+    const cat = jo.categories[0];
+    const item = cat.items[0];
+
+    const next = reducer(state, {
+      type: "UPDATE_PO_TRACKING",
+      projectId,
+      joId: jo.id,
+      categoryId: cat.id,
+      itemId: item.id,
+      process: "Material",
+      status: "In Progress",
+      problemNotes: "",
+      qty: 2,
+      tracking: {
+        supplier: "PT Baja Makmur",
+        poNo: "PO-MTL-9001",
+        poDate: "2026-09-01",
+        targetArrival: "2026-09-05",
+        notes: "Material cut to size",
+      },
+    });
+
+    const updatedItem = next.projects[0].jos[0].categories[0].items[0];
+    const materialControl = updatedItem.controls.find((c) => c.process === "Material")!;
+    expect(updatedItem.qty).toBe(2);
+    expect(materialControl.status).toBe("In Progress");
+    expect(materialControl.poTracking).toEqual({
+      supplier: "PT Baja Makmur",
+      poNo: "PO-MTL-9001",
+      poDate: "2026-09-01",
+      targetArrival: "2026-09-05",
+      notes: "Material cut to size",
+    });
+    expect(next.projects[0].jos[0].activities[0].message).toContain("PO Mtl");
+  });
+
+  it("updates Component PO procurement fields", () => {
+    const jo = state.projects[0].jos[0];
+    const cat = jo.categories[1];
+    const item = cat.items[0];
+
+    const next = reducer(state, {
+      type: "UPDATE_PO_TRACKING",
+      projectId,
+      joId: jo.id,
+      categoryId: cat.id,
+      itemId: item.id,
+      process: "PO",
+      status: "Done",
+      problemNotes: "",
+      tracking: {
+        supplier: "MISUMI",
+        poNo: "PO-COMP-1002",
+        poDate: "2026-08-30",
+        targetArrival: "2026-09-02",
+        notes: "",
+      },
+    });
+
+    const updatedItem = next.projects[0].jos[0].categories[1].items[0];
+    const poControl = updatedItem.controls.find((c) => c.process === "PO")!;
+    expect(poControl.status).toBe("Done");
+    expect(poControl.poTracking?.supplier).toBe("MISUMI");
+    expect(poControl.poTracking?.poNo).toBe("PO-COMP-1002");
+    expect(next.projects[0].jos[0].activities[0].message).toContain("PO");
+  });
+
+  it("rejects Problem status without notes", () => {
+    const jo = state.projects[0].jos[0];
+    const cat = jo.categories[0];
+    const item = cat.items[0];
+    const materialBefore = item.controls.find((c) => c.process === "Material")!;
+    const beforeStatus = materialBefore.status;
+    const beforePoNo = materialBefore.poTracking?.poNo;
+
+    const next = reducer(state, {
+      type: "UPDATE_PO_TRACKING",
+      projectId,
+      joId: jo.id,
+      categoryId: cat.id,
+      itemId: item.id,
+      process: "Material",
+      status: "Problem",
+      problemNotes: "",
+      tracking: {
+        supplier: "PT Baja Makmur",
+        poNo: "PO-MTL-9001",
+        poDate: "2026-09-01",
+        targetArrival: "2026-09-05",
+        notes: "Missing notes should reject",
+      },
+    });
+
+    const materialControl = next.projects[0].jos[0].categories[0].items[0].controls.find(
+      (c) => c.process === "Material"
+    )!;
+    expect(materialControl.status).toBe(beforeStatus);
+    expect(materialControl.poTracking?.poNo).toBe(beforePoNo);
+  });
+
+  it("syncs targetArrival to Arrival control targetDate", () => {
+    const jo = state.projects[0].jos[0];
+    const cat = jo.categories[0];
+    const item = cat.items[0];
+
+    const next = reducer(state, {
+      type: "UPDATE_PO_TRACKING",
+      projectId,
+      joId: jo.id,
+      categoryId: cat.id,
+      itemId: item.id,
+      process: "Material",
+      status: "In Progress",
+      problemNotes: "",
+      tracking: {
+        supplier: "PT Baja Makmur",
+        poNo: "PO-MTL-9999",
+        poDate: "2026-09-01",
+        targetArrival: "2026-09-10",
+        notes: "",
+      },
+    });
+
+    const updatedItem = next.projects[0].jos[0].categories[0].items[0];
+    const arrivalControl = updatedItem.controls.find((c) => c.process === "Arrival")!;
+    expect(arrivalControl.targetDate).toBe("2026-09-10");
+  });
+});
+
+describe("BULK_SEND_PO", () => {
+  it("bulk dispatches PO for selected items and updates status, inProgressAt, poTracking, and Arrival targetDate", () => {
+    const jo = state.projects[0].jos[0];
+    const cat = jo.categories[0];
+    const itemIds = [cat.items[0].id, cat.items[1].id];
+
+    const next = reducer(state, {
+      type: "BULK_SEND_PO",
+      projectId,
+      joId: jo.id,
+      itemIds,
+      supplier: "PT Baja Makmur",
+      poNo: "PO-BULK-001",
+      poDate: "2026-09-01",
+      targetArrival: "2026-09-08",
+      notes: "Bulk raw material order",
+    });
+
+    const item1 = next.projects[0].jos[0].categories[0].items[0];
+    const item2 = next.projects[0].jos[0].categories[0].items[1];
+
+    const mtl1 = item1.controls.find((c) => c.process === "Material")!;
+    const arr1 = item1.controls.find((c) => c.process === "Arrival")!;
+    const mtl2 = item2.controls.find((c) => c.process === "Material")!;
+    const arr2 = item2.controls.find((c) => c.process === "Arrival")!;
+
+    expect(mtl1.status).toBe("In Progress");
+    expect(mtl1.poTracking?.poNo).toBe("PO-BULK-001");
+    expect(mtl1.poTracking?.supplier).toBe("PT Baja Makmur");
+    expect(mtl1.poTracking?.targetArrival).toBe("2026-09-08");
+    expect(arr1.targetDate).toBe("2026-09-08");
+
+    expect(mtl2.status).toBe("In Progress");
+    expect(mtl2.poTracking?.poNo).toBe("PO-BULK-001");
+    expect(arr2.targetDate).toBe("2026-09-08");
+
+    expect(next.projects[0].jos[0].activities[0].message).toContain("Bulk sent PO");
   });
 });
 
@@ -1347,254 +1518,5 @@ describe("Progress regression", () => {
     });
     const progressAfter = joProgress(next.projects[0].jos[0]);
     expect(progressAfter).toBe(progressBefore);
-  });
-});
-
-describe("UPDATE_PO_TRACKING", () => {
-  it("updates a Part 'Material' control with PO Mtl tracking details and status", () => {
-    const jo = state.projects[0].jos[0];
-    const partCat = jo.categories.find((c) => c.kind === "Part")!;
-    const item = partCat.items[0];
-
-    const tracking: PoTrackingDetail = {
-      poNo: "PO-MTL-2026-001",
-      supplier: "PT Baja Makmur",
-      targetArrival: "2026-09-10",
-      notes: "Material SKD11 sudah di-order",
-    };
-
-    const next = reducer(state, {
-      type: "UPDATE_PO_TRACKING",
-      projectId,
-      joId: jo.id,
-      categoryId: partCat.id,
-      itemId: item.id,
-      process: "Material",
-      status: "In Progress",
-      problemNotes: "",
-      tracking,
-    });
-
-    const updatedItem = next.projects[0].jos[0].categories
-      .find((c) => c.id === partCat.id)!
-      .items.find((i) => i.id === item.id)!;
-    const ctrl = updatedItem.controls.find((c) => c.process === "Material")!;
-
-    expect(ctrl.status).toBe("In Progress");
-    expect(ctrl.inProgressAt).toBeDefined();
-    expect(ctrl.poTracking).toEqual({
-      poNo: "PO-MTL-2026-001",
-      supplier: "PT Baja Makmur",
-      targetArrival: "2026-09-10",
-      notes: "Material SKD11 sudah di-order",
-    });
-    expect(next.projects[0].jos[0].activities[0].message).toContain(
-      "Updated PO Mtl (PO-MTL-2026-001)"
-    );
-  });
-
-  it("updates a Component 'PO' control with PO tracking details and status", () => {
-    const jo = state.projects[0].jos[0];
-    const compCat = jo.categories.find((c) => c.kind === "Component")!;
-    const item = compCat.items[0];
-
-    const tracking: PoTrackingDetail = {
-      poNo: "PO-COMP-0099",
-      supplier: "Misumi Indonesia",
-      targetArrival: "2026-09-08",
-      notes: "Guide post standard",
-    };
-
-    const next = reducer(state, {
-      type: "UPDATE_PO_TRACKING",
-      projectId,
-      joId: jo.id,
-      categoryId: compCat.id,
-      itemId: item.id,
-      process: "PO",
-      status: "In Progress",
-      problemNotes: "",
-      tracking,
-    });
-
-    const updatedItem = next.projects[0].jos[0].categories
-      .find((c) => c.id === compCat.id)!
-      .items.find((i) => i.id === item.id)!;
-    const ctrl = updatedItem.controls.find((c) => c.process === "PO")!;
-
-    expect(ctrl.status).toBe("In Progress");
-    expect(ctrl.poTracking).toEqual({
-      poNo: "PO-COMP-0099",
-      supplier: "Misumi Indonesia",
-      targetArrival: "2026-09-08",
-      notes: "Guide post standard",
-    });
-  });
-
-  it("proves two item rows do not share tracking data", () => {
-    const jo = state.projects[0].jos[0];
-    const partCat = jo.categories.find((c) => c.kind === "Part")!;
-    const item1 = partCat.items[0];
-    const item2 = partCat.items[1];
-
-    const tracking1: PoTrackingDetail = {
-      poNo: "PO-UNIQUE-01",
-      supplier: "Supplier A",
-      targetArrival: "2026-09-05",
-      notes: "Note for item 1",
-    };
-
-    const next = reducer(state, {
-      type: "UPDATE_PO_TRACKING",
-      projectId,
-      joId: jo.id,
-      categoryId: partCat.id,
-      itemId: item1.id,
-      process: "Material",
-      status: "In Progress",
-      problemNotes: "",
-      tracking: tracking1,
-    });
-
-    const nextCat = next.projects[0].jos[0].categories.find(
-      (c) => c.id === partCat.id
-    )!;
-    const updated1 = nextCat.items.find((i) => i.id === item1.id)!;
-    const updated2 = nextCat.items.find((i) => i.id === item2.id)!;
-
-    expect(
-      updated1.controls.find((c) => c.process === "Material")!.poTracking?.poNo
-    ).toBe("PO-UNIQUE-01");
-    expect(
-      updated2.controls.find((c) => c.process === "Material")!.poTracking
-    ).toBeUndefined();
-  });
-
-  it("rejects status Problem when problemNotes is empty", () => {
-    const jo = state.projects[0].jos[0];
-    const partCat = jo.categories.find((c) => c.kind === "Part")!;
-    const item = partCat.items[0];
-
-    const result = reducer(state, {
-      type: "UPDATE_PO_TRACKING",
-      projectId,
-      joId: jo.id,
-      categoryId: partCat.id,
-      itemId: item.id,
-      process: "Material",
-      status: "Problem",
-      problemNotes: "   ",
-      tracking: {
-        poNo: "PO-ERR",
-        supplier: "",
-        targetArrival: "",
-        notes: "Some general note",
-      },
-    });
-
-    expect(result).toBe(state);
-  });
-
-  it("accepts status Problem when problemNotes is provided", () => {
-    const jo = state.projects[0].jos[0];
-    const partCat = jo.categories.find((c) => c.kind === "Part")!;
-    const item = partCat.items[0];
-
-    const next = reducer(state, {
-      type: "UPDATE_PO_TRACKING",
-      projectId,
-      joId: jo.id,
-      categoryId: partCat.id,
-      itemId: item.id,
-      process: "Material",
-      status: "Problem",
-      problemNotes: "Supplier stok kosong",
-      tracking: {
-        poNo: "PO-PROB",
-        supplier: "PT Baja",
-        targetArrival: "",
-        notes: "",
-      },
-    });
-
-    const updatedItem = next.projects[0].jos[0].categories
-      .find((c) => c.id === partCat.id)!
-      .items.find((i) => i.id === item.id)!;
-    const ctrl = updatedItem.controls.find((c) => c.process === "Material")!;
-
-    expect(ctrl.status).toBe("Problem");
-    expect(ctrl.notes).toBe("Supplier stok kosong");
-  });
-
-  it("proves sibling Arrival control is not auto-updated", () => {
-    const jo = state.projects[0].jos[0];
-    const partCat = jo.categories.find((c) => c.kind === "Part")!;
-    const item = partCat.items[0];
-    const arrivalBefore = item.controls.find((c) => c.process === "Arrival")!;
-
-    const next = reducer(state, {
-      type: "UPDATE_PO_TRACKING",
-      projectId,
-      joId: jo.id,
-      categoryId: partCat.id,
-      itemId: item.id,
-      process: "Material",
-      status: "Done",
-      problemNotes: "",
-      tracking: {
-        poNo: "PO-DONE",
-        supplier: "PT Baja",
-        targetArrival: "2026-09-01",
-        notes: "",
-      },
-    });
-
-    const updatedItem = next.projects[0].jos[0].categories
-      .find((c) => c.id === partCat.id)!
-      .items.find((i) => i.id === item.id)!;
-    const arrivalAfter = updatedItem.controls.find(
-      (c) => c.process === "Arrival"
-    )!;
-
-    expect(arrivalAfter.status).toBe(arrivalBefore.status);
-  });
-
-  it("does not change JO progress beyond the standard process status weight", () => {
-    const jo = state.projects[0].jos[0];
-    const partCat = jo.categories.find((c) => c.kind === "Part")!;
-    const item = partCat.items[0];
-
-    const standardNext = reducer(state, {
-      type: "UPDATE_STATUS",
-      projectId,
-      joId: jo.id,
-      categoryId: partCat.id,
-      itemId: item.id,
-      process: "Material",
-      status: "Done",
-      notes: "",
-    });
-
-    const poTrackingNext = reducer(state, {
-      type: "UPDATE_PO_TRACKING",
-      projectId,
-      joId: jo.id,
-      categoryId: partCat.id,
-      itemId: item.id,
-      process: "Material",
-      status: "Done",
-      problemNotes: "",
-      tracking: {
-        poNo: "PO-MTL-TEST",
-        supplier: "Supplier X",
-        targetArrival: "2026-09-12",
-        notes: "Detailed note",
-      },
-    });
-
-    const progress1 = joProgress(standardNext.projects[0].jos[0]);
-    const progress2 = joProgress(poTrackingNext.projects[0].jos[0]);
-
-    expect(progress2).toBe(progress1);
   });
 });

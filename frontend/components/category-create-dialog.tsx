@@ -65,7 +65,6 @@ export function CategoryCreateDialog({ open, onClose, projectId, joId }: Categor
             value={name}
             onChange={(e) => { setName(e.target.value); setError(""); }}
             autoFocus
-            placeholder="e.g. PART DIES OP 30"
           />
           {error && <p className="error-text">{error}</p>}
         </div>
@@ -82,12 +81,7 @@ export function CategoryCreateDialog({ open, onClose, projectId, joId }: Categor
                 {k}
               </button>
             ))}
-          </div>
-          <p style={{ fontSize: 11, color: "var(--color-text-muted)", marginTop: 4 }}>
-            {kind === "Part"
-              ? "Part categories have 7 process controls: PO Mtl, Arrival, Machining, Hardening, Grinding, Wirecut, Assembly."
-              : "Component categories have 2 process controls: PO, Arrival."}
-          </p>
+          </div>  
         </div>
       </div>
     </Dialog>
