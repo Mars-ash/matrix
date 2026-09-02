@@ -250,9 +250,9 @@ function SubcontTrackingContent() {
               <th style={{ minWidth: 60, textAlign: "center" }}>Qty</th>
               <th style={{ minWidth: 120 }}>Supplier</th>
               <th style={{ minWidth: 90, textAlign: "center" }}>Proses</th>
-              <th style={{ minWidth: 90, textAlign: "center" }}>Delivery</th>
-              <th style={{ minWidth: 130, textAlign: "center" }}>Target Arrival</th>
-              <th style={{ minWidth: 90, textAlign: "center" }}>Status</th>
+              <th style={{ minWidth: 110, textAlign: "center" }}>Delivery</th>
+              <th style={{ minWidth: 155, textAlign: "center" }}>Target Arrival</th>
+              <th style={{ minWidth: 125, textAlign: "center" }}>Status</th>
               <th style={{ width: 50, textAlign: "center" }}>Notes</th>
             </tr>
           </thead>
@@ -364,17 +364,17 @@ function SubcontTrackingContent() {
                   </td>
 
                   {/* Delivery */}
-                  <td style={{ textAlign: "center", fontSize: 12 }}>
+                  <td style={{ textAlign: "center", fontSize: 12, minWidth: 110 }}>
                     {row.item.subcontDispatchDate ? formatDate(row.item.subcontDispatchDate) : "-"}
                   </td>
 
                   {/* Target Arrival */}
-                  <td style={{ textAlign: "center" }}>
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
+                  <td style={{ textAlign: "center", minWidth: 155 }}>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, width: "100%" }}>
                       <input
                         type="date"
                         className="input"
-                        style={{ padding: "3px 6px", fontSize: 12, textAlign: "center" }}
+                        style={{ padding: "3px 6px", fontSize: 12, textAlign: "center", width: "100%" }}
                         value={row.item.arrivalTargetDate || ""}
                         onChange={(e) => {
                           dispatch({
@@ -397,6 +397,7 @@ function SubcontTrackingContent() {
                             background: `color-mix(in srgb, ${notif.color} 12%, transparent)`,
                             padding: "1px 6px",
                             borderRadius: 3,
+                            whiteSpace: "nowrap",
                           }}
                         >
                           {notif.text}
@@ -406,7 +407,7 @@ function SubcontTrackingContent() {
                   </td>
 
                   {/* Status (dropdown) */}
-                  <td style={{ textAlign: "center" }}>
+                  <td style={{ textAlign: "center", minWidth: 125 }}>
                     <select
                       className="select"
                       value={row.item.subcontStatus || "In Progress"}
@@ -584,7 +585,7 @@ function SubcontTrackingContent() {
       </div>
 
       {/* KPI Cards (Clean, Engineering Utilitarian) */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 10, marginBottom: 18 }}>
+      <div className="kpi-grid">
         <div className="card-static" style={{ padding: "10px 14px", display: "flex", flexDirection: "column", gap: 3 }}>
           <div style={{ fontSize: 10, fontWeight: 600, color: "var(--color-text-secondary)", textTransform: "uppercase", letterSpacing: "0.04em" }}>
             Aktif di Subcont
@@ -635,9 +636,9 @@ function SubcontTrackingContent() {
       </div>
 
       {/* Toolbar: Grouping, Sorting, and Search */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 10 }}>
+      <div className="tracker-toolbar">
         {/* Left: Grouping Pills */}
-        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+        <div className="tracker-toolbar-left">
           <span style={{ fontSize: 11, fontWeight: 600, color: "var(--color-text-muted)", textTransform: "uppercase", letterSpacing: "0.04em", marginRight: 4 }}>
             Grup:
           </span>
@@ -665,14 +666,14 @@ function SubcontTrackingContent() {
         </div>
 
         {/* Right: Sort & Search */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <div className="tracker-toolbar-right">
+          <div style={{ display: "flex", alignItems: "center", gap: 6, flex: "1 1 auto" }}>
             <span style={{ fontSize: 11, fontWeight: 600, color: "var(--color-text-muted)", textTransform: "uppercase", letterSpacing: "0.04em" }}>
               Urutkan:
             </span>
             <select
               className="select"
-              style={{ fontSize: 12, padding: "4px 24px 4px 8px", width: "auto", minWidth: 140 }}
+              style={{ fontSize: 12, padding: "4px 24px 4px 8px", width: "auto", minWidth: 140, flex: "1 1 auto" }}
               value={sortMode}
               onChange={(e) => setSortMode(e.target.value as SortMode)}
             >
@@ -746,38 +747,29 @@ function SubcontTrackingContent() {
 
       {/* Floating Bulk Action Bar */}
       {selectedItemIds.size > 0 && (
-        <div
-          style={{
-            position: "fixed",
-            bottom: 24,
-            left: "50%",
-            transform: "translateX(-50%)",
-            backgroundColor: "#ffffff",
-            border: "1px solid var(--color-border)",
-            boxShadow: "0 10px 30px rgba(0, 0, 0, 0.18), 0 2px 6px rgba(0, 0, 0, 0.08)",
-            borderRadius: "var(--radius-lg)",
-            padding: "10px 18px",
-            display: "flex",
-            alignItems: "center",
-            gap: 12,
-            zIndex: 90,
-            animation: "slideUp 160ms ease",
-          }}
-        >
-          <span style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text)" }}>
-            {selectedItemIds.size} item terpilih
-          </span>
+        <div className="bulk-action-bar">
+          <div className="bulk-action-bar-count">
+            <span className="bulk-action-bar-badge">{selectedItemIds.size}</span>
+            <span className="bulk-action-bar-label">Item Terpilih</span>
+          </div>
+
+          <div className="bulk-action-bar-divider" />
+
+          <div className="bulk-action-bar-buttons">
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm bulk-action-btn"
+              onClick={() => setIsBulkStatusOpen(true)}
+            >
+              Ubah Status
+            </button>
+          </div>
+
           <button
             type="button"
-            className="btn btn-secondary btn-sm"
-            onClick={() => setIsBulkStatusOpen(true)}
-          >
-            Ubah Status
-          </button>
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm"
+            className="bulk-action-bar-cancel"
             onClick={() => setSelectedItemIds(new Set())}
+            title="Batal pilih semua"
           >
             ✕ Batal
           </button>

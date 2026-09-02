@@ -197,50 +197,55 @@ export default function JoDetailPage({ params }: PageProps) {
 
         {/* Right Side: Target, Problems, Buttons */}
         <div className="jo-detail-meta">
-          {jo.targetDate && (
-            <span>
-              Target{" "}
-              <strong style={{ fontSize: 16, color: "var(--color-text)" }}>
-                {jo.targetDate}
-              </strong>
-            </span>
-          )}
-          {problems > 0 && (
-            <span>
-              Problems{" "}
-              <strong style={{ fontSize: 20, color: "var(--color-status-problem)" }}>
-                {problems}
-              </strong>
-            </span>
-          )}
-          <Link
-            href={`/projects/${projectId}/jos/${joId}/trial-reports`}
-            className="btn btn-secondary"
-            style={{ padding: "4px 12px", fontSize: 12, textDecoration: "none" }}
-          >
-            Trial Reports
-          </Link>
-          <button
-            className="btn btn-secondary"
-            onClick={() => setIsActivityOpen(true)}
-            style={{ padding: "4px 12px", fontSize: 12 }}
-          >
-            Activity & Problem Log
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+            {jo.targetDate && (
+              <span>
+                Target{" "}
+                <strong style={{ fontSize: 16, color: "var(--color-text)" }}>
+                  {jo.targetDate}
+                </strong>
+              </span>
+            )}
+            {problems > 0 && (
+              <span>
+                Problems{" "}
+                <strong style={{ fontSize: 20, color: "var(--color-status-problem)" }}>
+                  {problems}
+                </strong>
+              </span>
+            )}
+          </div>
 
-          {jo.finishDate ? (
-            <span style={{ fontSize: 13, color: "var(--color-status-done)", fontWeight: 600, padding: "4px 12px", border: "1px solid var(--color-status-done)", borderRadius: "var(--radius-md)", background: "rgba(13, 124, 74, 0.05)" }}>
-              Finished: {jo.finishDate}
-            </span>
-          ) : (
-            <button
-              className="btn btn-primary"
-              onClick={() => setFinishConfirmOpen(true)}
-              style={{ padding: "4px 12px", fontSize: 12 }}
+          <div className="jo-detail-actions">
+            <Link
+              href={`/projects/${projectId}/jos/${joId}/trial-reports`}
+              className="btn btn-secondary"
+              style={{ padding: "6px 12px", fontSize: 12, textDecoration: "none" }}
             >
-              Finish JO
+              Trial Reports
+            </Link>
+            <button
+              className="btn btn-secondary"
+              onClick={() => setIsActivityOpen(true)}
+              style={{ padding: "6px 12px", fontSize: 12 }}
+            >
+              Activity & Problem Log
             </button>
-          )}
+
+            {jo.finishDate ? (
+              <span style={{ fontSize: 13, color: "var(--color-status-done)", fontWeight: 600, padding: "6px 12px", border: "1px solid var(--color-status-done)", borderRadius: "var(--radius-md)", background: "rgba(13, 124, 74, 0.05)", textAlign: "center" }}>
+                Finished: {jo.finishDate}
+              </span>
+            ) : (
+              <button
+                className="btn btn-primary"
+                onClick={() => setFinishConfirmOpen(true)}
+                style={{ padding: "6px 12px", fontSize: 12 }}
+              >
+                Finish JO
+              </button>
+            )}
+          </div>
         </div>
       </div>
 

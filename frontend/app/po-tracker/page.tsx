@@ -169,9 +169,9 @@ function PoTrackerContent() {
               <th style={{ minWidth: 60, textAlign: "center" }}>Qty</th>
               <th style={{ minWidth: 130 }}>Supplier</th>
               <th style={{ minWidth: 125 }}>No. PO</th>
-              <th style={{ minWidth: 115, textAlign: "center" }}>PO Date</th>
-              <th style={{ minWidth: 145, textAlign: "center" }}>Target Arrival</th>
-              <th style={{ minWidth: 115, textAlign: "center" }}>Status</th>
+              <th style={{ minWidth: 140, textAlign: "center" }}>PO Date</th>
+              <th style={{ minWidth: 155, textAlign: "center" }}>Target Arrival</th>
+              <th style={{ minWidth: 130, textAlign: "center" }}>Status</th>
               <th style={{ width: 54, textAlign: "center" }}>Notes</th>
             </tr>
           </thead>
@@ -246,26 +246,26 @@ function PoTrackerContent() {
                       aria-label={`PO number for ${row.item.description}`}
                     />
                   </td>
-                  <td style={{ textAlign: "center" }}>
+                  <td style={{ textAlign: "center", minWidth: 140 }}>
                     <input
                       type="date"
                       className="input"
                       value={row.poDate}
                       onChange={(event) => updateRow(row, { poDate: event.target.value })}
                       title={row.poDate ? formatDate(row.poDate) : "Set PO date"}
-                      style={{ fontSize: 12, padding: "3px 6px", textAlign: "center" }}
+                      style={{ fontSize: 12, padding: "3px 6px", textAlign: "center", width: "100%" }}
                       aria-label={`PO date for ${row.item.description}`}
                     />
                   </td>
-                  <td style={{ textAlign: "center" }}>
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
+                  <td style={{ textAlign: "center", minWidth: 155 }}>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, width: "100%" }}>
                       <input
                         type="date"
                         className="input"
                         value={row.targetArrival}
                         onChange={(event) => updateRow(row, { targetArrival: event.target.value })}
                         title={row.targetArrival ? formatDate(row.targetArrival) : "Set target arrival"}
-                        style={{ fontSize: 12, padding: "3px 6px", textAlign: "center" }}
+                        style={{ fontSize: 12, padding: "3px 6px", textAlign: "center", width: "100%" }}
                         aria-label={`Target arrival for ${row.item.description}`}
                       />
                       {deadline && (
@@ -285,7 +285,7 @@ function PoTrackerContent() {
                       )}
                     </div>
                   </td>
-                  <td style={{ textAlign: "center" }}>
+                  <td style={{ textAlign: "center", minWidth: 130 }}>
                     <StatusSelect
                       value={row.control.status}
                       notes={row.control.notes}
@@ -382,7 +382,7 @@ function PoTrackerContent() {
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 10, marginBottom: 18 }}>
+      <div className="kpi-grid">
         <div className="card-static" style={{ padding: "10px 14px", display: "flex", flexDirection: "column", gap: 3 }}>
           <div style={{ fontSize: 10, fontWeight: 600, color: "var(--color-text-secondary)", textTransform: "uppercase", letterSpacing: "0.04em" }}>
             Active PO
@@ -408,8 +408,8 @@ function PoTrackerContent() {
         </div>
       </div>
 
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 10 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+      <div className="tracker-toolbar">
+        <div className="tracker-toolbar-left">
           <span style={{ fontSize: 11, fontWeight: 600, color: "var(--color-text-muted)", textTransform: "uppercase", letterSpacing: "0.04em", marginRight: 4 }}>
             Grup:
           </span>
@@ -424,14 +424,14 @@ function PoTrackerContent() {
           </button>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <div className="tracker-toolbar-right">
+          <div style={{ display: "flex", alignItems: "center", gap: 6, flex: "1 1 auto" }}>
             <span style={{ fontSize: 11, fontWeight: 600, color: "var(--color-text-muted)", textTransform: "uppercase", letterSpacing: "0.04em" }}>
               Urutkan:
             </span>
             <select
               className="select"
-              style={{ fontSize: 12, padding: "4px 24px 4px 8px", width: "auto", minWidth: 150 }}
+              style={{ fontSize: 12, padding: "4px 24px 4px 8px", width: "auto", minWidth: 140, flex: "1 1 auto" }}
               value={sortMode}
               onChange={(event) => setSortMode(event.target.value as PoTrackingSortMode)}
               aria-label="Sort PO rows"
@@ -449,7 +449,7 @@ function PoTrackerContent() {
             placeholder="Search..."
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
-            style={{ width: 180, fontSize: 12, padding: "4px 8px" }}
+            style={{ width: 170, fontSize: 12, padding: "4px 8px" }}
             aria-label="Search PO rows"
           />
         </div>
@@ -496,38 +496,29 @@ function PoTrackerContent() {
 
       {/* Floating Bulk Action Bar */}
       {selectedKeys.size > 0 && (
-        <div
-          style={{
-            position: "fixed",
-            bottom: 24,
-            left: "50%",
-            transform: "translateX(-50%)",
-            backgroundColor: "#ffffff",
-            border: "1px solid var(--color-border)",
-            boxShadow: "0 10px 30px rgba(0, 0, 0, 0.18), 0 2px 6px rgba(0, 0, 0, 0.08)",
-            borderRadius: "var(--radius-lg)",
-            padding: "10px 18px",
-            display: "flex",
-            alignItems: "center",
-            gap: 12,
-            zIndex: 90,
-            animation: "slideUp 160ms ease",
-          }}
-        >
-          <span style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text)" }}>
-            {selectedKeys.size} item terpilih
-          </span>
+        <div className="bulk-action-bar">
+          <div className="bulk-action-bar-count">
+            <span className="bulk-action-bar-badge">{selectedKeys.size}</span>
+            <span className="bulk-action-bar-label">Item Terpilih</span>
+          </div>
+
+          <div className="bulk-action-bar-divider" />
+
+          <div className="bulk-action-bar-buttons">
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm bulk-action-btn"
+              onClick={() => setIsBulkStatusOpen(true)}
+            >
+              Ubah Status
+            </button>
+          </div>
+
           <button
             type="button"
-            className="btn btn-secondary btn-sm"
-            onClick={() => setIsBulkStatusOpen(true)}
-          >
-            Ubah Status
-          </button>
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm"
+            className="bulk-action-bar-cancel"
             onClick={() => setSelectedKeys(new Set())}
+            title="Batal pilih semua"
           >
             ✕ Batal
           </button>

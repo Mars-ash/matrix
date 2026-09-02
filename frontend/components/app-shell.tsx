@@ -191,21 +191,7 @@ function NotificationBell() {
       </button>
 
       {open && (
-        <div
-          style={{
-            position: "absolute",
-            top: "calc(100% + 6px)",
-            right: 0,
-            width: 350,
-            maxHeight: 440,
-            overflowY: "auto",
-            backgroundColor: "var(--color-bg-raised)",
-            border: "1px solid var(--color-border)",
-            borderRadius: 8,
-            boxShadow: "0 12px 32px rgba(0,0,0,0.25)",
-            zIndex: 100,
-          }}
-        >
+        <div className="notif-popover">
           <div
             style={{
               padding: "8px 12px",
@@ -441,25 +427,25 @@ export function AppShell({ children, breadcrumbs }: AppShellProps) {
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
       {/* Top Header */}
       <header className="top-header">
-        <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
           <Link href="/" className="header-brand">
             <span className="header-brand-title">MATRIX</span>
             <span className="header-brand-subtitle">PROJECT CONTROL</span>
           </Link>
 
-          <nav style={{ display: "flex", gap: 16 }}>
-            <Link href="/po-tracker" style={{ color: "var(--color-text)", textDecoration: "none", fontSize: 14, fontWeight: 500 }}>
+          <nav style={{ display: "flex", gap: 12 }}>
+            <Link href="/po-tracker" style={{ color: "var(--color-text)", textDecoration: "none", fontSize: 13, fontWeight: 600 }}>
               PO Tracker
             </Link>
-            <Link href="/subcont" style={{ color: "var(--color-text)", textDecoration: "none", fontSize: 14, fontWeight: 500 }}>
+            <Link href="/subcont" style={{ color: "var(--color-text)", textDecoration: "none", fontSize: 13, fontWeight: 600 }}>
               SC Tracker
             </Link>
           </nav>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <NotificationBell />
-          <div style={{ textAlign: "right" }}>
+          <div className="header-user-badge" style={{ textAlign: "right" }}>
             <div style={{ fontSize: 11, fontWeight: 500, color: "var(--color-text-secondary)" }}>
               Staff Engineering
             </div>

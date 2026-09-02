@@ -210,6 +210,7 @@ textarea.input {
 .control-table {
   border-collapse: collapse;
   width: 100%;
+  min-width: max-content;
   font-size: 12px;
 }
 
@@ -246,12 +247,67 @@ textarea.input {
   border-bottom: none;
 }
 
+/* Sticky columns in control-table */
+.th-sticky-checkbox,
+.td-sticky-checkbox {
+  position: sticky;
+  left: 0;
+  z-index: 6;
+}
+
+.th-sticky-checkbox {
+  background: var(--color-bg-wash);
+  z-index: 12;
+}
+
+.td-sticky-checkbox {
+  background: var(--color-bg-raised);
+}
+
+.th-sticky-no,
+.td-sticky-no {
+  position: sticky;
+  left: 34px;
+  z-index: 6;
+  border-right: 1px solid var(--color-border) !important;
+  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.02);
+}
+
+.th-sticky-no {
+  background: var(--color-bg-wash);
+  z-index: 12;
+}
+
+.td-sticky-no {
+  background: var(--color-bg-raised);
+}
+
+tr:hover .td-sticky-checkbox,
+tr:hover .td-sticky-no {
+  background: var(--color-bg-wash);
+}
+
+tr.row-selected .td-sticky-checkbox,
+tr.row-selected .td-sticky-no {
+  background: color-mix(in srgb, var(--color-accent) 8%, var(--color-bg-raised));
+}
+
+tr.row-highlight .td-sticky-checkbox,
+tr.row-highlight .td-sticky-no {
+  background: #2563eb1f;
+}
+
 .table-scroll {
   -webkit-overflow-scrolling: touch;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   background: var(--color-bg-raised);
   overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+  width: 100%;
+  max-width: 100%;
+  display: block;
 }
 
 .badge {
@@ -649,6 +705,13 @@ textarea.input {
   display: flex;
 }
 
+.jo-detail-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .jo-search-category-bar {
   flex-wrap: wrap;
   align-items: center;
@@ -663,6 +726,81 @@ textarea.input {
   font-size: 14px;
   font-weight: 500;
   display: flex;
+}
+
+/* Dashboard Header & Controls */
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.dashboard-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  flex: 1 1 auto;
+  justify-content: flex-end;
+}
+
+/* Notification Popover */
+.notif-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  width: 350px;
+  max-width: calc(100vw - 24px);
+  max-height: 440px;
+  overflow-y: auto;
+  background-color: var(--color-bg-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+  z-index: 100;
+}
+
+/* KPI Grid & Tracker Toolbar */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.tracker-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.tracker-toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.tracker-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Large screen container center constraint */
+@media (min-width: 1440px) {
+  .main-content {
+    max-width: 1600px;
+    margin-left: auto;
+    margin-right: auto;
+  }
 }
 
 @media (max-width: 768px) {
@@ -705,6 +843,12 @@ textarea.input {
 
   .control-table {
     font-size: 11px;
+    min-width: max-content;
+  }
+
+  .control-table th,
+  .control-table td {
+    white-space: nowrap;
   }
 
   .control-table th {
@@ -740,6 +884,22 @@ textarea.input {
     margin-left: 0;
     padding-top: 10px;
     font-size: 13px;
+  }
+
+  .jo-detail-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+    gap: 6px;
+  }
+
+  .jo-detail-actions > *:last-child:nth-child(odd) {
+    grid-column: span 2;
+  }
+
+  .jo-detail-actions .btn {
+    width: 100%;
+    justify-content: center;
   }
 
   .jo-search-category-bar {
@@ -834,7 +994,7 @@ textarea.input {
 
   .bulk-action-bar-buttons {
     grid-area: 2 / 1 / auto / -1;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
     gap: 6px;
     width: 100%;
     display: grid;
@@ -863,6 +1023,84 @@ textarea.input {
 
   .new-item-menu {
     min-width: 180px;
+  }
+
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .tracker-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .tracker-toolbar-left {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .tracker-toolbar-right {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+
+  .tracker-toolbar-right .select,
+  .tracker-toolbar-right .input {
+    width: 100% !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .header-user-badge {
+    display: none;
+  }
+
+  .dashboard-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .dashboard-controls {
+    width: 100%;
+    display: flex;
+    gap: 8px;
+  }
+
+  .dashboard-controls .input {
+    flex: 1;
+    min-width: 0;
+    max-width: none !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .header-brand-title {
+    font-size: 14px;
+  }
+
+  .top-header {
+    padding: 0 8px;
+  }
+
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+  }
+
+  .tracker-toolbar-right {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+}
+
+@media (max-width: 360px) {
+  .kpi-grid {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -2146,6 +2384,12 @@ textarea.input {
 }
 
 @media (max-width: 768px) {
+  .trial-page-context {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
   .trial-page-layout {
     grid-template-columns: 1fr;
   }
@@ -2175,6 +2419,25 @@ textarea.input {
 
   .trial-print-header-meta, .trial-print-header-meta-table, .trial-print-header-signatures, .trial-print-sig-table {
     width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .trial-editor-header-fields {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .trial-editor {
+    padding: 12px;
+  }
+
+  .trial-finding-card {
+    padding: 10px;
+  }
+
+  .trial-finding-count-badge {
+    display: none;
   }
 }
 

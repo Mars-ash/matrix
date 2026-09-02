@@ -41,16 +41,7 @@ export default function DashboardPage() {
   return (
     <AppShell breadcrumbs={[{ label: "Dashboard" }]}>
       {/* Header row */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 20,
-          flexWrap: "wrap",
-          gap: 12,
-        }}
-      >
+      <div className="dashboard-header">
         <div>
           <h1>Project Controlling</h1>
           <p
@@ -68,13 +59,13 @@ export default function DashboardPage() {
             )}
           </p>
         </div>
-        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", flex: "1 1 auto", justifyContent: "flex-end" }}>
+        <div className="dashboard-controls">
           <input 
             className="input" 
-            placeholder="Search" 
+            placeholder="Search projects or JOs..." 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            style={{ width: 260, minWidth: 140, flex: "1 1 140px", maxWidth: 300 }}
+            style={{ width: 240, minWidth: 140, flex: "1 1 140px", maxWidth: 300 }}
           />
           <NewItemMenu
             onNewProject={() => setCreateProjectOpen(true)}
