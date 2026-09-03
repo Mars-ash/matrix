@@ -147,15 +147,20 @@ export function TrialReportEditor({
           <label className="label" style={{ fontSize: 11, marginBottom: 4 }}>
             Nama Session
           </label>
-          <input
-            className="input"
-            type="text"
-            value={session.name}
-            onChange={(e) => updateSession({ name: e.target.value })}
-            readOnly={isViewer}
-            style={{ fontSize: 16, fontWeight: 700 }}
-            placeholder="Masukkan nama session..."
-          />
+          {isViewer ? (
+            <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0, padding: "4px 0", color: "var(--color-text)" }}>
+              {session.name}
+            </h2>
+          ) : (
+            <input
+              className="input"
+              type="text"
+              value={session.name}
+              onChange={(e) => updateSession({ name: e.target.value })}
+              style={{ fontSize: 16, fontWeight: 700 }}
+              placeholder="Masukkan nama session..."
+            />
+          )}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8, alignSelf: "flex-end", paddingBottom: 6 }}>
           <span style={{ fontSize: 12, color: "var(--color-text-muted)" }}>Status:</span>
@@ -175,63 +180,93 @@ export function TrialReportEditor({
       <div className="trial-editor-header-fields">
         <div>
           <label className="label">Hari Trial</label>
-          <input
-            className="input"
-            type="date"
-            value={session.trialDate}
-            onChange={(e) => updateSession({ trialDate: e.target.value })}
-            readOnly={isViewer}
-          />
+          {isViewer ? (
+            <div style={{ fontSize: 13, fontWeight: 500, padding: "6px 0", color: "var(--color-text)" }}>
+              {session.trialDate || "—"}
+            </div>
+          ) : (
+            <input
+              className="input"
+              type="date"
+              value={session.trialDate}
+              onChange={(e) => updateSession({ trialDate: e.target.value })}
+            />
+          )}
         </div>
         <div>
           <label className="label">Update</label>
-          <input
-            className="input"
-            type="date"
-            value={session.updateDate}
-            onChange={(e) => updateSession({ updateDate: e.target.value })}
-            readOnly={isViewer}
-          />
+          {isViewer ? (
+            <div style={{ fontSize: 13, fontWeight: 500, padding: "6px 0", color: "var(--color-text)" }}>
+              {session.updateDate || "—"}
+            </div>
+          ) : (
+            <input
+              className="input"
+              type="date"
+              value={session.updateDate}
+              onChange={(e) => updateSession({ updateDate: e.target.value })}
+            />
+          )}
         </div>
         <div>
           <label className="label">Customer</label>
-          <input
-            className="input"
-            type="text"
-            value={session.customer}
-            onChange={(e) => updateSession({ customer: e.target.value })}
-            readOnly={isViewer}
-          />
+          {isViewer ? (
+            <div style={{ fontSize: 13, fontWeight: 500, padding: "6px 0", color: "var(--color-text)" }}>
+              {session.customer || "—"}
+            </div>
+          ) : (
+            <input
+              className="input"
+              type="text"
+              value={session.customer}
+              onChange={(e) => updateSession({ customer: e.target.value })}
+            />
+          )}
         </div>
         <div>
           <label className="label">Job No.</label>
-          <input
-            className="input"
-            type="text"
-            value={session.jobNo}
-            onChange={(e) => updateSession({ jobNo: e.target.value })}
-            readOnly={isViewer}
-          />
+          {isViewer ? (
+            <div style={{ fontSize: 13, fontWeight: 500, padding: "6px 0", color: "var(--color-text)" }}>
+              {session.jobNo || "—"}
+            </div>
+          ) : (
+            <input
+              className="input"
+              type="text"
+              value={session.jobNo}
+              onChange={(e) => updateSession({ jobNo: e.target.value })}
+            />
+          )}
         </div>
         <div>
           <label className="label">PIC</label>
-          <input
-            className="input"
-            type="text"
-            value={session.picName}
-            onChange={(e) => updateSession({ picName: e.target.value })}
-            readOnly={isViewer}
-          />
+          {isViewer ? (
+            <div style={{ fontSize: 13, fontWeight: 500, padding: "6px 0", color: "var(--color-text)" }}>
+              {session.picName || "—"}
+            </div>
+          ) : (
+            <input
+              className="input"
+              type="text"
+              value={session.picName}
+              onChange={(e) => updateSession({ picName: e.target.value })}
+            />
+          )}
         </div>
         <div>
           <label className="label">Approved by</label>
-          <input
-            className="input"
-            type="text"
-            value={session.approvedByName}
-            onChange={(e) => updateSession({ approvedByName: e.target.value })}
-            readOnly={isViewer}
-          />
+          {isViewer ? (
+            <div style={{ fontSize: 13, fontWeight: 500, padding: "6px 0", color: "var(--color-text)" }}>
+              {session.approvedByName || "—"}
+            </div>
+          ) : (
+            <input
+              className="input"
+              type="text"
+              value={session.approvedByName}
+              onChange={(e) => updateSession({ approvedByName: e.target.value })}
+            />
+          )}
         </div>
       </div>
 

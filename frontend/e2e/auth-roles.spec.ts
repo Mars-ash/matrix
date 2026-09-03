@@ -19,20 +19,67 @@ test.describe("Authentication and Role-Based UI", () => {
     expect(hasNewBtn).toBe(true);
   });
 
-  test("Viewer login gives read-only view", async ({ page }) => {
+  test("Viewer login gives strict read-only view with all CRUD buttons hidden", async ({ page }) => {
     const loginPage = new LoginPage(page);
     const dashboardPage = new DashboardPage(page);
 
     await loginPage.goto();
     await loginPage.quickLoginViewer();
 
-    // Verify Viewer role badge is visible in header
+    // 1. Dashboard checks
     const roleText = await dashboardPage.getRoleBadgeText();
     expect(roleText.toLowerCase()).toContain("viewer");
 
-    // Verify mutating button is hidden and read-only badge is shown
     const hasNewBtn = await dashboardPage.isNewItemButtonVisible();
     expect(hasNewBtn).toBe(false);
     await expect(page.locator("text=Floor Viewer (Read-Only)")).toBeVisible();
+
+    // 2. JO Detail page checks
+    await dashboardPage.openFirstJo();
+    await page.waitForLoadState("networkidle");
+
+    // No CRUD buttons should be visible
+    await expect(page.getByRole("button", { name: /\+ Add Data/i })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /Finish JO/i })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /\+ Add New Category/i })).toHaveCount(0);
+
+    // No checkbox column in control table
+    const joCheckboxes = page.locator(".control-table input[type='checkbox']");
+    await expect(joCheckboxes).toHaveCount(0);
+
+    // Verify table-viewer class and sticky 'No' column has left: 0px
+    const tableViewer = page.locator("table.table-viewer").first();
+    await expect(tableViewer).toBeVisible();
+    const stickyNo = page.locator(".th-sticky-no").first();
+    const leftVal = await stickyNo.evaluate((el) => window.getComputedStyle(el).left);
+    expect(leftVal).toBe("0px");
+
+    // 3. Subcont Tracker page checks
+    await page.goto("/subcont");
+    await page.waitForLoadState("networkidle");
+
+    // No checkboxes in subcont table
+    const scCheckboxes = page.locator(".control-table input[type='checkbox']");
+    await expect(scCheckboxes).toHaveCount(0);
+
+    // No floating bulk action bar
+    await expect(page.locator(".bulk-action-bar")).toHaveCount(0);
+
+    // No notes edit pencil buttons
+    await expect(page.locator("button[title*='note']")).toHaveCount(0);
+
+    // 4. PO Tracker page checks
+    await page.goto("/po-tracker");
+    await page.waitForLoadState("networkidle");
+
+    // No checkboxes in PO table
+    const poCheckboxes = page.locator(".control-table input[type='checkbox']");
+    await expect(poCheckboxes).toHaveCount(0);
+
+    // No floating bulk action bar
+    await expect(page.locator(".bulk-action-bar")).toHaveCount(0);
+
+    // No notes edit pencil buttons
+    await expect(page.locator("button[title*='note']")).toHaveCount(0);
   });
 });

@@ -8,6 +8,7 @@ import type { Item, Project, JO, Category, Control } from "@/lib/types";
 import { SUBCONT_SUPPLIERS } from "@/lib/types";
 import { EmptyState } from "@/components/empty-state";
 import { Dialog } from "@/components/dialog";
+import { useAuth } from "@/lib/auth";
 
 interface SubcontRow {
   project: Project;
@@ -57,6 +58,7 @@ function SubcontTrackingContent() {
   const { projects } = useAppState();
   const dispatch = useAppDispatch();
   const searchParams = useSearchParams();
+  const { isController, isViewer } = useAuth();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [groupMode, setGroupMode] = useState<GroupMode>("none");
@@ -233,18 +235,20 @@ function SubcontTrackingContent() {
 
     return (
       <div className="table-scroll">
-        <table className="control-table">
+        <table className={`control-table ${!isController ? "table-viewer" : ""}`}>
           <thead>
             <tr>
-              <th style={{ width: 36, textAlign: "center" }}>
-                <input
-                  type="checkbox"
-                  checked={isAllSelected}
-                  onChange={() => toggleSelectAll(rows)}
-                  style={{ cursor: "pointer" }}
-                  aria-label="Pilih semua part"
-                />
-              </th>
+              {isController && (
+                <th style={{ width: 36, textAlign: "center" }}>
+                  <input
+                    type="checkbox"
+                    checked={isAllSelected}
+                    onChange={() => toggleSelectAll(rows)}
+                    style={{ cursor: "pointer" }}
+                    aria-label="Pilih semua part"
+                  />
+                </th>
+              )}
               <th style={{ minWidth: 80 }}>JO</th>
               <th style={{ minWidth: 160 }}>Item</th>
               <th style={{ minWidth: 60, textAlign: "center" }}>Qty</th>
@@ -269,15 +273,17 @@ function SubcontTrackingContent() {
                   className={`${highlightedItemId === row.item.id ? "row-highlight" : ""} ${isSelected ? "row-selected" : ""}`.trim() || undefined}
                   style={{ opacity: isDone ? 0.75 : 1 }}
                 >
-                  <td style={{ textAlign: "center" }}>
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={() => toggleSelectRow(row.item.id)}
-                      style={{ cursor: "pointer" }}
-                      aria-label={`Pilih ${row.item.description}`}
-                    />
-                  </td>
+                  {isController && (
+                    <td style={{ textAlign: "center" }}>
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => toggleSelectRow(row.item.id)}
+                        style={{ cursor: "pointer" }}
+                        aria-label={`Pilih ${row.item.description}`}
+                      />
+                    </td>
+                  )}
                   {/* JO */}
                   <td>
                     <Link
@@ -294,66 +300,78 @@ function SubcontTrackingContent() {
                     <div style={{ fontSize: 11, color: "var(--color-text-muted)" }}>No. {row.item.no}</div>
                   </td>
 
-                  {/* Qty (editable) */}
+                  {/* Qty */}
                   <td style={{ textAlign: "center" }}>
-                    <input
-                      type="number"
-                      className="input"
-                      style={{
-                        fontSize: 12,
-                        padding: "4px 6px",
-                        width: 55,
-                        textAlign: "center",
-                        display: "inline-block",
-                        margin: "0 auto",
-                      }}
-                      min={1}
-                      value={row.item.qty ?? 1}
-                      onChange={(e) => {
-                        const val = parseInt(e.target.value, 10);
-                        dispatch({
-                          type: "UPDATE_ITEM_SUBCONT",
-                          projectId: row.project.id,
-                          joId: row.jo.id,
-                          categoryId: row.category.id,
-                          itemId: row.item.id,
-                          isSubcont: true,
-                          qty: isNaN(val) ? 1 : val,
-                        });
-                      }}
-                    />
+                    {isViewer ? (
+                      <span style={{ fontSize: 12, fontWeight: 500, color: "var(--color-text)" }}>
+                        {row.item.qty ?? 1}
+                      </span>
+                    ) : (
+                      <input
+                        type="number"
+                        className="input"
+                        style={{
+                          fontSize: 12,
+                          padding: "4px 6px",
+                          width: 55,
+                          textAlign: "center",
+                          display: "inline-block",
+                          margin: "0 auto",
+                        }}
+                        min={1}
+                        value={row.item.qty ?? 1}
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value, 10);
+                          dispatch({
+                            type: "UPDATE_ITEM_SUBCONT",
+                            projectId: row.project.id,
+                            joId: row.jo.id,
+                            categoryId: row.category.id,
+                            itemId: row.item.id,
+                            isSubcont: true,
+                            qty: isNaN(val) ? 1 : val,
+                          });
+                        }}
+                      />
+                    )}
                   </td>
 
-                  {/* Supplier (dropdown) */}
+                  {/* Supplier */}
                   <td>
-                    <select
-                      className="select"
-                      style={{
-                        fontSize: 12,
-                        padding: "4px 22px 4px 8px",
-                        minWidth: 110,
-                        width: "100%",
-                      }}
-                      value={row.item.subcontSupplier || ""}
-                      onChange={(e) => {
-                        dispatch({
-                          type: "UPDATE_ITEM_SUBCONT",
-                          projectId: row.project.id,
-                          joId: row.jo.id,
-                          categoryId: row.category.id,
-                          itemId: row.item.id,
-                          isSubcont: true,
-                          subcontSupplier: e.target.value,
-                        });
-                      }}
-                    >
-                      <option value="">—</option>
-                      {SUBCONT_SUPPLIERS.map((sup) => (
-                        <option key={sup} value={sup}>
-                          {sup}
-                        </option>
-                      ))}
-                    </select>
+                    {isViewer ? (
+                      <span style={{ fontSize: 12, color: row.item.subcontSupplier ? "var(--color-text)" : "var(--color-text-muted)" }}>
+                        {row.item.subcontSupplier || "—"}
+                      </span>
+                    ) : (
+                      <select
+                        className="select"
+                        style={{
+                          fontSize: 12,
+                          padding: "4px 22px 4px 8px",
+                          minWidth: 110,
+                          width: "100%",
+                        }}
+                        value={row.item.subcontSupplier || ""}
+                        onChange={(e) => {
+                          dispatch({
+                            type: "UPDATE_ITEM_SUBCONT",
+                            projectId: row.project.id,
+                            joId: row.jo.id,
+                            categoryId: row.category.id,
+                            itemId: row.item.id,
+                            isSubcont: true,
+                            subcontSupplier: e.target.value,
+                          });
+                        }}
+                      >
+                        <option value="">—</option>
+                        {SUBCONT_SUPPLIERS.map((sup) => (
+                          <option key={sup} value={sup}>
+                            {sup}
+                          </option>
+                        ))}
+                      </select>
+                    )}
                   </td>
 
                   {/* Proses (auto) */}
@@ -371,23 +389,29 @@ function SubcontTrackingContent() {
                   {/* Target Arrival */}
                   <td style={{ textAlign: "center", minWidth: 155 }}>
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, width: "100%" }}>
-                      <input
-                        type="date"
-                        className="input"
-                        style={{ padding: "3px 6px", fontSize: 12, textAlign: "center", width: "100%" }}
-                        value={row.item.arrivalTargetDate || ""}
-                        onChange={(e) => {
-                          dispatch({
-                            type: "UPDATE_ITEM_SUBCONT",
-                            projectId: row.project.id,
-                            joId: row.jo.id,
-                            categoryId: row.category.id,
-                            itemId: row.item.id,
-                            isSubcont: true,
-                            arrivalTargetDate: e.target.value,
-                          });
-                        }}
-                      />
+                      {isViewer ? (
+                        <span style={{ fontSize: 12, fontWeight: 500, color: row.item.arrivalTargetDate ? "var(--color-text)" : "var(--color-text-muted)" }}>
+                          {row.item.arrivalTargetDate ? formatDate(row.item.arrivalTargetDate) : "—"}
+                        </span>
+                      ) : (
+                        <input
+                          type="date"
+                          className="input"
+                          style={{ padding: "3px 6px", fontSize: 12, textAlign: "center", width: "100%" }}
+                          value={row.item.arrivalTargetDate || ""}
+                          onChange={(e) => {
+                            dispatch({
+                              type: "UPDATE_ITEM_SUBCONT",
+                              projectId: row.project.id,
+                              joId: row.jo.id,
+                              categoryId: row.category.id,
+                              itemId: row.item.id,
+                              isSubcont: true,
+                              arrivalTargetDate: e.target.value,
+                            });
+                          }}
+                        />
+                      )}
                       {notif && (
                         <span
                           style={{
@@ -406,69 +430,99 @@ function SubcontTrackingContent() {
                     </div>
                   </td>
 
-                  {/* Status (dropdown) */}
+                  {/* Status */}
                   <td style={{ textAlign: "center", minWidth: 125 }}>
-                    <select
-                      className="select"
-                      value={row.item.subcontStatus || "In Progress"}
-                      onChange={(e) => {
-                        dispatch({
-                          type: "UPDATE_ITEM_SUBCONT",
-                          projectId: row.project.id,
-                          joId: row.jo.id,
-                          categoryId: row.category.id,
-                          itemId: row.item.id,
-                          isSubcont: true,
-                          subcontStatus: e.target.value as "In Progress" | "Done",
-                        });
-                      }}
-                      style={{
-                        fontSize: 12,
-                        fontWeight: 600,
-                        padding: "4px 18px 4px 8px",
-                        minWidth: 100,
-                        backgroundColor:
-                          (row.item.subcontStatus || "In Progress") === "Done"
-                            ? "var(--color-status-done-bg)"
-                            : "var(--color-status-in-progress-bg)",
-                        color:
-                          (row.item.subcontStatus || "In Progress") === "Done"
-                            ? "var(--color-status-done)"
-                            : "var(--color-status-in-progress)",
-                        borderColor: "transparent",
-                        textAlign: "center",
-                      }}
-                    >
-                      {SUBCONT_STATUSES.map((s) => (
-                        <option key={s} value={s}>{s}</option>
-                      ))}
-                    </select>
+                    {isViewer ? (
+                      <span
+                        className="badge"
+                        style={{
+                          backgroundColor:
+                            (row.item.subcontStatus || "In Progress") === "Done"
+                              ? "var(--color-status-done-bg)"
+                              : "var(--color-status-in-progress-bg)",
+                          color:
+                            (row.item.subcontStatus || "In Progress") === "Done"
+                              ? "var(--color-status-done)"
+                              : "var(--color-status-in-progress)",
+                        }}
+                      >
+                        {row.item.subcontStatus || "In Progress"}
+                      </span>
+                    ) : (
+                      <select
+                        className="select"
+                        value={row.item.subcontStatus || "In Progress"}
+                        onChange={(e) => {
+                          dispatch({
+                            type: "UPDATE_ITEM_SUBCONT",
+                            projectId: row.project.id,
+                            joId: row.jo.id,
+                            categoryId: row.category.id,
+                            itemId: row.item.id,
+                            isSubcont: true,
+                            subcontStatus: e.target.value as "In Progress" | "Done",
+                          });
+                        }}
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 600,
+                          padding: "4px 18px 4px 8px",
+                          minWidth: 100,
+                          backgroundColor:
+                            (row.item.subcontStatus || "In Progress") === "Done"
+                              ? "var(--color-status-done-bg)"
+                              : "var(--color-status-in-progress-bg)",
+                          color:
+                            (row.item.subcontStatus || "In Progress") === "Done"
+                              ? "var(--color-status-done)"
+                              : "var(--color-status-in-progress)",
+                          borderColor: "transparent",
+                          textAlign: "center",
+                        }}
+                      >
+                        {SUBCONT_STATUSES.map((s) => (
+                          <option key={s} value={s}>{s}</option>
+                        ))}
+                      </select>
+                    )}
                   </td>
 
                   {/* Notes */}
                   <td style={{ textAlign: "center" }}>
-                    <button
-                      onClick={() => {
-                        setEditingNotesRow(row);
-                        setNotesTemp(row.item.subcontNotes || "");
-                      }}
-                      title={row.item.subcontNotes || "Add note"}
-                      style={{
-                        background: "none",
-                        border: "none",
-                        cursor: "pointer",
-                        padding: "4px 6px",
-                        borderRadius: 4,
-                        color: row.item.subcontNotes ? "#3b82f6" : "var(--color-text-muted)",
-                        fontSize: 14,
-                        lineHeight: 1,
-                      }}
-                    >
-                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M13.5 2.5l-1-1-9 9-.5 2.5 2.5-.5 9-9z" />
-                        <path d="M11 3l2 2" />
-                      </svg>
-                    </button>
+                    {isViewer ? (
+                      <span
+                        title={row.item.subcontNotes || undefined}
+                        style={{
+                          fontSize: 12,
+                          color: row.item.subcontNotes ? "var(--color-accent)" : "var(--color-text-muted)",
+                        }}
+                      >
+                        {row.item.subcontNotes ? "📝" : "—"}
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          setEditingNotesRow(row);
+                          setNotesTemp(row.item.subcontNotes || "");
+                        }}
+                        title={row.item.subcontNotes || "Add note"}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          padding: "4px 6px",
+                          borderRadius: 4,
+                          color: row.item.subcontNotes ? "#3b82f6" : "var(--color-text-muted)",
+                          fontSize: 14,
+                          lineHeight: 1,
+                        }}
+                      >
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M13.5 2.5l-1-1-9 9-.5 2.5 2.5-.5 9-9z" />
+                          <path d="M11 3l2 2" />
+                        </svg>
+                      </button>
+                    )}
                   </td>
                 </tr>
               );
@@ -746,7 +800,7 @@ function SubcontTrackingContent() {
       </Dialog>
 
       {/* Floating Bulk Action Bar */}
-      {selectedItemIds.size > 0 && (
+      {isController && selectedItemIds.size > 0 && (
         <div className="bulk-action-bar">
           <div className="bulk-action-bar-count">
             <span className="bulk-action-bar-badge">{selectedItemIds.size}</span>

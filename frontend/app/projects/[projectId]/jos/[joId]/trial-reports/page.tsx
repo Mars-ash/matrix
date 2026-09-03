@@ -12,6 +12,7 @@ import {
   cloneTrialSessionWithoutPhotos,
 } from "@/lib/trial-report";
 import type { TrialSession } from "@/lib/types";
+import { useAuth } from "@/lib/auth";
 
 interface PageProps {
   params: Promise<{ projectId: string; joId: string }>;
@@ -21,6 +22,7 @@ export default function TrialReportsPage({ params }: PageProps) {
   const { projectId, joId } = use(params);
   const { projects } = useAppState();
   const dispatch = useAppDispatch();
+  const { isController } = useAuth();
 
   const project = projects.find((p) => p.id === projectId)
     || projects.find((p) => p.jos.some((j) => j.id === joId || j.joNumber === joId))
@@ -232,14 +234,18 @@ export default function TrialReportsPage({ params }: PageProps) {
                     marginBottom: 16,
                   }}
                 >
-                  Buat trial session baru untuk mulai mencatat hasil trial.
+                  {isController
+                    ? "Buat trial session baru untuk mulai mencatat hasil trial."
+                    : "Belum ada catatan hasil trial untuk JO ini."}
                 </p>
-                <button
-                  className="btn btn-primary"
-                  onClick={() => setCreateDialogOpen(true)}
-                >
-                  Buat Trial Baru
-                </button>
+                {isController && (
+                  <button
+                    className="btn btn-primary"
+                    onClick={() => setCreateDialogOpen(true)}
+                  >
+                    Buat Trial Baru
+                  </button>
+                )}
               </div>
             </div>
           )}

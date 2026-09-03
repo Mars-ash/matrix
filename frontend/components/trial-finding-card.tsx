@@ -698,15 +698,20 @@ export function TrialFindingCard({
                     <label className="label" style={{ fontSize: 11, marginBottom: 2 }}>
                       Target
                     </label>
-                    <input
-                      className="input"
-                      type="date"
-                      value={action.targetDate}
-                      onChange={(e) =>
-                        handleUpdateEntry("correctiveActions", action.id, { targetDate: e.target.value })
-                      }
-                      readOnly={isViewer}
-                    />
+                    {isViewer ? (
+                      <div style={{ fontSize: 12, fontWeight: 500, padding: "5px 0", color: "var(--color-text)" }}>
+                        {action.targetDate || "—"}
+                      </div>
+                    ) : (
+                      <input
+                        className="input"
+                        type="date"
+                        value={action.targetDate}
+                        onChange={(e) =>
+                          handleUpdateEntry("correctiveActions", action.id, { targetDate: e.target.value })
+                        }
+                      />
+                    )}
                   </div>
                   <div className="trial-action-col">
                     <label className="label" style={{ fontSize: 11, marginBottom: 2 }}>
@@ -724,23 +729,36 @@ export function TrialFindingCard({
                     <label className="label" style={{ fontSize: 11, marginBottom: 2 }}>
                       Status
                     </label>
-                    <select
-                      className="select trial-finding-status-select"
-                      value={action.status}
-                      disabled={isViewer}
-                      onChange={(e) =>
-                        handleUpdateEntry("correctiveActions", action.id, {
-                          status: e.target.value as TrialFindingStatus,
-                        })
-                      }
-                      style={{ width: "100%" }}
-                    >
-                      {TRIAL_FINDING_STATUSES.map((s) => (
-                        <option key={s} value={s}>
-                          {s}
-                        </option>
-                      ))}
-                    </select>
+                    {isViewer ? (
+                      <div style={{ padding: "4px 0" }}>
+                        <span
+                          className={`trial-status-badge-sm ${
+                            action.status === "Close"
+                              ? "trial-status-close"
+                              : "trial-status-on-process"
+                          }`}
+                        >
+                          {action.status}
+                        </span>
+                      </div>
+                    ) : (
+                      <select
+                        className="select trial-finding-status-select"
+                        value={action.status}
+                        onChange={(e) =>
+                          handleUpdateEntry("correctiveActions", action.id, {
+                            status: e.target.value as TrialFindingStatus,
+                          })
+                        }
+                        style={{ width: "100%" }}
+                      >
+                        {TRIAL_FINDING_STATUSES.map((s) => (
+                          <option key={s} value={s}>
+                            {s}
+                          </option>
+                        ))}
+                      </select>
+                    )}
                   </div>
                 </div>
                 <TrialPhotoUploader

@@ -168,7 +168,7 @@ function PoTrackerContent() {
 
     return (
       <div className="table-scroll">
-        <table className="control-table">
+        <table className={`control-table ${!isController ? "table-viewer" : ""}`}>
           <thead>
             <tr>
               {isController && (
@@ -225,7 +225,7 @@ function PoTrackerContent() {
                     </Link>
                   </td>
                   <td>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                    <div style={{ display: "flex", flexDirection: "column" }}>
                       <span style={{ fontWeight: 600, fontSize: 13 }}>{row.item.description}</span>
                       <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>
                         No. {row.item.no} - {row.trackerLabel}
@@ -233,66 +233,91 @@ function PoTrackerContent() {
                     </div>
                   </td>
                   <td style={{ textAlign: "center" }}>
-                    <input
-                      type="number"
-                      className="input"
-                      min={1}
-                      value={row.item.qty ?? 1}
-                      onChange={(event) => {
-                        const qty = Number.parseInt(event.target.value, 10);
-                        updateRow(row, {}, { qty: Number.isNaN(qty) ? 1 : qty });
-                      }}
-                      readOnly={isViewer}
-                      style={{ fontSize: 12, padding: "4px 6px", width: 55, textAlign: "center" }}
-                      aria-label={`Qty for ${row.item.description}`}
-                    />
+                    {isViewer ? (
+                      <span style={{ fontSize: 12, fontWeight: 500, color: "var(--color-text)" }}>
+                        {row.item.qty ?? 1}
+                      </span>
+                    ) : (
+                      <input
+                        type="number"
+                        className="input"
+                        min={1}
+                        value={row.item.qty ?? 1}
+                        onChange={(event) => {
+                          const qty = Number.parseInt(event.target.value, 10);
+                          updateRow(row, {}, { qty: Number.isNaN(qty) ? 1 : qty });
+                        }}
+                        style={{ fontSize: 12, padding: "4px 6px", width: 55, textAlign: "center" }}
+                        aria-label={`Qty for ${row.item.description}`}
+                      />
+                    )}
                   </td>
                   <td>
-                    <input
-                      className="input"
-                      value={row.supplier}
-                      onChange={(event) => updateRow(row, { supplier: event.target.value })}
-                      readOnly={isViewer}
-                      placeholder="-"
-                      style={{ fontSize: 12, padding: "4px 7px", width: "100%" }}
-                      aria-label={`Supplier for ${row.item.description}`}
-                    />
+                    {isViewer ? (
+                      <span style={{ fontSize: 12, color: row.supplier ? "var(--color-text)" : "var(--color-text-muted)" }}>
+                        {row.supplier || "—"}
+                      </span>
+                    ) : (
+                      <input
+                        className="input"
+                        value={row.supplier}
+                        onChange={(event) => updateRow(row, { supplier: event.target.value })}
+                        placeholder="-"
+                        style={{ fontSize: 12, padding: "4px 7px", width: "100%" }}
+                        aria-label={`Supplier for ${row.item.description}`}
+                      />
+                    )}
                   </td>
                   <td>
-                    <input
-                      className="input"
-                      value={row.poNo}
-                      onChange={(event) => updateRow(row, { poNo: event.target.value })}
-                      readOnly={isViewer}
-                      placeholder="-"
-                      style={{ fontSize: 12, padding: "4px 7px", width: "100%" }}
-                      aria-label={`PO number for ${row.item.description}`}
-                    />
+                    {isViewer ? (
+                      <span style={{ fontSize: 12, fontWeight: 600, color: row.poNo ? "var(--color-text)" : "var(--color-text-muted)" }}>
+                        {row.poNo || "—"}
+                      </span>
+                    ) : (
+                      <input
+                        className="input"
+                        value={row.poNo}
+                        onChange={(event) => updateRow(row, { poNo: event.target.value })}
+                        placeholder="-"
+                        style={{ fontSize: 12, padding: "4px 7px", width: "100%" }}
+                        aria-label={`PO number for ${row.item.description}`}
+                      />
+                    )}
                   </td>
                   <td style={{ textAlign: "center", minWidth: 140 }}>
-                    <input
-                      type="date"
-                      className="input"
-                      value={row.poDate}
-                      onChange={(event) => updateRow(row, { poDate: event.target.value })}
-                      readOnly={isViewer}
-                      title={row.poDate ? formatDate(row.poDate) : "Set PO date"}
-                      style={{ fontSize: 12, padding: "3px 6px", textAlign: "center", width: "100%" }}
-                      aria-label={`PO date for ${row.item.description}`}
-                    />
-                  </td>
-                  <td style={{ textAlign: "center", minWidth: 155 }}>
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, width: "100%" }}>
+                    {isViewer ? (
+                      <span style={{ fontSize: 12, color: row.poDate ? "var(--color-text)" : "var(--color-text-muted)" }}>
+                        {row.poDate ? formatDate(row.poDate) : "—"}
+                      </span>
+                    ) : (
                       <input
                         type="date"
                         className="input"
-                        value={row.targetArrival}
-                        onChange={(event) => updateRow(row, { targetArrival: event.target.value })}
-                        readOnly={isViewer}
-                        title={row.targetArrival ? formatDate(row.targetArrival) : "Set target arrival"}
+                        value={row.poDate}
+                        onChange={(event) => updateRow(row, { poDate: event.target.value })}
+                        title={row.poDate ? formatDate(row.poDate) : "Set PO date"}
                         style={{ fontSize: 12, padding: "3px 6px", textAlign: "center", width: "100%" }}
-                        aria-label={`Target arrival for ${row.item.description}`}
+                        aria-label={`PO date for ${row.item.description}`}
                       />
+                    )}
+                  </td>
+                  <td style={{ textAlign: "center", minWidth: 155 }}>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, width: "100%" }}>
+                      {isViewer ? (
+                        <span style={{ fontSize: 12, fontWeight: 500, color: row.targetArrival ? "var(--color-text)" : "var(--color-text-muted)" }}>
+                          {row.targetArrival ? formatDate(row.targetArrival) : "—"}
+                        </span>
+                      ) : (
+                        <input
+                          type="date"
+                          className="input"
+                          value={row.targetArrival}
+                          onChange={(event) => updateRow(row, { targetArrival: event.target.value })}
+                          title={row.targetArrival ? formatDate(row.targetArrival) : "Set target arrival"}
+                          style={{ fontSize: 12, padding: "3px 6px", textAlign: "center", width: "100%" }}
+                          aria-label={`Target arrival for ${row.item.description}`}
+                        />
+                      )}
                       {deadline && (
                         <span
                           style={{

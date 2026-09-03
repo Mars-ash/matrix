@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { deriveTrialSessionStatus, formatDateDDMMYYYY } from "@/lib/trial-report";
 import type { TrialSession } from "@/lib/types";
+import { useAuth } from "@/lib/auth";
 
 interface TrialReportSessionListProps {
   projectId: string;
@@ -29,6 +30,7 @@ export function TrialReportSessionList({
   onDuplicate,
   onDeleteSession,
 }: TrialReportSessionListProps) {
+  const { isController } = useAuth();
   const printQuery = printSelectedIds
     .map((id) => `sessions=${encodeURIComponent(id)}`)
     .join("&");
@@ -44,18 +46,20 @@ export function TrialReportSessionList({
         <h3 style={{ fontSize: 14, fontWeight: 600, margin: 0 }}>
           Trial Sessions
         </h3>
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-          <button className="btn btn-primary btn-sm" onClick={onCreateNew}>
-            Buat Trial Baru
-          </button>
-          <button
-            className="btn btn-secondary btn-sm"
-            onClick={onDuplicate}
-            disabled={sessions.length === 0}
-          >
-            Duplikat Trial Sebelumnya
-          </button>
-        </div>
+        {isController && (
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            <button className="btn btn-primary btn-sm" onClick={onCreateNew}>
+              Buat Trial Baru
+            </button>
+            <button
+              className="btn btn-secondary btn-sm"
+              onClick={onDuplicate}
+              disabled={sessions.length === 0}
+            >
+              Duplikat Trial Sebelumnya
+            </button>
+          </div>
+        )}
       </div>
 
       {sessions.length === 0 ? (
@@ -132,16 +136,18 @@ export function TrialReportSessionList({
                   >
                     {status}
                   </span>
-                  <button
-                    className="trial-session-delete-btn"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDelete(session.id, session.name);
-                    }}
-                    title="Hapus session"
-                  >
-                    ✕
-                  </button>
+                  {isController && (
+                    <button
+                      className="trial-session-delete-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(session.id, session.name);
+                      }}
+                      title="Hapus session"
+                    >
+                      ✕
+                    </button>
+                  )}
                 </div>
               </div>
             );

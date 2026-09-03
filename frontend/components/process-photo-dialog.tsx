@@ -2,6 +2,7 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import { Dialog } from "./dialog";
 import { useAppDispatch } from "@/lib/store";
+import { useAuth } from "@/lib/auth";
 import { uid } from "@/lib/format";
 import type { Control } from "@/lib/types";
 
@@ -27,6 +28,7 @@ export function ProcessPhotoDialog({
   itemId,
 }: ProcessPhotoDialogProps) {
   const dispatch = useAppDispatch();
+  const { isController } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileAdd = useCallback(
@@ -82,34 +84,36 @@ export function ProcessPhotoDialog({
         <button className="btn btn-secondary" onClick={onClose}>Close</button>
       }
     >
-      <div style={{ marginBottom: 12 }}>
-        <label
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            padding: "10px 14px",
-            border: "1px dashed var(--color-border)",
-            borderRadius: "var(--radius-md)",
-            cursor: "pointer",
-            fontSize: 12,
-            fontWeight: 500,
-            color: "var(--color-text-secondary)",
-            transition: "border-color 100ms",
-          }}
-        >
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            multiple
-            style={{ display: "none" }}
-            onChange={(e) => handleFileAdd(e.target.files)}
-          />
-          📷 Add Photo
-        </label>
-      </div>
+      {isController && (
+        <div style={{ marginBottom: 12 }}>
+          <label
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "10px 14px",
+              border: "1px dashed var(--color-border)",
+              borderRadius: "var(--radius-md)",
+              cursor: "pointer",
+              fontSize: 12,
+              fontWeight: 500,
+              color: "var(--color-text-secondary)",
+              transition: "border-color 100ms",
+            }}
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              multiple
+              style={{ display: "none" }}
+              onChange={(e) => handleFileAdd(e.target.files)}
+            />
+            📷 Add Photo
+          </label>
+        </div>
+      )}
 
       {photos.length === 0 ? (
         <p style={{ fontSize: 12, color: "var(--color-text-muted)", textAlign: "center", padding: 16 }}>
@@ -145,29 +149,31 @@ export function ProcessPhotoDialog({
               >
                 {photo.name}
               </div>
-              <button
-                onClick={() => handleRemove(photo.id, photo.previewUrl)}
-                style={{
-                  position: "absolute",
-                  top: 4,
-                  right: 4,
-                  width: 20,
-                  height: 20,
-                  borderRadius: "50%",
-                  background: "rgba(0,0,0,0.6)",
-                  color: "#fff",
-                  border: "none",
-                  cursor: "pointer",
-                  fontSize: 12,
-                  lineHeight: 1,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-                aria-label={`Remove ${photo.name}`}
-              >
-                ✕
-              </button>
+              {isController && (
+                <button
+                  onClick={() => handleRemove(photo.id, photo.previewUrl)}
+                  style={{
+                    position: "absolute",
+                    top: 4,
+                    right: 4,
+                    width: 20,
+                    height: 20,
+                    borderRadius: "50%",
+                    background: "rgba(0,0,0,0.6)",
+                    color: "#fff",
+                    border: "none",
+                    cursor: "pointer",
+                    fontSize: 12,
+                    lineHeight: 1,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                  aria-label={`Remove ${photo.name}`}
+                >
+                  ✕
+                </button>
+              )}
             </div>
           ))}
         </div>

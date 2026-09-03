@@ -69,7 +69,7 @@ export function ControlTable({
   return (
     <div>
       <div className="table-scroll">
-        <table className="control-table">
+        <table className={`control-table ${!isController ? "table-viewer" : ""}`}>
           <thead>
             <tr>
               {/* Bulk select checkbox (Controller only) */}
