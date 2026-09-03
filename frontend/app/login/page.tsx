@@ -57,26 +57,7 @@ export default function LoginPage() {
       >
         {/* Brand Header */}
         <div style={{ textAlign: "center", marginBottom: 28 }}>
-          <div
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              width: 50,
-              height: 50,
-              borderRadius: 12,
-              background: "var(--color-text)",
-              color: "var(--color-bg)",
-              fontWeight: 900,
-              fontSize: 22,
-              letterSpacing: "-0.03em",
-              marginBottom: 12,
-              boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
-            }}
-          >
-            M
-          </div>
-          <h1 style={{ fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: "-0.02em" }}>MATRIX</h1>
+          <h1 style={{ fontSize: 26, fontWeight: 800, margin: 0, letterSpacing: "-0.02em" }}>MATRIX</h1>
           <p style={{ fontSize: 13, color: "var(--color-text-secondary)", marginTop: 4, fontWeight: 500 }}>
             Project Controlling System
           </p>
