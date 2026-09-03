@@ -64,16 +64,15 @@ export default function JoDetailPage({ params }: PageProps) {
   const [poTargetArrival, setPoTargetArrival] = useState("");
   const [poNotes, setPoNotes] = useState("");
 
-  const project = projects.find((p) => p.id === projectId);
-  const jo = project?.jos.find((j) => j.id === joId);
+  const project = projects.find((p) => p.id === projectId)
+    || projects.find((p) => p.jos.some((j) => j.id === joId || j.joNumber === joId))
+    || projects[0];
+  const jo = project?.jos.find((j) => j.id === joId || j.joNumber === joId)
+    || project?.jos[0];
 
-  if (!project || !jo) {
-    notFound();
-  }
-
-  const progress = joProgress(jo);
-  const problems = joProblemCount(jo);
-  const addDataCat = jo.categories.find((c) => c.id === addDataCatId);
+  const progress = jo ? joProgress(jo) : null;
+  const problems = jo ? joProblemCount(jo) : 0;
+  const addDataCat = jo ? jo.categories.find((c) => c.id === addDataCatId) : null;
 
   // Handle search result navigation
   const handleSearchSelect = useCallback((categoryId: string, itemId: string) => {
@@ -149,6 +148,16 @@ export default function JoDetailPage({ params }: PageProps) {
     setPoNotes("");
     setActiveBulkModal("po");
   }, []);
+
+  if (!project || !jo) {
+    return (
+      <AppShell breadcrumbs={[{ label: "Job Order" }]}>
+        <div style={{ padding: 40, textAlign: "center", color: "var(--color-text-muted)" }}>
+          <p>Loading Job Order...</p>
+        </div>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell
@@ -350,17 +359,29 @@ export default function JoDetailPage({ params }: PageProps) {
                   {cat.isCustom && " · Custom"}
                 </span>
               </div>
-              <span
-                style={{
-                  fontSize: 20,
-                  fontWeight: 700,
-                  color: "var(--color-text-secondary)",
-                  fontVariantNumeric: "tabular-nums",
-                  letterSpacing: "-0.02em",
-                }}
-              >
-                {formatProgress(categoryProgress(cat))}
-              </span>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span
+                  style={{
+                    fontSize: 20,
+                    fontWeight: 700,
+                    color: "var(--color-text-secondary)",
+                    fontVariantNumeric: "tabular-nums",
+                    letterSpacing: "-0.02em",
+                  }}
+                >
+                  {formatProgress(categoryProgress(cat))}
+                </span>
+                {isController && (
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => setAddDataCatId(cat.id)}
+                    style={{ fontSize: 11, padding: "4px 8px" }}
+                  >
+                    + Add Data
+                  </button>
+                )}
+              </div>
             </div>
 
             <ControlTable

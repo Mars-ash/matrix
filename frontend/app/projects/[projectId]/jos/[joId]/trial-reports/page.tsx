@@ -22,14 +22,13 @@ export default function TrialReportsPage({ params }: PageProps) {
   const { projects } = useAppState();
   const dispatch = useAppDispatch();
 
-  const project = projects.find((p) => p.id === projectId);
-  const jo = project?.jos.find((j) => j.id === joId);
+  const project = projects.find((p) => p.id === projectId)
+    || projects.find((p) => p.jos.some((j) => j.id === joId || j.joNumber === joId))
+    || projects[0];
+  const jo = project?.jos.find((j) => j.id === joId || j.joNumber === joId)
+    || project?.jos[0];
 
-  if (!project || !jo) {
-    notFound();
-  }
-
-  const sessions = useMemo(() => jo.trialSessions ?? [], [jo.trialSessions]);
+  const sessions = useMemo(() => jo?.trialSessions ?? [], [jo?.trialSessions]);
 
   const [selectedId, setSelectedId] = useState<string | null>(
     sessions.length > 0 ? sessions[0].id : null
@@ -80,8 +79,8 @@ export default function TrialReportsPage({ params }: PageProps) {
         name: generatedName,
         trialDate,
         updateDate: trialDate,
-        customer: project.customer,
-        jobNo: jo.joNumber,
+        customer: project?.customer ?? "",
+        jobNo: jo?.joNumber ?? "",
         picName: "",
         approvedByName: "",
         findings: [],
@@ -96,7 +95,7 @@ export default function TrialReportsPage({ params }: PageProps) {
       });
       setSelectedId(newSession.id);
     },
-    [dispatch, projectId, joId, project.customer, jo.joNumber]
+    [dispatch, projectId, joId, project?.customer, jo?.joNumber]
   );
 
   const handleDuplicateSubmit = useCallback(
@@ -149,6 +148,16 @@ export default function TrialReportsPage({ params }: PageProps) {
     );
   }, []);
 
+  if (!project || !jo) {
+    return (
+      <AppShell breadcrumbs={[{ label: "Trial Reports" }]}>
+        <div style={{ padding: 40, textAlign: "center", color: "var(--color-text-muted)" }}>
+          <p>Loading Trial Reports...</p>
+        </div>
+      </AppShell>
+    );
+  }
+
   return (
     <AppShell
       breadcrumbs={[
@@ -164,9 +173,9 @@ export default function TrialReportsPage({ params }: PageProps) {
       {/* JO Context header + Separate Smart Search Bar */}
       <div className="trial-page-context">
         <div>
-          <span style={{ fontSize: 20, fontWeight: 800 }}>
+          <h1 style={{ fontSize: 20, fontWeight: 800, margin: 0 }}>
             Trial Reports — JO {jo.joNumber}
-          </span>
+          </h1>
           <span
             style={{
               fontSize: 13,

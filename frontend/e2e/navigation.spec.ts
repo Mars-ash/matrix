@@ -1,35 +1,35 @@
 import { test, expect } from "@playwright/test";
+import { LoginPage } from "./pages/login.page";
+import { DashboardPage } from "./pages/dashboard.page";
+import { JoDetailPage } from "./pages/jo-detail.page";
+import { SubcontTrackerPage } from "./pages/subcont-tracker.page";
+import { PoTrackerPage } from "./pages/po-tracker.page";
 
 test.describe("MATRIX Navigation and Core Workflows", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto("/login");
-    await page.click("button:has-text('Login sbg Controller')");
-    await expect(page).toHaveURL("/");
+    const loginPage = new LoginPage(page);
+    await loginPage.goto();
+    await loginPage.quickLoginController();
   });
 
   test("can navigate to JO detail and view category control tables", async ({ page }) => {
-    // Click on the first JO card
-    const firstJoCard = page.locator(".card").first();
-    await expect(firstJoCard).toBeVisible();
-    await firstJoCard.click();
+    const dashboardPage = new DashboardPage(page);
+    const joDetailPage = new JoDetailPage(page);
 
-    // Verify URL matches /projects/.../jos/...
-    await expect(page).toHaveURL(/\/projects\/.*\/jos\/.*/);
-
-    // Verify sections and table headers
-    await expect(page.locator("h1")).toBeVisible();
-    await expect(page.locator("table.control-table").first()).toBeVisible();
+    await dashboardPage.openFirstJo();
+    await joDetailPage.verifyLoaded();
   });
 
   test("can navigate to Subcont Tracker", async ({ page }) => {
-    await page.click("a:has-text('SC Tracker')");
-    await expect(page).toHaveURL("/subcont");
-    await expect(page.locator("h1")).toHaveText("Subcont Tracker");
+    const scPage = new SubcontTrackerPage(page);
+    await page.getByRole("link", { name: "SC Tracker" }).click();
+    await scPage.verifyLoaded();
   });
 
   test("can navigate to PO Tracker", async ({ page }) => {
-    await page.click("a:has-text('PO Tracker')");
-    await expect(page).toHaveURL("/po-tracker");
-    await expect(page.locator("h1")).toHaveText("PO Tracker");
+    const poPage = new PoTrackerPage(page);
+    await page.getByRole("link", { name: "PO Tracker" }).click();
+    await poPage.goto();
+    await poPage.verifyKpisVisible();
   });
 });

@@ -1,36 +1,38 @@
 import { test, expect } from "@playwright/test";
+import { LoginPage } from "./pages/login.page";
+import { DashboardPage } from "./pages/dashboard.page";
 
 test.describe("Authentication and Role-Based UI", () => {
   test("Controller login gives full mutating capabilities", async ({ page }) => {
-    await page.goto("/login");
+    const loginPage = new LoginPage(page);
+    const dashboardPage = new DashboardPage(page);
 
-    // Click quick demo login as Controller
-    await page.click("button:has-text('Login sbg Controller')");
-
-    // Should redirect to Dashboard
-    await expect(page).toHaveURL("/");
+    await loginPage.goto();
+    await loginPage.quickLoginController();
 
     // Verify Controller role badge is visible in header
-    await expect(page.locator("header")).toContainText("Controller");
+    const roleText = await dashboardPage.getRoleBadgeText();
+    expect(roleText.toLowerCase()).toContain("controller");
 
     // Verify '+ New' action button is visible for Controller
-    await expect(page.locator("button:has-text('+ New')")).toBeVisible();
+    const hasNewBtn = await dashboardPage.isNewItemButtonVisible();
+    expect(hasNewBtn).toBe(true);
   });
 
   test("Viewer login gives read-only view", async ({ page }) => {
-    await page.goto("/login");
+    const loginPage = new LoginPage(page);
+    const dashboardPage = new DashboardPage(page);
 
-    // Click quick demo login as Viewer
-    await page.click("button:has-text('Login sbg Viewer')");
-
-    // Should redirect to Dashboard
-    await expect(page).toHaveURL("/");
+    await loginPage.goto();
+    await loginPage.quickLoginViewer();
 
     // Verify Viewer role badge is visible in header
-    await expect(page.locator("header")).toContainText("Viewer");
+    const roleText = await dashboardPage.getRoleBadgeText();
+    expect(roleText.toLowerCase()).toContain("viewer");
 
     // Verify mutating button is hidden and read-only badge is shown
-    await expect(page.locator("button:has-text('+ New')")).not.toBeVisible();
+    const hasNewBtn = await dashboardPage.isNewItemButtonVisible();
+    expect(hasNewBtn).toBe(false);
     await expect(page.locator("text=Floor Viewer (Read-Only)")).toBeVisible();
   });
 });

@@ -1,20 +1,25 @@
 import { test, expect } from "@playwright/test";
+import { LoginPage } from "./pages/login.page";
+import { DashboardPage } from "./pages/dashboard.page";
+import { JoDetailPage } from "./pages/jo-detail.page";
+import { TrialReportPage } from "./pages/trial-report.page";
 
 test.describe("Trial Reports Flow", () => {
   test("Controller can access Trial Reports and view findings", async ({ page }) => {
-    await page.goto("/login");
-    await page.click("button:has-text('Login sbg Controller')");
-    await expect(page).toHaveURL("/");
+    const loginPage = new LoginPage(page);
+    const dashboardPage = new DashboardPage(page);
+    const joDetailPage = new JoDetailPage(page);
+    const trialPage = new TrialReportPage(page);
+
+    await loginPage.goto();
+    await loginPage.quickLoginController();
 
     // Open first JO
-    await page.locator(".card").first().click();
-    await expect(page).toHaveURL(/\/projects\/.*\/jos\/.*/);
+    await dashboardPage.openFirstJo();
+    await joDetailPage.verifyLoaded();
 
     // Click Trial Reports link
-    await page.click("a:has-text('Trial Reports')");
-    await expect(page).toHaveURL(/\/trial-reports/);
-
-    // Verify trial report UI elements
-    await expect(page.locator("h1")).toContainText("Trial Report");
+    await joDetailPage.openTrialReports();
+    await trialPage.verifyLoaded();
   });
 });
