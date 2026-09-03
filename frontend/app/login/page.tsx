@@ -8,8 +8,8 @@ export default function LoginPage() {
   const router = useRouter();
   const { login } = useAuth();
 
-  const [username, setUsername] = useState("matrix");
-  const [password, setPassword] = useState("eng#1");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -33,12 +33,6 @@ export default function LoginPage() {
     }
   };
 
-  const setAccountCredentials = (u: string, p: string) => {
-    setUsername(u);
-    setPassword(p);
-    setError("");
-  };
-
   return (
     <div
       style={{
@@ -54,7 +48,7 @@ export default function LoginPage() {
         className="card"
         style={{
           width: "100%",
-          maxWidth: 420,
+          maxWidth: 400,
           padding: "36px 30px",
           border: "1px solid var(--color-border)",
           boxShadow: "0 10px 32px rgba(0, 0, 0, 0.08)",
@@ -68,15 +62,15 @@ export default function LoginPage() {
               display: "inline-flex",
               alignItems: "center",
               justifyContent: "center",
-              width: 52,
-              height: 52,
-              borderRadius: 14,
+              width: 50,
+              height: 50,
+              borderRadius: 12,
               background: "var(--color-text)",
               color: "var(--color-bg)",
               fontWeight: 900,
               fontSize: 22,
               letterSpacing: "-0.03em",
-              marginBottom: 14,
+              marginBottom: 12,
               boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
             }}
           >
@@ -153,12 +147,11 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Masukkan password..."
                 required
-                style={{ padding: "8px 36px 8px 12px", fontSize: 13, width: "100%" }}
+                style={{ padding: "8px 52px 8px 12px", fontSize: 13, width: "100%" }}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                title={showPassword ? "Sembunyikan password" : "Tampilkan password"}
                 style={{
                   position: "absolute",
                   right: 8,
@@ -166,16 +159,15 @@ export default function LoginPage() {
                   transform: "translateY(-50%)",
                   background: "none",
                   border: "none",
-                  color: "var(--color-text-muted)",
+                  color: "var(--color-text-secondary)",
                   cursor: "pointer",
-                  fontSize: 14,
-                  padding: "4px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
+                  fontSize: 11,
+                  fontWeight: 600,
+                  padding: "4px 8px",
+                  borderRadius: 4,
                 }}
               >
-                {showPassword ? "🙈" : "👁️"}
+                {showPassword ? "Hide" : "Show"}
               </button>
             </div>
           </div>
@@ -199,80 +191,6 @@ export default function LoginPage() {
             {loading ? "Memproses..." : "Sign In to Matrix"}
           </button>
         </form>
-
-        {/* Account Credentials Reference */}
-        <div style={{ marginTop: 24, paddingTop: 18, borderTop: "1px solid var(--color-border)" }}>
-          <p
-            style={{
-              fontSize: 11,
-              fontWeight: 600,
-              color: "var(--color-text-muted)",
-              margin: "0 0 10px 0",
-              textAlign: "center",
-              textTransform: "uppercase",
-              letterSpacing: "0.04em",
-            }}
-          >
-            Akun Terdaftar
-          </p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            <div
-              onClick={() => setAccountCredentials("matrix", "eng#1")}
-              role="button"
-              tabIndex={0}
-              title="Klik untuk mengisi otomatis Staff Engineering"
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                padding: "8px 12px",
-                borderRadius: "var(--radius-md)",
-                border: "1px solid var(--color-border)",
-                backgroundColor: "rgba(13, 124, 74, 0.04)",
-                cursor: "pointer",
-                transition: "all 120ms ease",
-              }}
-            >
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--color-status-done)" }}>
-                  Staff Engineering (Full CRUD)
-                </div>
-                <div style={{ fontSize: 11, color: "var(--color-text-secondary)", marginTop: 2 }}>
-                  Username: <strong style={{ color: "var(--color-text)" }}>matrix</strong> &bull; Password: <strong style={{ color: "var(--color-text)" }}>eng#1</strong>
-                </div>
-              </div>
-              <span style={{ fontSize: 11, fontWeight: 600, color: "var(--color-status-done)" }}>Pilih →</span>
-            </div>
-
-            <div
-              onClick={() => setAccountCredentials("matrix", "matrix#1")}
-              role="button"
-              tabIndex={0}
-              title="Klik untuk mengisi otomatis Viewer"
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                padding: "8px 12px",
-                borderRadius: "var(--radius-md)",
-                border: "1px solid var(--color-border)",
-                backgroundColor: "rgba(37, 99, 235, 0.04)",
-                cursor: "pointer",
-                transition: "all 120ms ease",
-              }}
-            >
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--color-accent)" }}>
-                  Viewer (Read-Only)
-                </div>
-                <div style={{ fontSize: 11, color: "var(--color-text-secondary)", marginTop: 2 }}>
-                  Username: <strong style={{ color: "var(--color-text)" }}>matrix</strong> &bull; Password: <strong style={{ color: "var(--color-text)" }}>matrix#1</strong>
-                </div>
-              </div>
-              <span style={{ fontSize: 11, fontWeight: 600, color: "var(--color-accent)" }}>Pilih →</span>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );
