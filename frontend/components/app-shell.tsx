@@ -457,23 +457,8 @@ export function AppShell({ children, breadcrumbs }: AppShellProps) {
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <NotificationBell />
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span
-              style={{
-                fontSize: 10,
-                fontWeight: 700,
-                textTransform: "uppercase",
-                letterSpacing: "0.05em",
-                padding: "3px 8px",
-                borderRadius: "var(--radius-sm)",
-                border: "1px solid var(--color-border)",
-                backgroundColor: role === "controller" ? "rgba(13, 124, 74, 0.12)" : "rgba(37, 99, 235, 0.12)",
-                color: role === "controller" ? "var(--color-status-done)" : "var(--color-accent)",
-              }}
-            >
-              {role === "controller" ? "Staff Engineering" : "Viewer"}
-            </span>
             <div className="header-user-badge" style={{ textAlign: "right" }}>
-              <div style={{ fontSize: 11, fontWeight: 600, color: "var(--color-text)" }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: "var(--color-text)" }}>
                 {user?.name || (role === "controller" ? "Staff Engineering" : "Viewer")}
               </div>
             </div>
