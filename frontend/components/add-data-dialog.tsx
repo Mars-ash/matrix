@@ -237,7 +237,6 @@ export function AddDataDialog({
                   fontWeight: 700,
                 }}
               >
-                AI Powered
               </span>
             </div>
           </button>
@@ -270,10 +269,7 @@ export function AddDataDialog({
                 }}
               />
               <p style={{ fontWeight: 600, fontSize: 14, margin: 0 }}>
-                Gemini Vision AI sedang menganalisis tabel...
-              </p>
-              <p style={{ fontSize: 12, color: "var(--color-text-secondary)", marginTop: 4 }}>
-                Mengekstrak No, Description, Dimension, Material, Qty, dan Hardness.
+                Analyzing
               </p>
             </div>
           ) : (

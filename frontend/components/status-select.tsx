@@ -20,17 +20,6 @@ export function StatusSelect({ value, notes, process, allowedStatuses, onChange 
   const [problemNotes, setProblemNotes] = useState("");
   const [notesError, setNotesError] = useState("");
 
-  if (isViewer) {
-    return (
-      <span
-        title={notes ? `Problem: ${notes}` : undefined}
-        style={{ cursor: "default", display: "inline-block" }}
-      >
-        <StatusBadge status={value} />
-      </span>
-    );
-  }
-
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLSelectElement>) => {
       const newStatus = e.target.value as ControlStatus;
@@ -59,6 +48,17 @@ export function StatusSelect({ value, notes, process, allowedStatuses, onChange 
     setProblemNotes("");
     setNotesError("");
   }, []);
+
+  if (isViewer) {
+    return (
+      <span
+        title={notes ? `Problem: ${notes}` : undefined}
+        style={{ cursor: "default", display: "inline-block" }}
+      >
+        <StatusBadge status={value} />
+      </span>
+    );
+  }
 
   // Determine select color based on current status
   const statusColorVar: Record<ControlStatus, string> = {

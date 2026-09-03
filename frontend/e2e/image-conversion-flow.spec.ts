@@ -20,7 +20,6 @@ test.describe("Image Conversion OCR E2E Flow", () => {
     // Verify modal appears
     await expect(page.locator("text=Manual Entry")).toBeVisible();
     await expect(page.locator("text=Image Conversion")).toBeVisible();
-    await expect(page.locator("text=AI Powered")).toBeVisible();
 
     // Select Image Conversion mode
     await page.locator("text=Image Conversion").click();
