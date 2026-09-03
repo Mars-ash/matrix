@@ -17,6 +17,8 @@ use Illuminate\Support\Facades\Route;
 | Authentication Routes
 |--------------------------------------------------------------------------
 */
+Route::get('/health', fn () => response()->json(['status' => 'healthy', 'app' => 'MATRIX', 'time' => now()->toIso8601String()]));
+
 Route::prefix('auth')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
 
