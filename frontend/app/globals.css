@@ -2464,3 +2464,11 @@ tr.row-highlight .td-sticky-no {
   }
 }
 
+/* Disable native Edge / IE password reveal button to prevent duplicate eye icons */
+input::-ms-reveal,
+input::-ms-clear {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
