@@ -10,7 +10,7 @@ Dokumen pelacakan progress per fase implementasi. Setiap item harus dicentang se
 | :--- | :--- | :---: | :---: |
 | **Fase 1** | Database Schema & Eloquent Models (PostgreSQL) | ✅ Completed | 7/7 |
 | **Fase 2** | Authentication & Role Authorization (Sanctum) | ✅ Completed | 6/6 |
-| **Fase 3** | REST API Core CRUD & Data Synchronization | ⏳ Pending | 0/10 |
+| **Fase 3** | REST API Core CRUD & Data Synchronization | ✅ Completed | 10/10 |
 | **Fase 4** | Trial Reports & Photo Storage Management | ⏳ Pending | 0/6 |
 | **Fase 5** | OCR Vision AI (Gemini 2.0 Flash) | ⏳ Pending | 0/6 |
 | **Fase 6** | Role-Based UI (Controller vs Viewer) | ⏳ Pending | 0/5 |
@@ -42,16 +42,16 @@ Dokumen pelacakan progress per fase implementasi. Setiap item harus dicentang se
 ---
 
 ### Fase 3: REST API Core CRUD & Data Synchronization
-- [ ] **3.1** Buat API endpoints & Form Requests untuk `ProjectController` & `JOController`
-- [ ] **3.2** Buat API endpoints untuk `CategoryController` & `ItemController` (single + batch)
-- [ ] **3.3** Buat API endpoints untuk `ControlController` (status, target date, PO tracking)
-- [ ] **3.4** Buat API endpoints untuk `BulkActionController` (bulk PO, bulk status, bulk subcont)
-- [ ] **3.5** Buat API query optimized untuk `SubcontTrackerController` & `PoTrackerController`
-- [ ] **3.6** Buat API Resource transformers untuk format response JSON yang konsisten
-- [ ] **3.7** Buat centralized `frontend/lib/api-client.ts`
-- [ ] **3.8** Refactor `frontend/lib/store.tsx` & komponen untuk sync dengan REST API backend
-- [ ] **3.9** Implementasi handling loading, error state, & toast notification di frontend
-- [ ] **3.10** **Verification Gate 3**: Backend feature tests pass & verifikasi UI data persist setelah refresh
+- [x] **3.1** Buat API endpoints & Form Requests untuk `ProjectController` & `JOController`
+- [x] **3.2** Buat API endpoints untuk `CategoryController` & `ItemController` (single + batch)
+- [x] **3.3** Buat API endpoints untuk `ControlController` (status, target date, PO tracking)
+- [x] **3.4** Buat API endpoints untuk `BulkActionController` (bulk PO, bulk status, bulk subcont)
+- [x] **3.5** Buat API query optimized untuk `SubcontTrackerController` & `PoTrackerController`
+- [x] **3.6** Buat API Resource transformers untuk format response JSON yang konsisten
+- [x] **3.7** Buat centralized `frontend/lib/api-client.ts`
+- [x] **3.8** Refactor `frontend/lib/store.tsx` & komponen untuk sync dengan REST API backend
+- [x] **3.9** Implementasi handling loading, error state, & toast notification di frontend
+- [x] **3.10** **Verification Gate 3**: Backend feature tests pass & verifikasi UI data persist setelah refresh
 
 ---
 

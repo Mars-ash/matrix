@@ -7,9 +7,11 @@ import React, {
   createContext,
   useContext,
   useReducer,
+  useEffect,
   type ReactNode,
   type Dispatch,
 } from "react";
+import { api } from "./api-client";
 import type {
   Project,
   JO,
@@ -46,6 +48,10 @@ const initialState: AppState = {
 // Actions
 // ---------------------------------------------------------------------------
 export type AppAction =
+  | {
+      type: "SET_PROJECTS";
+      projects: Project[];
+    }
   | {
       type: "CREATE_PROJECT";
       id: string;
@@ -319,6 +325,11 @@ function reducer(state: AppState, action: AppAction): AppState {
   const next = structuredClone(state);
 
   switch (action.type) {
+    case "SET_PROJECTS": {
+      next.projects = action.projects;
+      return next;
+    }
+
     case "CREATE_PROJECT": {
       const newProj: Project = {
         id: action.id,
@@ -1107,7 +1118,135 @@ const StateContext = createContext<AppState>(initialState);
 const DispatchContext = createContext<Dispatch<AppAction>>(() => {});
 
 export function StoreProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(reducer, initialState);
+  const [state, rawDispatch] = useReducer(reducer, initialState);
+
+  // Sync initial state from backend on mount
+  useEffect(() => {
+    let active = true;
+    api
+      .getProjects()
+      .then((res) => {
+        if (active && res.data && res.data.length > 0) {
+          rawDispatch({ type: "SET_PROJECTS", projects: res.data });
+        }
+      })
+      .catch(() => {
+        // Keep initial mock projects if API is unreachable
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  // Async API synchronization wrapper
+  const dispatch: Dispatch<AppAction> = (action: AppAction) => {
+    // 1. Optimistic instant local update
+    rawDispatch(action);
+
+    // 2. Background API persistence
+    switch (action.type) {
+      case "CREATE_PROJECT":
+        api.createProject(action.name, action.customer).catch(() => {});
+        break;
+
+      case "CREATE_JO":
+        api
+          .createJO(action.projectId, {
+            joNumber: action.joNumber,
+            product: action.product,
+            type: action.joType,
+            targetDate: action.targetDate,
+            categories: action.categories,
+          })
+          .catch(() => {});
+        break;
+
+      case "ADD_CATEGORY":
+        api
+          .addCategory(action.joId, {
+            label: action.label,
+            kind: action.kind,
+            isCustom: action.isCustom,
+          })
+          .catch(() => {});
+        break;
+
+      case "ADD_ITEM":
+        api.addItem(action.categoryId, action.item).catch(() => {});
+        break;
+
+      case "ADD_ITEMS_BATCH":
+        api.batchAddItems(action.categoryId, action.items).catch(() => {});
+        break;
+
+      case "FINISH_JO":
+        api.finishJO(action.joId).catch(() => {});
+        break;
+
+      case "UPDATE_ITEM_SUBCONT":
+        api
+          .updateItemSubcont(action.itemId, {
+            isSubcont: action.isSubcont,
+            subcontNotes: action.subcontNotes,
+            subcontSupplier: action.subcontSupplier,
+            subcontStatus: action.subcontStatus,
+            subcontProcess: action.subcontProcess,
+            qty: action.qty,
+            arrivalTargetDate: action.arrivalTargetDate,
+          })
+          .catch(() => {});
+        break;
+
+      case "BULK_SEND_PO":
+        api
+          .bulkSendPo(action.joId, {
+            itemIds: action.itemIds,
+            supplier: action.supplier,
+            poNo: action.poNo,
+            poDate: action.poDate,
+            targetArrival: action.targetArrival,
+            notes: action.notes,
+          })
+          .catch(() => {});
+        break;
+
+      case "BULK_UPDATE_STATUS":
+        api
+          .bulkUpdateStatus(action.joId, {
+            itemIds: action.itemIds,
+            processes: action.processes || (action.process ? [action.process] : []),
+            status: action.status,
+            notes: action.notes,
+          })
+          .catch(() => {});
+        break;
+
+      case "BULK_SEND_SUBCONT":
+        api
+          .bulkSendSubcont(action.joId, {
+            itemIds: action.itemIds,
+            process: action.process,
+            supplier: action.supplier,
+            arrivalTargetDate: action.arrivalTargetDate,
+          })
+          .catch(() => {});
+        break;
+
+      case "BULK_UPDATE_TARGET_ARRIVAL":
+        api
+          .bulkTargetArrival(action.joId, {
+            itemIds: action.itemIds,
+            targetDate: action.targetDate,
+          })
+          .catch(() => {});
+        break;
+
+      default:
+        break;
+    }
+  };
+
   return (
     <StateContext.Provider value={state}>
       <DispatchContext.Provider value={dispatch}>
