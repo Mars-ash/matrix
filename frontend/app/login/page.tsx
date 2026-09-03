@@ -181,7 +181,7 @@ export default function LoginPage() {
               gap: 8,
             }}
           >
-            {loading ? "Memproses..." : "Sign In to Matrix"}
+            {loading ? "Memproses..." : "Sign In"}
           </button>
         </form>
       </div>

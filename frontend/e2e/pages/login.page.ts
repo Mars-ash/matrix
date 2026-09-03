@@ -19,7 +19,7 @@ export class LoginPage {
   async login(username: string, pass: string) {
     await this.page.locator("#login-username").fill(username);
     await this.page.locator("#login-password").fill(pass);
-    await this.page.getByRole("button", { name: "Sign In to Matrix" }).click();
+    await this.page.getByRole("button", { name: "Sign In" }).click();
     await expect(this.page).toHaveURL("/");
   }
 }

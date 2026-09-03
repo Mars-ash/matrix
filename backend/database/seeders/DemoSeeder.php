@@ -58,10 +58,10 @@ class DemoSeeder extends Seeder
             );
 
             // ---------------------------------------------------------------
-            // 1. Project 1: Automotive Stamping Dies
+            // 1. Project 1: HB24
             // ---------------------------------------------------------------
             $proj1 = Project::create([
-                'name' => 'Automotive Stamping Dies',
+                'name' => 'HB24',
                 'customer' => 'PT Astra Daihatsu Motor',
             ]);
 
@@ -376,10 +376,10 @@ class DemoSeeder extends Seeder
             ]);
 
             // ---------------------------------------------------------------
-            // 2. Project 2: Motorcycle Frame Tooling
+            // 2. Project 2: K2SA
             // ---------------------------------------------------------------
             $proj2 = Project::create([
-                'name' => 'Motorcycle Frame Tooling',
+                'name' => 'K2SA',
                 'customer' => 'PT Yamaha Indonesia Motor',
             ]);
 
@@ -400,10 +400,10 @@ class DemoSeeder extends Seeder
             ]);
 
             // ---------------------------------------------------------------
-            // 3. Project 3: Home Appliance Press Tool
+            // 3. Project 3: 737D
             // ---------------------------------------------------------------
             $proj3 = Project::create([
-                'name' => 'Home Appliance Press Tool',
+                'name' => '737D',
                 'customer' => 'PT Panasonic Manufacturing',
             ]);
 

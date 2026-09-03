@@ -784,14 +784,57 @@ const jo114: JO = {
 jo114.categories[0].items[1].controls[2].notes = "Material defect found during setup.";
 
 // ---------------------------------------------------------------------------
-// Project
+// Projects (aligned with database DemoSeeder)
 // ---------------------------------------------------------------------------
 export const MOCK_PROJECT: Project = {
-  id: id("proj"),
+  id: "proj-1",
   name: "HB24",
-  customer: "PT. Mercedes",
+  customer: "PT Astra Daihatsu Motor",
   jos: [jo110, jo111, jo112, jo113, jo114],
 };
 
+export const MOCK_PROJECT_2: Project = {
+  id: "proj-2",
+  name: "K2SA",
+  customer: "PT Yamaha Indonesia Motor",
+  jos: [
+    {
+      id: "jo-127001",
+      joNumber: "127.001",
+      product: "Main Pipe Bracket",
+      type: "PROGRESSIVE",
+      targetDate: relativeDate(30),
+      categories: [],
+      activities: [],
+    },
+    {
+      id: "jo-127002",
+      joNumber: "127.002",
+      product: "Welding Fixture Sub-Assy",
+      type: "JIG",
+      targetDate: relativeDate(14),
+      categories: [],
+      activities: [],
+    },
+  ],
+};
+
+export const MOCK_PROJECT_3: Project = {
+  id: "proj-3",
+  name: "737D",
+  customer: "PT Panasonic Manufacturing",
+  jos: [
+    {
+      id: "jo-128010",
+      joNumber: "128.010",
+      product: "Air Conditioner Base Pan",
+      type: "PROGRESSIVE",
+      targetDate: relativeDate(60),
+      categories: [],
+      activities: [],
+    },
+  ],
+};
+
 /** Convenience: initial state for the store. */
-export const INITIAL_PROJECTS: Project[] = [MOCK_PROJECT];
+export const INITIAL_PROJECTS: Project[] = [MOCK_PROJECT, MOCK_PROJECT_2, MOCK_PROJECT_3];

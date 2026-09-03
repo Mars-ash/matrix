@@ -15,8 +15,17 @@ class AuthenticateTokenOrDemo
     {
         $token = $request->bearerToken();
 
-        if ($token === 'demo-prototype-token') {
+        if ($token === 'demo-prototype-token' || $token === 'demo-controller-token') {
             $user = User::where('role', 'controller')->first();
+            if ($user) {
+                Auth::setUser($user);
+                $request->setUserResolver(fn () => $user);
+                return $next($request);
+            }
+        }
+
+        if ($token === 'demo-viewer-token') {
+            $user = User::where('role', 'viewer')->first();
             if ($user) {
                 Auth::setUser($user);
                 $request->setUserResolver(fn () => $user);
