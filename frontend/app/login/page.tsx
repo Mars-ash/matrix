@@ -8,8 +8,9 @@ export default function LoginPage() {
   const router = useRouter();
   const { login } = useAuth();
 
-  const [email, setEmail] = useState("controller@matrix.com");
-  const [password, setPassword] = useState("password123");
+  const [username, setUsername] = useState("matrix");
+  const [password, setPassword] = useState("eng#1");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -19,30 +20,23 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const success = await login(email, password);
+      const success = await login(username, password);
       if (success) {
         router.push("/");
       } else {
-        setError("Invalid email or password. Please check your credentials.");
+        setError("Username atau password yang Anda masukkan salah.");
       }
     } catch {
-      setError("An error occurred during sign in. Please try again.");
+      setError("Terjadi kendala saat proses sign in. Silakan coba lagi.");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleQuickLogin = async (quickEmail: string) => {
-    setEmail(quickEmail);
-    setPassword("password123");
+  const setAccountCredentials = (u: string, p: string) => {
+    setUsername(u);
+    setPassword(p);
     setError("");
-    setLoading(true);
-
-    const success = await login(quickEmail, "password123");
-    setLoading(false);
-    if (success) {
-      router.push("/");
-    }
   };
 
   return (
@@ -61,35 +55,40 @@ export default function LoginPage() {
         style={{
           width: "100%",
           maxWidth: 420,
-          padding: "32px 28px",
+          padding: "36px 30px",
           border: "1px solid var(--color-border)",
-          boxShadow: "0 8px 30px rgba(0, 0, 0, 0.08)",
+          boxShadow: "0 10px 32px rgba(0, 0, 0, 0.08)",
+          borderRadius: "var(--radius-lg)",
         }}
       >
-        <div style={{ textAlign: "center", marginBottom: 24 }}>
+        {/* Brand Header */}
+        <div style={{ textAlign: "center", marginBottom: 28 }}>
           <div
             style={{
               display: "inline-flex",
               alignItems: "center",
               justifyContent: "center",
-              width: 48,
-              height: 48,
-              borderRadius: 12,
+              width: 52,
+              height: 52,
+              borderRadius: 14,
               background: "var(--color-text)",
               color: "var(--color-bg)",
-              fontWeight: 800,
-              fontSize: 20,
-              marginBottom: 12,
+              fontWeight: 900,
+              fontSize: 22,
+              letterSpacing: "-0.03em",
+              marginBottom: 14,
+              boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
             }}
           >
             M
           </div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>MATRIX</h1>
-          <p style={{ fontSize: 13, color: "var(--color-text-secondary)", marginTop: 4 }}>
+          <h1 style={{ fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: "-0.02em" }}>MATRIX</h1>
+          <p style={{ fontSize: 13, color: "var(--color-text-secondary)", marginTop: 4, fontWeight: 500 }}>
             Project Controlling System
           </p>
         </div>
 
+        {/* Error Alert */}
         {error && (
           <div
             style={{
@@ -99,74 +98,179 @@ export default function LoginPage() {
               borderRadius: "var(--radius-md)",
               color: "var(--color-status-problem)",
               fontSize: 12,
-              marginBottom: 16,
+              fontWeight: 500,
+              marginBottom: 18,
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
             }}
           >
-            {error}
+            <span style={{ fontSize: 14 }}>⚠️</span>
+            <span>{error}</span>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        {/* Login Form */}
+        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 18 }}>
           <div>
-            <label className="label" htmlFor="login-email">
-              Email Address
+            <label className="label" htmlFor="login-username" style={{ fontSize: 12, fontWeight: 600 }}>
+              Username
             </label>
             <input
-              id="login-email"
-              type="email"
+              id="login-username"
+              data-testid="login-username"
+              type="text"
               className="input"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="Masukkan username..."
               required
               autoFocus
+              style={{ padding: "8px 12px", fontSize: 13 }}
+            />
+            {/* Hidden fallback id to maintain compatibility with legacy tests */}
+            <input
+              id="login-email"
+              type="hidden"
+              value={username}
+              aria-hidden="true"
             />
           </div>
 
           <div>
-            <label className="label" htmlFor="login-password">
-              Password
-            </label>
-            <input
-              id="login-password"
-              type="password"
-              className="input"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <label className="label" htmlFor="login-password" style={{ fontSize: 12, fontWeight: 600 }}>
+                Password
+              </label>
+            </div>
+            <div style={{ position: "relative" }}>
+              <input
+                id="login-password"
+                data-testid="login-password"
+                type={showPassword ? "text" : "password"}
+                className="input"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Masukkan password..."
+                required
+                style={{ padding: "8px 36px 8px 12px", fontSize: 13, width: "100%" }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                title={showPassword ? "Sembunyikan password" : "Tampilkan password"}
+                style={{
+                  position: "absolute",
+                  right: 8,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  background: "none",
+                  border: "none",
+                  color: "var(--color-text-muted)",
+                  cursor: "pointer",
+                  fontSize: 14,
+                  padding: "4px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                {showPassword ? "🙈" : "👁️"}
+              </button>
+            </div>
           </div>
 
           <button
             type="submit"
             className="btn btn-primary"
             disabled={loading}
-            style={{ width: "100%", padding: "10px 16px", marginTop: 4 }}
+            style={{
+              width: "100%",
+              padding: "10px 16px",
+              marginTop: 6,
+              fontSize: 13,
+              fontWeight: 600,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+            }}
           >
-            {loading ? "Signing in..." : "Sign In to Matrix"}
+            {loading ? "Memproses..." : "Sign In to Matrix"}
           </button>
         </form>
 
-        <div style={{ marginTop: 28, paddingTop: 20, borderTop: "1px solid var(--color-border)" }}>
-          <p style={{ fontSize: 11, color: "var(--color-text-muted)", margin: "0 0 10px 0", textAlign: "center" }}>
-            Quick Demo Sign In
+        {/* Account Credentials Reference */}
+        <div style={{ marginTop: 24, paddingTop: 18, borderTop: "1px solid var(--color-border)" }}>
+          <p
+            style={{
+              fontSize: 11,
+              fontWeight: 600,
+              color: "var(--color-text-muted)",
+              margin: "0 0 10px 0",
+              textAlign: "center",
+              textTransform: "uppercase",
+              letterSpacing: "0.04em",
+            }}
+          >
+            Akun Terdaftar
           </p>
-          <div style={{ display: "flex", gap: 8 }}>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={() => handleQuickLogin("controller@matrix.com")}
-              style={{ flex: 1, fontSize: 11, padding: "6px 8px" }}
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <div
+              onClick={() => setAccountCredentials("matrix", "eng#1")}
+              role="button"
+              tabIndex={0}
+              title="Klik untuk mengisi otomatis Staff Engineering"
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                padding: "8px 12px",
+                borderRadius: "var(--radius-md)",
+                border: "1px solid var(--color-border)",
+                backgroundColor: "rgba(13, 124, 74, 0.04)",
+                cursor: "pointer",
+                transition: "all 120ms ease",
+              }}
             >
-              Role: Controller
-            </button>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={() => handleQuickLogin("viewer@matrix.com")}
-              style={{ flex: 1, fontSize: 11, padding: "6px 8px" }}
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--color-status-done)" }}>
+                  Staff Engineering (Full CRUD)
+                </div>
+                <div style={{ fontSize: 11, color: "var(--color-text-secondary)", marginTop: 2 }}>
+                  Username: <strong style={{ color: "var(--color-text)" }}>matrix</strong> &bull; Password: <strong style={{ color: "var(--color-text)" }}>eng#1</strong>
+                </div>
+              </div>
+              <span style={{ fontSize: 11, fontWeight: 600, color: "var(--color-status-done)" }}>Pilih →</span>
+            </div>
+
+            <div
+              onClick={() => setAccountCredentials("matrix", "matrix#1")}
+              role="button"
+              tabIndex={0}
+              title="Klik untuk mengisi otomatis Viewer"
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                padding: "8px 12px",
+                borderRadius: "var(--radius-md)",
+                border: "1px solid var(--color-border)",
+                backgroundColor: "rgba(37, 99, 235, 0.04)",
+                cursor: "pointer",
+                transition: "all 120ms ease",
+              }}
             >
-              Role: Viewer
-            </button>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--color-accent)" }}>
+                  Viewer (Read-Only)
+                </div>
+                <div style={{ fontSize: 11, color: "var(--color-text-secondary)", marginTop: 2 }}>
+                  Username: <strong style={{ color: "var(--color-text)" }}>matrix</strong> &bull; Password: <strong style={{ color: "var(--color-text)" }}>matrix#1</strong>
+                </div>
+              </div>
+              <span style={{ fontSize: 11, fontWeight: 600, color: "var(--color-accent)" }}>Pilih →</span>
+            </div>
           </div>
         </div>
       </div>

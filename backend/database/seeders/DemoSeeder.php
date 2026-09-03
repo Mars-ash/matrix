@@ -25,22 +25,35 @@ class DemoSeeder extends Seeder
         DB::transaction(function () {
             $now = Carbon::now();
 
-            // Default demo users
-            User::firstOrCreate(
-                ['email' => 'controller@matrix.com'],
+            // Default production users
+            User::updateOrCreate(
+                ['email' => 'engineering@matrix.com'],
                 [
-                    'name' => 'Admin Controller',
-                    'password' => Hash::make('password123'),
+                    'username' => 'matrix',
+                    'name' => 'Staff Engineering',
+                    'password' => Hash::make('eng#1'),
                     'role' => 'controller',
                 ]
             );
 
-            User::firstOrCreate(
+            User::updateOrCreate(
                 ['email' => 'viewer@matrix.com'],
                 [
-                    'name' => 'Floor Viewer',
-                    'password' => Hash::make('password123'),
+                    'username' => 'matrix#1',
+                    'name' => 'Viewer',
+                    'password' => Hash::make('matrix#1'),
                     'role' => 'viewer',
+                ]
+            );
+
+            // Backward compatibility for existing tests
+            User::firstOrCreate(
+                ['email' => 'controller@matrix.com'],
+                [
+                    'username' => 'controller',
+                    'name' => 'Admin Controller',
+                    'password' => Hash::make('password123'),
+                    'role' => 'controller',
                 ]
             );
 

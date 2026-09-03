@@ -9,17 +9,15 @@ export class LoginPage {
   }
 
   async quickLoginController() {
-    await this.page.getByRole("button", { name: "Role: Controller" }).click();
-    await expect(this.page).toHaveURL("/");
+    await this.login("matrix", "eng#1");
   }
 
   async quickLoginViewer() {
-    await this.page.getByRole("button", { name: "Role: Viewer" }).click();
-    await expect(this.page).toHaveURL("/");
+    await this.login("matrix", "matrix#1");
   }
 
-  async login(email: string, pass: string = "password123") {
-    await this.page.locator("#login-email").fill(email);
+  async login(username: string, pass: string) {
+    await this.page.locator("#login-username").fill(username);
     await this.page.locator("#login-password").fill(pass);
     await this.page.getByRole("button", { name: "Sign In to Matrix" }).click();
     await expect(this.page).toHaveURL("/");

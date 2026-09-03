@@ -88,7 +88,7 @@ export default function DashboardPage() {
                 whiteSpace: "nowrap",
               }}
             >
-              Floor Viewer (Read-Only)
+              Viewer (Read-Only)
             </span>
           )}
         </div>

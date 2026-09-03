@@ -39,6 +39,51 @@ class AuthTest extends TestCase
             ]);
     }
 
+    public function test_user_can_login_with_custom_username_credentials(): void
+    {
+        User::create([
+            'name' => 'Staff Engineering',
+            'username' => 'matrix',
+            'email' => 'engineering@matrix.com',
+            'password' => Hash::make('eng#1'),
+            'role' => 'controller',
+        ]);
+
+        User::create([
+            'name' => 'Viewer',
+            'username' => 'matrix#1',
+            'email' => 'viewer@matrix.com',
+            'password' => Hash::make('matrix#1'),
+            'role' => 'viewer',
+        ]);
+
+        // 1. Staff Engineering login
+        $resStaff = $this->postJson('/api/auth/login', [
+            'username' => 'matrix',
+            'password' => 'eng#1',
+        ]);
+        $resStaff->assertStatus(200)
+            ->assertJson([
+                'user' => [
+                    'name' => 'Staff Engineering',
+                    'role' => 'controller',
+                ],
+            ]);
+
+        // 2. Viewer login
+        $resViewer = $this->postJson('/api/auth/login', [
+            'username' => 'matrix',
+            'password' => 'matrix#1',
+        ]);
+        $resViewer->assertStatus(200)
+            ->assertJson([
+                'user' => [
+                    'name' => 'Viewer',
+                    'role' => 'viewer',
+                ],
+            ]);
+    }
+
     public function test_user_cannot_login_with_invalid_credentials(): void
     {
         User::create([

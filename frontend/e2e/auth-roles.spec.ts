@@ -10,9 +10,12 @@ test.describe("Authentication and Role-Based UI", () => {
     await loginPage.goto();
     await loginPage.quickLoginController();
 
-    // Verify Controller role badge is visible in header
+    // Verify Staff Engineering role badge is visible in header
     const roleText = await dashboardPage.getRoleBadgeText();
-    expect(roleText.toLowerCase()).toContain("controller");
+    expect(roleText.toLowerCase()).toContain("staff engineering");
+
+    // Verify role switch button is completely removed from header
+    await expect(page.locator("button[title*='toggle between Controller and Viewer']")).toHaveCount(0);
 
     // Verify '+ New' action button is visible for Controller
     const hasNewBtn = await dashboardPage.isNewItemButtonVisible();
@@ -30,9 +33,12 @@ test.describe("Authentication and Role-Based UI", () => {
     const roleText = await dashboardPage.getRoleBadgeText();
     expect(roleText.toLowerCase()).toContain("viewer");
 
+    // Verify role switch button is completely removed from header
+    await expect(page.locator("button[title*='toggle between Controller and Viewer']")).toHaveCount(0);
+
     const hasNewBtn = await dashboardPage.isNewItemButtonVisible();
     expect(hasNewBtn).toBe(false);
-    await expect(page.locator("text=Floor Viewer (Read-Only)")).toBeVisible();
+    await expect(page.locator("text=Viewer (Read-Only)")).toBeVisible();
 
     // 2. JO Detail page checks
     await dashboardPage.openFirstJo();

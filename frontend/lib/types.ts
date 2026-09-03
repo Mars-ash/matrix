@@ -248,6 +248,7 @@ export type UserRole = "controller" | "viewer";
 export interface AuthUser {
   id: number;
   name: string;
+  username?: string;
   email: string;
   role: UserRole;
 }

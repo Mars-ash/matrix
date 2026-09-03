@@ -10,17 +10,10 @@ interface AuthContextType {
   isController: boolean;
   isViewer: boolean;
   isLoading: boolean;
-  login: (email: string, pass: string) => Promise<boolean>;
+  login: (username: string, pass: string) => Promise<boolean>;
   logout: () => void;
   switchRoleDemo: (role: UserRole) => void;
 }
-
-const DEFAULT_DEMO_USER: AuthUser = {
-  id: 1,
-  name: "Admin Controller",
-  email: "controller@matrix.com",
-  role: "controller",
-};
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -30,7 +23,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Load from localStorage if present
     try {
       const storedToken = localStorage.getItem("matrix_auth_token");
       const storedUser = localStorage.getItem("matrix_auth_user");
@@ -39,22 +31,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setToken(storedToken);
         setUser(JSON.parse(storedUser));
       } else {
-        // Default to demo controller user so prototype remains completely frictionless
-        setUser(DEFAULT_DEMO_USER);
-        setToken("demo-prototype-token");
-        try {
-          localStorage.setItem("matrix_auth_token", "demo-prototype-token");
-          localStorage.setItem("matrix_auth_user", JSON.stringify(DEFAULT_DEMO_USER));
-        } catch {}
+        setToken(null);
+        setUser(null);
       }
     } catch {
-      setUser(DEFAULT_DEMO_USER);
+      setToken(null);
+      setUser(null);
     } finally {
       setIsLoading(false);
     }
   }, []);
 
-  const login = async (email: string, pass: string): Promise<boolean> => {
+  const login = async (username: string, pass: string): Promise<boolean> => {
     try {
       const res = await fetch("http://127.0.0.1:8000/api/auth/login", {
         method: "POST",
@@ -62,7 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           "Content-Type": "application/json",
           Accept: "application/json",
         },
-        body: JSON.stringify({ email, password: pass }),
+        body: JSON.stringify({ username, password: pass }),
       });
 
       if (!res.ok) {
@@ -79,30 +67,52 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       return true;
     } catch {
-      // Fallback for offline demo
-      if (email.includes("viewer")) {
+      // Offline / network failure fallback
+      const cleanUser = username.trim().toLowerCase();
+      if (
+        cleanUser === "viewer" ||
+        cleanUser === "matrix#1" ||
+        cleanUser === "viewer@matrix.com" ||
+        (cleanUser === "matrix" && pass === "matrix#1")
+      ) {
         const viewerUser: AuthUser = {
           id: 2,
-          name: "Floor Viewer",
+          name: "Viewer",
+          username: "matrix#1",
           email: "viewer@matrix.com",
           role: "viewer",
         };
         setUser(viewerUser);
         setToken("demo-viewer-token");
+        localStorage.setItem("matrix_auth_token", "demo-viewer-token");
         localStorage.setItem("matrix_auth_user", JSON.stringify(viewerUser));
         return true;
-      } else {
-        setUser(DEFAULT_DEMO_USER);
+      } else if (
+        cleanUser === "matrix" ||
+        cleanUser === "controller" ||
+        cleanUser === "controller@matrix.com" ||
+        cleanUser === "engineering"
+      ) {
+        const staffUser: AuthUser = {
+          id: 1,
+          name: "Staff Engineering",
+          username: "matrix",
+          email: "engineering@matrix.com",
+          role: "controller",
+        };
+        setUser(staffUser);
         setToken("demo-controller-token");
-        localStorage.setItem("matrix_auth_user", JSON.stringify(DEFAULT_DEMO_USER));
+        localStorage.setItem("matrix_auth_token", "demo-controller-token");
+        localStorage.setItem("matrix_auth_user", JSON.stringify(staffUser));
         return true;
       }
+      return false;
     }
   };
 
   const logout = () => {
     try {
-      if (token && token.startsWith("1|") || token?.startsWith("2|")) {
+      if (token && (token.startsWith("1|") || token?.startsWith("2|") || token.includes("|"))) {
         fetch("http://127.0.0.1:8000/api/auth/logout", {
           method: "POST",
           headers: {
@@ -123,17 +133,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const switchRoleDemo = (newRole: UserRole) => {
     const updated: AuthUser = {
       id: newRole === "controller" ? 1 : 2,
-      name: newRole === "controller" ? "Admin Controller" : "Floor Viewer",
-      email: `${newRole}@matrix.com`,
+      name: newRole === "controller" ? "Staff Engineering" : "Viewer",
+      username: newRole === "controller" ? "matrix" : "matrix#1",
+      email: newRole === "controller" ? "engineering@matrix.com" : "viewer@matrix.com",
       role: newRole,
     };
     setUser(updated);
     localStorage.setItem("matrix_auth_user", JSON.stringify(updated));
   };
 
-  const role = user?.role || "controller";
-  const isController = role === "controller";
-  const isViewer = role === "viewer";
+  const role: UserRole = user?.role || "viewer";
+  const isController = Boolean(user && user.role === "controller");
+  const isViewer = Boolean(user && user.role === "viewer");
 
   return (
     <AuthContext.Provider
@@ -155,10 +166,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 }
 
 const FALLBACK_AUTH_CONTEXT: AuthContextType = {
-  user: DEFAULT_DEMO_USER,
-  token: "demo-fallback-token",
-  role: "controller",
-  isController: true,
+  user: null,
+  token: null,
+  role: "viewer",
+  isController: false,
   isViewer: false,
   isLoading: false,
   login: async () => true,
