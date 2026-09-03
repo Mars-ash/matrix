@@ -310,6 +310,9 @@ export type AppAction =
 // Helpers
 // ---------------------------------------------------------------------------
 function addActivity(jo: JO, message: string): void {
+  if (!jo.activities) {
+    jo.activities = [];
+  }
   jo.activities.unshift({
     id: uid(),
     timestamp: new Date().toISOString(),
@@ -326,7 +329,20 @@ function reducer(state: AppState, action: AppAction): AppState {
 
   switch (action.type) {
     case "SET_PROJECTS": {
-      next.projects = action.projects;
+      next.projects = action.projects.map((p) => ({
+        ...p,
+        jos: (p.jos || []).map((j) => ({
+          ...j,
+          activities: j.activities || [],
+          categories: (j.categories || []).map((c) => ({
+            ...c,
+            items: (c.items || []).map((item) => ({
+              ...item,
+              controls: item.controls || [],
+            })),
+          })),
+        })),
+      }));
       return next;
     }
 

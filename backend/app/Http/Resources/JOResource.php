@@ -18,7 +18,9 @@ class JOResource extends JsonResource
             'targetDate' => $this->target_date?->format('Y-m-d'),
             'finishDate' => $this->finish_date?->format('Y-m-d'),
             'categories' => CategoryResource::collection($this->whenLoaded('categories')),
-            'activities' => ActivityResource::collection($this->whenLoaded('activities')),
+            'activities' => $this->relationLoaded('activities')
+                ? ActivityResource::collection($this->activities)
+                : [],
         ];
     }
 }
