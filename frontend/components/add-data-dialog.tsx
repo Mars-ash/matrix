@@ -212,9 +212,6 @@ export function AddDataDialog({
             style={{ textAlign: "left", cursor: "pointer", border: "1px solid var(--color-border)" }}
           >
             <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 4 }}>Manual Entry</div>
-            <div style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>
-              Input a single item with full specifications and subcont routing.
-            </div>
           </button>
           <button
             className="card"
@@ -225,7 +222,7 @@ export function AddDataDialog({
             style={{ textAlign: "left", cursor: "pointer", border: "1px solid var(--color-border)" }}
           >
             <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 4, display: "flex", alignItems: "center" }}>
-              OCR Image Conversion
+              Image Conversion
               <span
                 className="badge"
                 style={{
@@ -236,11 +233,8 @@ export function AddDataDialog({
                   fontWeight: 700,
                 }}
               >
-                Gemini 2.0 Flash AI
+                AI Powered
               </span>
-            </div>
-            <div style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>
-              Upload engineering drawing BOM, PDF export, or paste screenshot to auto-extract rows.
             </div>
           </button>
         </div>
@@ -272,7 +266,7 @@ export function AddDataDialog({
                 }}
               />
               <p style={{ fontWeight: 600, fontSize: 14, margin: 0 }}>
-                Gemini 2.0 Flash sedang menganalisis tabel...
+                Gemini Vision AI sedang menganalisis tabel...
               </p>
               <p style={{ fontSize: 12, color: "var(--color-text-secondary)", marginTop: 4 }}>
                 Mengekstrak No, Description, Dimension, Material, Qty, dan Hardness.

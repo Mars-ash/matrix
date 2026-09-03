@@ -98,7 +98,9 @@ PROMPT;
 
             $json = $response->json();
             $rawText = $json['candidates'][0]['content']['parts'][0]['text'] ?? '[]';
-            $items = json_decode($rawText, true);
+            $cleanText = preg_replace('/^```(?:json)?\s*/i', '', trim($rawText));
+            $cleanText = preg_replace('/\s*```$/', '', $cleanText);
+            $items = json_decode($cleanText, true);
 
             if (!is_array($items) || count($items) === 0) {
                 return $this->fallbackParse($categoryKind, 'No items detected by OCR.');

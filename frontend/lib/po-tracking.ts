@@ -6,7 +6,9 @@ export interface PoTrackingRow {
   category: Category;
   item: Item;
   control: Control;
+  arrivalControl?: Control;
   arrivalStatus?: ControlStatus;
+  status: ControlStatus;
   process: PoTrackingProcess;
   trackerLabel: string;
   supplier: string;
@@ -42,13 +44,24 @@ export function collectPoTrackingRows(projects: Project[]): PoTrackingRow[] {
             if (!isPoTrackingProcess(control.process)) continue;
 
             const tracking = control.poTracking;
+            const trackingStatus: ControlStatus =
+              arrivalControl?.status === "Done"
+                ? "Done"
+                : arrivalControl?.status === "Problem"
+                ? "Problem"
+                : control.status === "Done" || (tracking?.poNo && tracking.poNo.trim() !== "")
+                ? "In Progress"
+                : control.status;
+
             rows.push({
               project,
               jo,
               category,
               item,
               control,
+              arrivalControl,
               arrivalStatus: arrivalControl?.status,
+              status: trackingStatus,
               process: control.process,
               trackerLabel: poTrackingLabel(control.process),
               supplier: tracking?.supplier ?? "",

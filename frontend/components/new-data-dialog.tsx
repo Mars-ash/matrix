@@ -1,8 +1,8 @@
 "use client";
 import React, { useState, useCallback } from "react";
 import { Dialog } from "./dialog";
-import { ManualItemForm, emptyManualItemData, type ManualItemData } from "./manual-item-form";
-import { useAppState, useAppDispatch } from "@/lib/store";
+import { AddDataDialog } from "./add-data-dialog";
+import { useAppState } from "@/lib/store";
 
 interface NewDataDialogProps {
   open: boolean;
@@ -11,13 +11,10 @@ interface NewDataDialogProps {
 
 export function NewDataDialog({ open, onClose }: NewDataDialogProps) {
   const { projects } = useAppState();
-  const dispatch = useAppDispatch();
 
   const [selectedProjectId, setSelectedProjectId] = useState("");
   const [selectedJoId, setSelectedJoId] = useState("");
   const [selectedCatId, setSelectedCatId] = useState("");
-  const [formData, setFormData] = useState<ManualItemData>(emptyManualItemData());
-  const [error, setError] = useState("");
 
   const selectedProject = projects.find((p) => p.id === selectedProjectId);
   const selectedJo = selectedProject?.jos.find((j) => j.id === selectedJoId);
@@ -27,8 +24,6 @@ export function NewDataDialog({ open, onClose }: NewDataDialogProps) {
     setSelectedProjectId("");
     setSelectedJoId("");
     setSelectedCatId("");
-    setFormData(emptyManualItemData());
-    setError("");
   }, []);
 
   const handleClose = useCallback(() => {
@@ -36,49 +31,25 @@ export function NewDataDialog({ open, onClose }: NewDataDialogProps) {
     onClose();
   }, [reset, onClose]);
 
-  const handleSubmit = () => {
-    if (!selectedCat) return;
-    if (!formData.description.trim()) {
-      setError("Description is required.");
-      return;
-    }
-
-    dispatch({
-      type: "ADD_ITEM",
-      projectId: selectedProjectId,
-      joId: selectedJoId,
-      categoryId: selectedCatId,
-      item: {
-        no: formData.no.trim() || "-",
-        description: formData.description.trim(),
-        dimension: formData.dimension.trim(),
-        material: formData.material.trim(),
-        qty: formData.qty || 1,
-        hrc: formData.hrc.trim(),
-        isSubcont: formData.isSubcont || undefined,
-        subcontNotes: formData.isSubcont ? formData.subcontNotes.trim() : undefined,
-      },
-      kind: selectedCat.kind,
-    });
-
-    handleClose();
-  };
-
-  const showForm = !!(selectedProjectId && selectedJoId && selectedCatId && selectedCat);
+  if (selectedProjectId && selectedJoId && selectedCatId && selectedCat) {
+    return (
+      <AddDataDialog
+        open={open}
+        onClose={handleClose}
+        projectId={selectedProjectId}
+        joId={selectedJoId}
+        categoryId={selectedCatId}
+        categoryLabel={`${selectedProject?.name} › JO ${selectedJo?.joNumber} › ${selectedCat.label}`}
+        categoryKind={selectedCat.kind}
+      />
+    );
+  }
 
   return (
     <Dialog
       open={open}
       onClose={handleClose}
       title="New Data"
-      footer={
-        showForm ? (
-          <>
-            <button className="btn btn-secondary" onClick={() => setSelectedCatId("")}>Back</button>
-            <button className="btn btn-primary" onClick={handleSubmit}>Add Item</button>
-          </>
-        ) : undefined
-      }
     >
       {/* Step 1: Select Project */}
       {!selectedProjectId && (
@@ -161,22 +132,6 @@ export function NewDataDialog({ open, onClose }: NewDataDialogProps) {
               ))}
             </div>
           )}
-        </div>
-      )}
-
-      {/* Step 4: Manual item form */}
-      {showForm && (
-        <div>
-          <p style={{ fontSize: 11, color: "var(--color-text-muted)", marginBottom: 10 }}>
-            Adding to <strong>{selectedProject?.name}</strong> → <strong>JO {selectedJo?.joNumber}</strong> → <strong>{selectedCat?.label}</strong>
-          </p>
-          <ManualItemForm
-            data={formData}
-            onChange={setFormData}
-            error={error}
-            onClearError={() => setError("")}
-            onSubmit={handleSubmit}
-          />
         </div>
       )}
     </Dialog>

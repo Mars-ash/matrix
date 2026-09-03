@@ -109,7 +109,7 @@ function PoTrackerContent() {
     let done = 0;
 
     for (const row of rows) {
-      if (row.control.status === "Done") {
+      if (row.status === "Done") {
         done++;
         continue;
       }
@@ -128,6 +128,20 @@ function PoTrackerContent() {
     trackingUpdates: PoTracking,
     options: { status?: ControlStatus; problemNotes?: string; qty?: number } = {}
   ) => {
+    // If status changed in PO Tracker, update Arrival process in JO
+    if (options.status !== undefined) {
+      dispatch({
+        type: "UPDATE_STATUS",
+        projectId: row.project.id,
+        joId: row.jo.id,
+        categoryId: row.category.id,
+        itemId: row.item.id,
+        process: "Arrival",
+        status: options.status,
+        notes: options.problemNotes ?? "",
+      });
+    }
+
     dispatch({
       type: "UPDATE_PO_TRACKING",
       projectId: row.project.id,
@@ -135,7 +149,7 @@ function PoTrackerContent() {
       categoryId: row.category.id,
       itemId: row.item.id,
       process: row.process,
-      status: options.status ?? row.control.status,
+      status: row.control.status,
       problemNotes: options.problemNotes ?? row.control.notes,
       qty: options.qty,
       tracking: {
@@ -298,8 +312,8 @@ function PoTrackerContent() {
                   </td>
                   <td style={{ textAlign: "center", minWidth: 130 }}>
                     <StatusSelect
-                      value={row.control.status}
-                      notes={row.control.notes}
+                      value={row.status}
+                      notes={row.arrivalControl?.notes || row.control.notes}
                       process={row.process}
                       allowedStatuses={PO_STATUS_CHOICES}
                       onChange={(status, problemNotes) => updateRow(row, {}, { status, problemNotes })}
