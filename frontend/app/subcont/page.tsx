@@ -489,40 +489,39 @@ function SubcontTrackingContent() {
 
                   {/* Notes */}
                   <td style={{ textAlign: "center" }}>
-                    {isViewer ? (
-                      <span
-                        title={row.item.subcontNotes || undefined}
-                        style={{
-                          fontSize: 12,
-                          color: row.item.subcontNotes ? "var(--color-accent)" : "var(--color-text-muted)",
-                        }}
-                      >
-                        {row.item.subcontNotes ? "📝" : "—"}
-                      </span>
-                    ) : (
-                      <button
-                        onClick={() => {
-                          setEditingNotesRow(row);
-                          setNotesTemp(row.item.subcontNotes || "");
-                        }}
-                        title={row.item.subcontNotes || "Add note"}
-                        style={{
-                          background: "none",
-                          border: "none",
-                          cursor: "pointer",
-                          padding: "4px 6px",
-                          borderRadius: 4,
-                          color: row.item.subcontNotes ? "#3b82f6" : "var(--color-text-muted)",
-                          fontSize: 14,
-                          lineHeight: 1,
-                        }}
-                      >
-                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M13.5 2.5l-1-1-9 9-.5 2.5 2.5-.5 9-9z" />
-                          <path d="M11 3l2 2" />
-                        </svg>
-                      </button>
-                    )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingNotesRow(row);
+                        setNotesTemp(row.item.subcontNotes || "");
+                      }}
+                      title={
+                        row.item.subcontNotes
+                          ? `Catatan: ${row.item.subcontNotes}`
+                          : isViewer
+                          ? "Lihat catatan"
+                          : "Tambah catatan"
+                      }
+                      style={{
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        padding: "4px 6px",
+                        borderRadius: 4,
+                        color: row.item.subcontNotes ? "var(--color-accent)" : "var(--color-text-muted)",
+                        fontSize: 14,
+                        lineHeight: 1,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                      aria-label={`Catatan untuk ${row.item.description}`}
+                    >
+                      <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M13.5 2.5l-1-1-9 9-.5 2.5 2.5-.5 9-9z" />
+                        <path d="M11 3l2 2" />
+                      </svg>
+                    </button>
                   </td>
                 </tr>
               );
@@ -760,27 +759,29 @@ function SubcontTrackingContent() {
         footer={
           <>
             <button className="btn btn-secondary" onClick={() => setEditingNotesRow(null)}>
-              Cancel
+              {isViewer ? "Tutup" : "Cancel"}
             </button>
-            <button
-              className="btn btn-primary"
-              onClick={() => {
-                if (editingNotesRow) {
-                  dispatch({
-                    type: "UPDATE_ITEM_SUBCONT",
-                    projectId: editingNotesRow.project.id,
-                    joId: editingNotesRow.jo.id,
-                    categoryId: editingNotesRow.category.id,
-                    itemId: editingNotesRow.item.id,
-                    isSubcont: true,
-                    subcontNotes: notesTemp,
-                  });
-                  setEditingNotesRow(null);
-                }
-              }}
-            >
-              Save
-            </button>
+            {isController && (
+              <button
+                className="btn btn-primary"
+                onClick={() => {
+                  if (editingNotesRow) {
+                    dispatch({
+                      type: "UPDATE_ITEM_SUBCONT",
+                      projectId: editingNotesRow.project.id,
+                      joId: editingNotesRow.jo.id,
+                      categoryId: editingNotesRow.category.id,
+                      itemId: editingNotesRow.item.id,
+                      isSubcont: true,
+                      subcontNotes: notesTemp,
+                    });
+                    setEditingNotesRow(null);
+                  }
+                }}
+              >
+                Save
+              </button>
+            )}
           </>
         }
       >
@@ -792,10 +793,11 @@ function SubcontTrackingContent() {
         <textarea
           className="input"
           rows={4}
-          placeholder="Tulis catatan..."
+          placeholder={isViewer ? "Tidak ada catatan." : "Tulis catatan..."}
           value={notesTemp}
           onChange={(e) => setNotesTemp(e.target.value)}
-          autoFocus
+          readOnly={isViewer}
+          autoFocus={!isViewer}
         />
       </Dialog>
 

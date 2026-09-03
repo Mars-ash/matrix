@@ -345,38 +345,39 @@ function PoTrackerContent() {
                     />
                   </td>
                   <td style={{ textAlign: "center" }}>
-                    {isController ? (
-                      <button
-                        onClick={() => {
-                          setEditingNotesRow(row);
-                          setNotesTemp(row.notes);
-                        }}
-                        title={row.notes || "Add note"}
-                        style={{
-                          background: "none",
-                          border: "none",
-                          cursor: "pointer",
-                          padding: "4px 6px",
-                          borderRadius: 4,
-                          color: row.notes ? "var(--color-accent)" : "var(--color-text-muted)",
-                          fontSize: 14,
-                          lineHeight: 1,
-                        }}
-                        aria-label={`Edit PO notes for ${row.item.description}`}
-                      >
-                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M13.5 2.5l-1-1-9 9-.5 2.5 2.5-.5 9-9z" />
-                          <path d="M11 3l2 2" />
-                        </svg>
-                      </button>
-                    ) : (
-                      <span
-                        title={row.notes || undefined}
-                        style={{ fontSize: 12, color: row.notes ? "var(--color-accent)" : "var(--color-text-muted)" }}
-                      >
-                        {row.notes ? "📝" : "-"}
-                      </span>
-                    )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingNotesRow(row);
+                        setNotesTemp(row.notes);
+                      }}
+                      title={
+                        row.notes
+                          ? `Catatan: ${row.notes}`
+                          : isViewer
+                          ? "Lihat catatan"
+                          : "Tambah catatan"
+                      }
+                      style={{
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        padding: "4px 6px",
+                        borderRadius: 4,
+                        color: row.notes ? "var(--color-accent)" : "var(--color-text-muted)",
+                        fontSize: 14,
+                        lineHeight: 1,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                      aria-label={`PO notes for ${row.item.description}`}
+                    >
+                      <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M13.5 2.5l-1-1-9 9-.5 2.5 2.5-.5 9-9z" />
+                        <path d="M11 3l2 2" />
+                      </svg>
+                    </button>
                   </td>
                 </tr>
               );
@@ -516,6 +517,7 @@ function PoTrackerContent() {
 
       {renderGroupedContent()}
 
+      {/* Notes dialog */}
       <Dialog
         open={!!editingNotesRow}
         onClose={() => setEditingNotesRow(null)}
@@ -523,18 +525,20 @@ function PoTrackerContent() {
         footer={
           <>
             <button className="btn btn-secondary" onClick={() => setEditingNotesRow(null)}>
-              Cancel
+              {isViewer ? "Close" : "Cancel"}
             </button>
-            <button
-              className="btn btn-primary"
-              onClick={() => {
-                if (!editingNotesRow) return;
-                updateRow(editingNotesRow, { notes: notesTemp });
-                setEditingNotesRow(null);
-              }}
-            >
-              Save
-            </button>
+            {isController && (
+              <button
+                className="btn btn-primary"
+                onClick={() => {
+                  if (!editingNotesRow) return;
+                  updateRow(editingNotesRow, { notes: notesTemp });
+                  setEditingNotesRow(null);
+                }}
+              >
+                Save
+              </button>
+            )}
           </>
         }
       >
@@ -546,10 +550,11 @@ function PoTrackerContent() {
         <textarea
           className="input"
           rows={4}
-          placeholder="Tulis catatan PO..."
+          placeholder={isViewer ? "Tidak ada catatan." : "Tulis catatan PO..."}
           value={notesTemp}
+          readOnly={isViewer}
           onChange={(event) => setNotesTemp(event.target.value)}
-          autoFocus
+          autoFocus={!isViewer}
         />
       </Dialog>
 

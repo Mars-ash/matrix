@@ -65,8 +65,13 @@ test.describe("Authentication and Role-Based UI", () => {
     // No floating bulk action bar
     await expect(page.locator(".bulk-action-bar")).toHaveCount(0);
 
-    // No notes edit pencil buttons
-    await expect(page.locator("button[title*='note']")).toHaveCount(0);
+    // Notes pencil button is visible and opens read-only dialog
+    const scNoteBtn = page.locator("button[aria-label*='Catatan untuk']").first();
+    await expect(scNoteBtn).toBeVisible();
+    await scNoteBtn.click();
+    await expect(page.locator("textarea[placeholder*='catatan']")).toHaveAttribute("readonly", "");
+    await expect(page.getByRole("button", { name: "Save" })).toHaveCount(0);
+    await page.getByRole("button", { name: "Tutup" }).click();
 
     // 4. PO Tracker page checks
     await page.goto("/po-tracker");
@@ -79,7 +84,12 @@ test.describe("Authentication and Role-Based UI", () => {
     // No floating bulk action bar
     await expect(page.locator(".bulk-action-bar")).toHaveCount(0);
 
-    // No notes edit pencil buttons
-    await expect(page.locator("button[title*='note']")).toHaveCount(0);
+    // Notes pencil button is visible and opens read-only dialog
+    const poNoteBtn = page.locator("button[aria-label*='PO notes for']").first();
+    await expect(poNoteBtn).toBeVisible();
+    await poNoteBtn.click();
+    await expect(page.locator("textarea[placeholder*='catatan']")).toHaveAttribute("readonly", "");
+    await expect(page.getByRole("button", { name: "Save" })).toHaveCount(0);
+    await page.getByRole("button", { name: "Close", exact: true }).click();
   });
 });
