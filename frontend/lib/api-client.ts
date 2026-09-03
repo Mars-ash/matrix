@@ -275,4 +275,137 @@ export const api = {
   async getPoTracker(): Promise<{ data: any[] }> {
     return request<{ data: any[] }>("/trackers/po");
   },
+
+  // Trial Sessions
+  async getTrialSessions(joId: string): Promise<{ data: any[] }> {
+    return request<{ data: any[] }>(`/jos/${joId}/trial-sessions`);
+  },
+
+  async getTrialSession(sessionId: string): Promise<{ data: any }> {
+    return request<{ data: any }>(`/trial-sessions/${sessionId}`);
+  },
+
+  async createTrialSession(
+    joId: string,
+    payload: {
+      name: string;
+      trialDate?: string;
+      updateDate?: string;
+      customer?: string;
+      jobNo?: string;
+      picName?: string;
+      approvedByName?: string;
+    }
+  ): Promise<{ data: any; message: string }> {
+    return request<{ data: any; message: string }>(`/jos/${joId}/trial-sessions`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async updateTrialSession(
+    sessionId: string,
+    payload: Record<string, any>
+  ): Promise<{ data: any; message: string }> {
+    return request<{ data: any; message: string }>(`/trial-sessions/${sessionId}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async duplicateTrialSession(
+    sessionId: string,
+    name?: string
+  ): Promise<{ data: any; message: string }> {
+    return request<{ data: any; message: string }>(`/trial-sessions/${sessionId}/duplicate`, {
+      method: "POST",
+      body: JSON.stringify({ name }),
+    });
+  },
+
+  async deleteTrialSession(sessionId: string): Promise<{ message: string }> {
+    return request<{ message: string }>(`/trial-sessions/${sessionId}`, {
+      method: "DELETE",
+    });
+  },
+
+  async addTrialFinding(sessionId: string): Promise<{ data: any; message: string }> {
+    return request<{ data: any; message: string }>(`/trial-sessions/${sessionId}/findings`, {
+      method: "POST",
+    });
+  },
+
+  async deleteTrialFinding(findingId: string): Promise<{ data: any; message: string }> {
+    return request<{ data: any; message: string }>(`/trial-findings/${findingId}`, {
+      method: "DELETE",
+    });
+  },
+
+  async addTrialEntry(
+    findingId: string,
+    payload: {
+      section: "problems" | "causes" | "correctiveActions";
+      text?: string;
+      targetDate?: string;
+      pic?: string;
+      status?: string;
+    }
+  ): Promise<{ data: any; message: string }> {
+    return request<{ data: any; message: string }>(`/trial-findings/${findingId}/entries`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async updateTrialEntry(
+    entryId: string,
+    payload: {
+      text?: string;
+      targetDate?: string;
+      pic?: string;
+      status?: string;
+    }
+  ): Promise<{ data: any; message: string }> {
+    return request<{ data: any; message: string }>(`/trial-entries/${entryId}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async deleteTrialEntry(entryId: string): Promise<{ data: any; message: string }> {
+    return request<{ data: any; message: string }>(`/trial-entries/${entryId}`, {
+      method: "DELETE",
+    });
+  },
+
+  async uploadTrialPhoto(
+    entryId: string,
+    file: File
+  ): Promise<{ data: any; session: any; message: string }> {
+    const formData = new FormData();
+    formData.append("photo", file);
+
+    const token = typeof window !== "undefined" ? localStorage.getItem("matrix_auth_token") : null;
+    const res = await fetch(`${API_BASE_URL}/trial-entries/${entryId}/photos`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: formData,
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || "Failed to upload photo");
+    }
+
+    return res.json();
+  },
+
+  async deleteTrialPhoto(photoId: string): Promise<{ data: any; message: string }> {
+    return request<{ data: any; message: string }>(`/trial-entry-photos/${photoId}`, {
+      method: "DELETE",
+    });
+  },
 };

@@ -11,7 +11,7 @@ Dokumen pelacakan progress per fase implementasi. Setiap item harus dicentang se
 | **Fase 1** | Database Schema & Eloquent Models (PostgreSQL) | ✅ Completed | 7/7 |
 | **Fase 2** | Authentication & Role Authorization (Sanctum) | ✅ Completed | 6/6 |
 | **Fase 3** | REST API Core CRUD & Data Synchronization | ✅ Completed | 10/10 |
-| **Fase 4** | Trial Reports & Photo Storage Management | ⏳ Pending | 0/6 |
+| **Fase 4** | Trial Reports & Photo Storage Management | ✅ Completed | 6/6 |
 | **Fase 5** | OCR Vision AI (Gemini 2.0 Flash) | ⏳ Pending | 0/6 |
 | **Fase 6** | Role-Based UI (Controller vs Viewer) | ⏳ Pending | 0/5 |
 | **Fase 7** | DevOps, CI/CD, E2E Testing & Backup Strategy | ⏳ Pending | 0/7 |
@@ -56,12 +56,12 @@ Dokumen pelacakan progress per fase implementasi. Setiap item harus dicentang se
 ---
 
 ### Fase 4: Trial Reports & Photo Storage Management
-- [ ] **4.1** Buat REST API untuk Trial Sessions (CRUD, Duplicate, Reorder Findings & Entries)
-- [ ] **4.2** Implementasi `PhotoUploadService` dengan validasi magic-bytes & kompresi gambar
-- [ ] **4.3** Konfigurasi storage disk untuk Process Photos & Trial Photos
-- [ ] **4.4** Hubungkan `trial-report-editor.tsx` & `trial-photo-uploader.tsx` ke backend API
-- [ ] **4.5** Pastikan `trial-report-print-view.tsx` memuat gambar dan data secara presisi
-- [ ] **4.6** **Verification Gate 4**: End-to-end trial report creation, photo upload, duplicate session, & print view
+- [x] **4.1** Buat REST API untuk Trial Sessions (CRUD, Duplicate, Reorder Findings & Entries)
+- [x] **4.2** Implementasi `PhotoUploadService` dengan validasi magic-bytes & kompresi gambar
+- [x] **4.3** Konfigurasi storage disk untuk Process Photos & Trial Photos
+- [x] **4.4** Hubungkan `trial-report-editor.tsx` & `trial-photo-uploader.tsx` ke backend API
+- [x] **4.5** Pastikan `trial-report-print-view.tsx` memuat gambar dan data secara presisi
+- [x] **4.6** **Verification Gate 4**: End-to-end trial report creation, photo upload, duplicate session, & print view
 
 ---
 

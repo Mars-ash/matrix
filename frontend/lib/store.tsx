@@ -1242,6 +1242,75 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           .catch(() => {});
         break;
 
+      case "CREATE_TRIAL_SESSION":
+        api
+          .createTrialSession(action.joId, {
+            name: action.session.name,
+            trialDate: action.session.trialDate,
+            updateDate: action.session.updateDate,
+            customer: action.session.customer,
+            jobNo: action.session.jobNo,
+            picName: action.session.picName,
+            approvedByName: action.session.approvedByName,
+          })
+          .catch(() => {});
+        break;
+
+      case "DUPLICATE_TRIAL_SESSION":
+        api
+          .duplicateTrialSession(action.sourceSessionId, action.session.name)
+          .catch(() => {});
+        break;
+
+      case "UPDATE_TRIAL_SESSION":
+        api
+          .updateTrialSession(action.sessionId, action.updates)
+          .catch(() => {});
+        break;
+
+      case "DELETE_TRIAL_SESSION":
+        api.deleteTrialSession(action.sessionId).catch(() => {});
+        break;
+
+      case "ADD_TRIAL_FINDING":
+        api.addTrialFinding(action.sessionId).catch(() => {});
+        break;
+
+      case "DELETE_TRIAL_FINDING":
+        api.deleteTrialFinding(action.findingId).catch(() => {});
+        break;
+
+      case "ADD_TRIAL_ENTRY":
+        api
+          .addTrialEntry(action.findingId, {
+            section: action.section,
+            text: (action.entry as any).text,
+            targetDate: (action.entry as any).targetDate,
+            pic: (action.entry as any).pic,
+            status: (action.entry as any).status,
+          })
+          .catch(() => {});
+        break;
+
+      case "UPDATE_TRIAL_ENTRY":
+        api
+          .updateTrialEntry(action.entryId, {
+            text: (action.updates as any).text,
+            targetDate: (action.updates as any).targetDate,
+            pic: (action.updates as any).pic,
+            status: (action.updates as any).status,
+          })
+          .catch(() => {});
+        break;
+
+      case "DELETE_TRIAL_ENTRY":
+        api.deleteTrialEntry(action.entryId).catch(() => {});
+        break;
+
+      case "REMOVE_TRIAL_ENTRY_PHOTO":
+        api.deleteTrialPhoto(action.photoId).catch(() => {});
+        break;
+
       default:
         break;
     }

@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\JOController;
 use App\Http\Controllers\Api\PoTrackerController;
 use App\Http\Controllers\Api\ProjectController;
 use App\Http\Controllers\Api\SubcontTrackerController;
+use App\Http\Controllers\Api\TrialSessionController;
 use App\Http\Controllers\Auth\AuthController;
 use Illuminate\Support\Facades\Route;
 
@@ -38,6 +39,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/trackers/subcont', [SubcontTrackerController::class, 'index']);
     Route::get('/trackers/po', [PoTrackerController::class, 'index']);
 
+    // Trial Sessions (Read)
+    Route::get('/jos/{jo}/trial-sessions', [TrialSessionController::class, 'index']);
+    Route::get('/trial-sessions/{session}', [TrialSessionController::class, 'show']);
+
     // Mutating endpoints (Strictly restricted to 'controller' role)
     Route::middleware('role.controller')->group(function () {
         Route::post('/projects', [ProjectController::class, 'store']);
@@ -57,5 +62,21 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/jos/{jo}/bulk/update-status', [BulkActionController::class, 'bulkUpdateStatus']);
         Route::post('/jos/{jo}/bulk/send-subcont', [BulkActionController::class, 'bulkSendSubcont']);
         Route::post('/jos/{jo}/bulk/target-arrival', [BulkActionController::class, 'bulkTargetArrival']);
+
+        // Trial Sessions & Photos (Mutating)
+        Route::post('/jos/{jo}/trial-sessions', [TrialSessionController::class, 'store']);
+        Route::patch('/trial-sessions/{session}', [TrialSessionController::class, 'update']);
+        Route::post('/trial-sessions/{session}/duplicate', [TrialSessionController::class, 'duplicate']);
+        Route::delete('/trial-sessions/{session}', [TrialSessionController::class, 'destroy']);
+
+        Route::post('/trial-sessions/{session}/findings', [TrialSessionController::class, 'addFinding']);
+        Route::delete('/trial-findings/{finding}', [TrialSessionController::class, 'deleteFinding']);
+
+        Route::post('/trial-findings/{finding}/entries', [TrialSessionController::class, 'addEntry']);
+        Route::patch('/trial-entries/{entry}', [TrialSessionController::class, 'updateEntry']);
+        Route::delete('/trial-entries/{entry}', [TrialSessionController::class, 'deleteEntry']);
+
+        Route::post('/trial-entries/{entry}/photos', [TrialSessionController::class, 'uploadPhoto']);
+        Route::delete('/trial-entry-photos/{photo}', [TrialSessionController::class, 'deletePhoto']);
     });
 });

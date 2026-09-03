@@ -29,6 +29,11 @@ class TrialFinding extends Model
         return $this->belongsTo(TrialSession::class, 'trial_session_id');
     }
 
+    public function session(): BelongsTo
+    {
+        return $this->trialSession();
+    }
+
     public function entries(): HasMany
     {
         return $this->hasMany(TrialEntry::class, 'trial_finding_id')->orderBy('order');
