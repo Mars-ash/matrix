@@ -8,7 +8,7 @@ Dokumen pelacakan progress per fase implementasi. Setiap item harus dicentang se
 
 | Fase | Deskripsi | Status | Progress |
 | :--- | :--- | :---: | :---: |
-| **Fase 1** | Database Schema & Eloquent Models (PostgreSQL) | ⏳ Pending | 0/7 |
+| **Fase 1** | Database Schema & Eloquent Models (PostgreSQL) | ✅ Completed | 7/7 |
 | **Fase 2** | Authentication & Role Authorization (Sanctum) | ⏳ Pending | 0/6 |
 | **Fase 3** | REST API Core CRUD & Data Synchronization | ⏳ Pending | 0/10 |
 | **Fase 4** | Trial Reports & Photo Storage Management | ⏳ Pending | 0/6 |
@@ -21,13 +21,13 @@ Dokumen pelacakan progress per fase implementasi. Setiap item harus dicentang se
 ## Detail Task per Fase
 
 ### Fase 1: Database Schema & Eloquent Models (PostgreSQL)
-- [ ] **1.1** Setup koneksi PostgreSQL di `backend/.env` & validasi via `php artisan db:show`
-- [ ] **1.2** Buat migration core tabel: `projects`, `jos`, `categories`, `items`, `controls`
-- [ ] **1.3** Buat migration tracking & activity: `po_trackings`, `process_photos`, `activities`
-- [ ] **1.4** Buat migration trial module: `trial_sessions`, `trial_findings`, `trial_entries`, `trial_entry_photos`
-- [ ] **1.5** Implementasi Eloquent Models dengan UUID trait, casts, dan relasi berjenjang
-- [ ] **1.6** Buat Model Factories & `DemoSeeder` (data JO 126.110 realistis)
-- [ ] **1.7** **Verification Gate 1**: `php artisan migrate:fresh --seed` & validasi query relasi tanpa N+1
+- [x] **1.1** Setup koneksi PostgreSQL di `backend/.env` & validasi via `php artisan db:show`
+- [x] **1.2** Buat migration core tabel: `projects`, `jos`, `categories`, `items`, `controls`
+- [x] **1.3** Buat migration tracking & activity: `po_trackings`, `process_photos`, `activities`
+- [x] **1.4** Buat migration trial module: `trial_sessions`, `trial_findings`, `trial_entries`, `trial_entry_photos`
+- [x] **1.5** Implementasi Eloquent Models dengan UUID trait, casts, dan relasi berjenjang
+- [x] **1.6** Buat Model Factories & `DemoSeeder` (data JO 126.110 realistis)
+- [x] **1.7** **Verification Gate 1**: `php artisan migrate:fresh --seed` & validasi query relasi tanpa N+1
 
 ---
 
