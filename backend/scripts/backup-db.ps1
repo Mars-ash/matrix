@@ -1,7 +1,7 @@
 # MATRIX - Windows PowerShell PostgreSQL Backup Script
 param(
     [string]$HostName = "127.0.0.1",
-    [int]$Port = 5423,
+    [int]$Port = 5432,
     [string]$Database = "matrix",
     [string]$User = "postgres",
     [string]$Password = "marsx"
