@@ -408,4 +408,30 @@ export const api = {
       method: "DELETE",
     });
   },
+
+  // OCR Vision AI
+  async uploadOcrImage(
+    categoryId: string,
+    file: File
+  ): Promise<{ success: boolean; provider: string; items: any[]; message: string }> {
+    const formData = new FormData();
+    formData.append("image", file);
+
+    const token = typeof window !== "undefined" ? localStorage.getItem("matrix_auth_token") : null;
+    const res = await fetch(`${API_BASE_URL}/categories/${categoryId}/ocr-upload`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: formData,
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || "OCR extraction failed");
+    }
+
+    return res.json();
+  },
 };

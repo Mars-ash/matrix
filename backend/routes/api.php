@@ -52,6 +52,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/jos/{jo}/categories', [CategoryController::class, 'store']);
         Route::post('/categories/{category}/items', [ItemController::class, 'store']);
         Route::post('/categories/{category}/items/batch', [ItemController::class, 'batchStore']);
+        Route::post('/categories/{category}/ocr-upload', [\App\Http\Controllers\Api\OcrController::class, 'upload']);
         Route::patch('/items/{item}/subcont', [ItemController::class, 'updateSubcont']);
 
         Route::patch('/controls/{control}/status', [ControlController::class, 'updateStatus']);

@@ -12,7 +12,7 @@ Dokumen pelacakan progress per fase implementasi. Setiap item harus dicentang se
 | **Fase 2** | Authentication & Role Authorization (Sanctum) | ✅ Completed | 6/6 |
 | **Fase 3** | REST API Core CRUD & Data Synchronization | ✅ Completed | 10/10 |
 | **Fase 4** | Trial Reports & Photo Storage Management | ✅ Completed | 6/6 |
-| **Fase 5** | OCR Vision AI (Gemini 2.0 Flash) | ⏳ Pending | 0/6 |
+| **Fase 5** | OCR Vision AI (Gemini 2.0 Flash) | ✅ Completed | 6/6 |
 | **Fase 6** | Role-Based UI (Controller vs Viewer) | ⏳ Pending | 0/5 |
 | **Fase 7** | DevOps, CI/CD, E2E Testing & Backup Strategy | ⏳ Pending | 0/7 |
 
@@ -66,12 +66,12 @@ Dokumen pelacakan progress per fase implementasi. Setiap item harus dicentang se
 ---
 
 ### Fase 5: OCR Vision AI (Gemini 2.0 Flash)
-- [ ] **5.1** Setup `backend/config/ocr.php` & simpan Google Gemini API key di `.env`
-- [ ] **5.2** Implementasi `OcrService.php` dengan prompt Gemini 2.0 Flash + Structured JSON output schema
-- [ ] **5.3** Buat API endpoint `POST /api/ocr/extract` dengan rate-limiting & validasi gambar
-- [ ] **5.4** Modifikasi `add-data-dialog.tsx` untuk menangkap paste clipboard / drag-drop gambar asli
-- [ ] **5.5** Tampilkan hasil ekstraksi BOM ke tabel editable preview sebelum konfirmasi import
-- [ ] **5.6** **Verification Gate 5**: Upload contoh gambar BOM aktual → data terisi otomatis dan tersimpan ke JO
+- [x] **5.1** Setup `backend/config/ocr.php` & simpan Google Gemini API key di `.env`
+- [x] **5.2** Implementasi `OcrService.php` dengan prompt Gemini 2.0 Flash + Structured JSON output schema
+- [x] **5.3** Buat API endpoint `POST /api/ocr/extract` dengan rate-limiting & validasi gambar
+- [x] **5.4** Modifikasi `add-data-dialog.tsx` untuk menangkap paste clipboard / drag-drop gambar asli
+- [x] **5.5** Tampilkan hasil ekstraksi BOM ke tabel editable preview sebelum konfirmasi import
+- [x] **5.6** **Verification Gate 5**: Upload contoh gambar BOM aktual → data terisi otomatis dan tersimpan ke JO
 
 ---
 

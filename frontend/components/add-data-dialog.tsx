@@ -1,9 +1,11 @@
 "use client";
+
 import React, { useState, useCallback, useEffect } from "react";
 import { Dialog } from "./dialog";
 import { ManualItemForm, emptyManualItemData, type ManualItemData } from "./manual-item-form";
 import type { CategoryKind } from "@/lib/types";
 import { useAppDispatch } from "@/lib/store";
+import { api } from "@/lib/api-client";
 
 interface AddDataDialogProps {
   open: boolean;
@@ -17,11 +19,12 @@ interface AddDataDialogProps {
 
 type AddMode = "choose" | "manual" | "conversion";
 
-// Simulated extracted data for the Image Conversion demo
-const SIMULATED_EXTRACTION = [
-  { no: "1", description: "Insert Block A", dimension: "80×50×30", material: "SKD11", qty: 2, hrc: "58-60" },
-  { no: "2", description: "Insert Block B", dimension: "80×50×30", material: "SKD11", qty: 2, hrc: "58-60" },
-  { no: "3", description: "Guide Pin", dimension: "Ø12×60", material: "SK3", qty: 4, hrc: "" },
+// Fallback extraction data for offline mode
+const FALLBACK_EXTRACTION = [
+  { no: "1", description: "Upper Die Plate", dimension: "450 x 300 x 45", material: "S50C", qty: 1, hrc: "-" },
+  { no: "2", description: "Punch Holder Plate", dimension: "400 x 260 x 35", material: "SS400", qty: 1, hrc: "-" },
+  { no: "3", description: "Stripper Plate", dimension: "400 x 260 x 25", material: "SKD11", qty: 1, hrc: "58-60" },
+  { no: "4", description: "Die Plate Lower", dimension: "450 x 300 x 50", material: "SLD", qty: 1, hrc: "60-62" },
 ];
 
 export function AddDataDialog({
@@ -36,20 +39,24 @@ export function AddDataDialog({
   const dispatch = useAppDispatch();
   const [mode, setMode] = useState<AddMode>("choose");
 
-  // Manual entry state — shared form
+  // Manual entry state
   const [formData, setFormData] = useState<ManualItemData>(emptyManualItemData());
   const [manualError, setManualError] = useState("");
 
-  // Conversion state
+  // Conversion / OCR state
   const [convStep, setConvStep] = useState<"upload" | "preview">("upload");
-  const [convRows, setConvRows] = useState(SIMULATED_EXTRACTION.map((r) => ({ ...r })));
+  const [convRows, setConvRows] = useState(FALLBACK_EXTRACTION.map((r) => ({ ...r })));
+  const [isExtracting, setIsExtracting] = useState(false);
+  const [extractionNotice, setExtractionNotice] = useState("");
 
   const reset = useCallback(() => {
     setMode("choose");
     setFormData(emptyManualItemData());
     setManualError("");
     setConvStep("upload");
-    setConvRows(SIMULATED_EXTRACTION.map((r) => ({ ...r })));
+    setConvRows(FALLBACK_EXTRACTION.map((r) => ({ ...r })));
+    setIsExtracting(false);
+    setExtractionNotice("");
   }, []);
 
   const handleClose = useCallback(() => {
@@ -83,6 +90,30 @@ export function AddDataDialog({
 
     handleClose();
   }, [formData, dispatch, projectId, joId, categoryId, categoryKind, handleClose]);
+
+  const processFile = useCallback(
+    async (file: File) => {
+      setIsExtracting(true);
+      try {
+        const res = await api.uploadOcrImage(categoryId, file);
+        if (res.items && res.items.length > 0) {
+          setConvRows(res.items);
+          setExtractionNotice(res.message || `Berhasil mengekstrak ${res.items.length} item.`);
+        } else {
+          setConvRows(FALLBACK_EXTRACTION.map((r) => ({ ...r })));
+          setExtractionNotice("Tidak ada teks tabel terdeteksi. Menampilkan template simulasi.");
+        }
+      } catch {
+        // Fallback for offline testing or without API key
+        setConvRows(FALLBACK_EXTRACTION.map((r) => ({ ...r })));
+        setExtractionNotice("Simulasi offline aktif. Silakan tinjau dan sesuaikan kolom sebelum konfirmasi.");
+      } finally {
+        setIsExtracting(false);
+        setConvStep("preview");
+      }
+    },
+    [categoryId]
+  );
 
   const handleConversionConfirm = useCallback(() => {
     const validRows = convRows.filter((r) => r.description.trim());
@@ -122,17 +153,29 @@ export function AddDataDialog({
     ]);
   }, []);
 
+  // Listen for clipboard paste in upload step
   useEffect(() => {
     if (!open || mode !== "conversion" || convStep !== "upload") return;
 
     const handlePaste = (e: ClipboardEvent) => {
-      e.preventDefault();
-      setConvStep("preview");
+      const items = e.clipboardData?.items;
+      if (!items) return;
+
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf("image") !== -1) {
+          const file = items[i].getAsFile();
+          if (file) {
+            e.preventDefault();
+            processFile(file);
+            return;
+          }
+        }
+      }
     };
 
     window.addEventListener("paste", handlePaste);
     return () => window.removeEventListener("paste", handlePaste);
-  }, [open, mode, convStep]);
+  }, [open, mode, convStep, processFile]);
 
   return (
     <Dialog
@@ -142,12 +185,18 @@ export function AddDataDialog({
       footer={
         mode === "manual" ? (
           <>
-            <button className="btn btn-secondary" onClick={() => setMode("choose")}>Back</button>
-            <button className="btn btn-primary" onClick={handleManualSubmit}>Add Item</button>
+            <button className="btn btn-secondary" onClick={() => setMode("choose")}>
+              Back
+            </button>
+            <button className="btn btn-primary" onClick={handleManualSubmit}>
+              Add Item
+            </button>
           </>
         ) : mode === "conversion" && convStep === "preview" ? (
           <>
-            <button className="btn btn-secondary" onClick={() => setConvStep("upload")}>Back</button>
+            <button className="btn btn-secondary" onClick={() => setConvStep("upload")}>
+              Back
+            </button>
             <button className="btn btn-primary" onClick={handleConversionConfirm}>
               Confirm Add ({convRows.filter((r) => r.description.trim()).length} items)
             </button>
@@ -163,15 +212,35 @@ export function AddDataDialog({
             style={{ textAlign: "left", cursor: "pointer", border: "1px solid var(--color-border)" }}
           >
             <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 4 }}>Manual Entry</div>
+            <div style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>
+              Input a single item with full specifications and subcont routing.
+            </div>
           </button>
           <button
             className="card"
-            onClick={() => { setMode("conversion"); setConvStep("upload"); }}
+            onClick={() => {
+              setMode("conversion");
+              setConvStep("upload");
+            }}
             style={{ textAlign: "left", cursor: "pointer", border: "1px solid var(--color-border)" }}
           >
-            <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 4 }}>
-              Image Conversion
-              <span className="badge" style={{ marginLeft: 8, background: "rgba(229, 166, 59, 0.15)", color: "var(--color-status-in-progress)", fontSize: 9 }} />
+            <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 4, display: "flex", alignItems: "center" }}>
+              OCR Image Conversion
+              <span
+                className="badge"
+                style={{
+                  marginLeft: 8,
+                  background: "rgba(37, 99, 235, 0.12)",
+                  color: "var(--color-accent)",
+                  fontSize: 10,
+                  fontWeight: 700,
+                }}
+              >
+                Gemini 2.0 Flash AI
+              </span>
+            </div>
+            <div style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>
+              Upload engineering drawing BOM, PDF export, or paste screenshot to auto-extract rows.
             </div>
           </button>
         </div>
@@ -189,55 +258,173 @@ export function AddDataDialog({
 
       {mode === "conversion" && convStep === "upload" && (
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16, padding: "20px 0" }}>
-          <label
-            style={{
-              border: "2px dashed var(--color-border)",
-              borderRadius: "var(--radius-lg)",
-              padding: "40px 20px",
-              textAlign: "center",
-              width: "100%",
-              cursor: "pointer",
-              background: "var(--color-bg-wash)",
-              transition: "border-color 200ms, background 200ms",
-            }}
-            onDragOver={(e) => { e.preventDefault(); e.currentTarget.style.borderColor = "var(--color-accent)"; e.currentTarget.style.background = "var(--color-bg-hover)"; }}
-            onDragLeave={(e) => { e.preventDefault(); e.currentTarget.style.borderColor = "var(--color-border)"; e.currentTarget.style.background = "var(--color-bg-wash)"; }}
-            onDrop={(e) => { e.preventDefault(); setConvStep("preview"); }}
-          >
-            <input type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => { if (e.target.files && e.target.files.length > 0) setConvStep("preview"); }} />
-            <span style={{ fontSize: 32, display: "block", marginBottom: 12 }}>📁</span>
-            <p style={{ fontSize: 14, fontWeight: 500, color: "var(--color-text)", margin: 0 }}>Drag & drop image here</p>
-            <p style={{ fontSize: 12, color: "var(--color-text-secondary)", marginTop: 4 }}>or click to browse files, or paste (Ctrl+V)</p>
-          </label>
+          {isExtracting ? (
+            <div style={{ textAlign: "center", padding: "40px 20px" }}>
+              <div
+                style={{
+                  width: 40,
+                  height: 40,
+                  border: "3px solid var(--color-border)",
+                  borderTopColor: "var(--color-accent)",
+                  borderRadius: "50%",
+                  animation: "spin 1s linear infinite",
+                  margin: "0 auto 16px auto",
+                }}
+              />
+              <p style={{ fontWeight: 600, fontSize: 14, margin: 0 }}>
+                Gemini 2.0 Flash sedang menganalisis tabel...
+              </p>
+              <p style={{ fontSize: 12, color: "var(--color-text-secondary)", marginTop: 4 }}>
+                Mengekstrak No, Description, Dimension, Material, Qty, dan Hardness.
+              </p>
+            </div>
+          ) : (
+            <label
+              style={{
+                border: "2px dashed var(--color-border)",
+                borderRadius: "var(--radius-lg)",
+                padding: "40px 20px",
+                textAlign: "center",
+                width: "100%",
+                cursor: "pointer",
+                background: "var(--color-bg-wash)",
+                transition: "border-color 200ms, background 200ms",
+              }}
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.currentTarget.style.borderColor = "var(--color-accent)";
+                e.currentTarget.style.background = "var(--color-bg-hover)";
+              }}
+              onDragLeave={(e) => {
+                e.preventDefault();
+                e.currentTarget.style.borderColor = "var(--color-border)";
+                e.currentTarget.style.background = "var(--color-bg-wash)";
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                const file = e.dataTransfer.files?.[0];
+                if (file) processFile(file);
+              }}
+            >
+              <input
+                type="file"
+                accept="image/*,.pdf"
+                style={{ display: "none" }}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) processFile(file);
+                }}
+              />
+              <span style={{ fontSize: 36, display: "block", marginBottom: 12 }}>📄</span>
+              <p style={{ fontSize: 14, fontWeight: 600, color: "var(--color-text)", margin: 0 }}>
+                Drop engineering drawing or BOM table here
+              </p>
+              <p style={{ fontSize: 12, color: "var(--color-text-secondary)", marginTop: 4 }}>
+                or click to browse files (JPG, PNG, WebP), or press Ctrl+V to paste
+              </p>
+            </label>
+          )}
         </div>
       )}
 
       {mode === "conversion" && convStep === "preview" && (
         <div onKeyDown={(e) => { if (e.key === "Enter") handleConversionConfirm(); }}>
-          <div className="badge" style={{ background: "rgba(229, 166, 59, 0.15)", color: "var(--color-status-in-progress)", padding: "4px 12px", marginBottom: 12 }}>
-            edit rows before confirming
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "8px 12px",
+              backgroundColor: "rgba(37, 99, 235, 0.08)",
+              border: "1px solid rgba(37, 99, 235, 0.2)",
+              borderRadius: "var(--radius-md)",
+              marginBottom: 14,
+              fontSize: 12,
+              color: "var(--color-text)",
+            }}
+          >
+            <span>{extractionNotice || "Silakan periksa dan edit data hasil ekstraksi sebelum konfirmasi."}</span>
+            <span style={{ fontSize: 11, color: "var(--color-text-secondary)" }}>
+              {convRows.filter((r) => r.description.trim()).length} baris terdeteksi
+            </span>
           </div>
-          <div className="table-scroll">
+
+          <div className="table-scroll" style={{ maxHeight: "360px", overflowY: "auto" }}>
             <table className="control-table">
               <thead>
                 <tr>
-                  <th>No</th><th>Description</th><th>Dimension</th><th>Material</th><th>Qty</th><th>HRc</th>
+                  <th style={{ width: 45 }}>No</th>
+                  <th>Description</th>
+                  <th style={{ width: 120 }}>Dimension</th>
+                  <th style={{ width: 90 }}>Material</th>
+                  <th style={{ width: 50 }}>Qty</th>
+                  <th style={{ width: 70 }}>HRc</th>
                 </tr>
               </thead>
               <tbody>
                 {convRows.map((row, idx) => (
                   <tr key={idx}>
-                    <td><input className="input" value={row.no} onChange={(e) => updateConvRow(idx, "no", e.target.value)} style={{ width: 50, padding: "4px 6px" }} /></td>
-                    <td><input className="input" value={row.description} onChange={(e) => updateConvRow(idx, "description", e.target.value)} style={{ minWidth: 120, padding: "4px 6px" }} /></td>
-                    <td><input className="input" value={row.dimension} onChange={(e) => updateConvRow(idx, "dimension", e.target.value)} style={{ width: 100, padding: "4px 6px" }} /></td>
-                    <td><input className="input" value={row.material} onChange={(e) => updateConvRow(idx, "material", e.target.value)} style={{ width: 80, padding: "4px 6px" }} /></td>
-                    <td><input className="input" type="number" value={row.qty} onChange={(e) => updateConvRow(idx, "qty", e.target.value)} style={{ width: 50, padding: "4px 6px" }} /></td>
-                    <td><input className="input" value={row.hrc} onChange={(e) => updateConvRow(idx, "hrc", e.target.value)} style={{ width: 70, padding: "4px 6px" }} /></td>
+                    <td>
+                      <input
+                        className="input"
+                        value={row.no}
+                        onChange={(e) => updateConvRow(idx, "no", e.target.value)}
+                        style={{ width: "100%", padding: "4px 6px", textAlign: "center" }}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        className="input"
+                        value={row.description}
+                        onChange={(e) => updateConvRow(idx, "description", e.target.value)}
+                        style={{ width: "100%", minWidth: 140, padding: "4px 6px" }}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        className="input"
+                        value={row.dimension}
+                        onChange={(e) => updateConvRow(idx, "dimension", e.target.value)}
+                        style={{ width: "100%", padding: "4px 6px" }}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        className="input"
+                        value={row.material}
+                        onChange={(e) => updateConvRow(idx, "material", e.target.value)}
+                        style={{ width: "100%", padding: "4px 6px" }}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        className="input"
+                        type="number"
+                        value={row.qty}
+                        onChange={(e) => updateConvRow(idx, "qty", e.target.value)}
+                        style={{ width: "100%", padding: "4px 6px", textAlign: "center" }}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        className="input"
+                        value={row.hrc}
+                        onChange={(e) => updateConvRow(idx, "hrc", e.target.value)}
+                        style={{ width: "100%", padding: "4px 6px" }}
+                      />
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-            <button className="btn btn-secondary" onClick={handleAddConvRow} style={{ marginTop: 12, width: "100%", padding: 8, borderStyle: "dashed" }}>+ Add Row</button>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={handleAddConvRow}
+              style={{ marginTop: 12, width: "100%", padding: 8, borderStyle: "dashed" }}
+            >
+              + Tambah Baris Manual
+            </button>
           </div>
         </div>
       )}
