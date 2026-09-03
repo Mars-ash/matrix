@@ -13,7 +13,7 @@ Dokumen pelacakan progress per fase implementasi. Setiap item harus dicentang se
 | **Fase 3** | REST API Core CRUD & Data Synchronization | ✅ Completed | 10/10 |
 | **Fase 4** | Trial Reports & Photo Storage Management | ✅ Completed | 6/6 |
 | **Fase 5** | OCR Vision AI (Gemini 2.0 Flash) | ✅ Completed | 6/6 |
-| **Fase 6** | Role-Based UI (Controller vs Viewer) | ⏳ Pending | 0/5 |
+| **Fase 6** | Role-Based UI (Controller vs Viewer) | ✅ Completed | 5/5 |
 | **Fase 7** | DevOps, CI/CD, E2E Testing & Backup Strategy | ⏳ Pending | 0/7 |
 
 ---
@@ -76,11 +76,11 @@ Dokumen pelacakan progress per fase implementasi. Setiap item harus dicentang se
 ---
 
 ### Fase 6: Role-Based UI (Controller vs Viewer)
-- [ ] **6.1** Modifikasi `app-shell.tsx` (hide tombol 'New Item' & 'New Project' untuk Viewer)
-- [ ] **6.2** Modifikasi `control-table.tsx` (disable status click & hide checkbox column untuk Viewer)
-- [ ] **6.3** Modifikasi `subcont/page.tsx` & `po-tracker/page.tsx` ke mode read-only untuk Viewer
-- [ ] **6.4** Modifikasi `trial-report-editor.tsx` ke mode view-only untuk Viewer
-- [ ] **6.5** **Verification Gate 6**: Switch akun Controller & Viewer, verifikasi tidak ada kebocoran aksi pada Viewer
+- [x] **6.1** Modifikasi `app-shell.tsx` (hide tombol 'New Item' & 'New Project' untuk Viewer)
+- [x] **6.2** Modifikasi `control-table.tsx` (disable status click & hide checkbox column untuk Viewer)
+- [x] **6.3** Modifikasi `subcont/page.tsx` & `po-tracker/page.tsx` ke mode read-only untuk Viewer
+- [x] **6.4** Modifikasi `trial-report-editor.tsx` ke mode view-only untuk Viewer
+- [x] **6.5** **Verification Gate 6**: Switch akun Controller & Viewer, verifikasi tidak ada kebocoran aksi pada Viewer
 
 ---
 

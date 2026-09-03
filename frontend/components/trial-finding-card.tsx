@@ -15,6 +15,7 @@ import type {
   TrialFindingStatus,
 } from "@/lib/types";
 import { TRIAL_FINDING_STATUSES } from "@/lib/types";
+import { useAuth } from "@/lib/auth";
 
 /* ------------------------------------------------------------------ */
 /* PIC Tag Input — Enter to add, click ✕ to remove, comma-separated   */
@@ -22,9 +23,11 @@ import { TRIAL_FINDING_STATUSES } from "@/lib/types";
 function PicTagInput({
   value,
   onChange,
+  readOnly = false,
 }: {
   value: string;
   onChange: (v: string) => void;
+  readOnly?: boolean;
 }) {
   const [draft, setDraft] = useState("");
   const tags = value
@@ -69,25 +72,32 @@ function PicTagInput({
       {tags.map((tag, i) => (
         <span key={i} className="pic-tag">
           {tag}
-          <button
-            type="button"
-            className="pic-tag-remove"
-            onClick={() => removeTag(i)}
-            aria-label={`Hapus ${tag}`}
-          >
-            ✕
-          </button>
+          {!readOnly && (
+            <button
+              type="button"
+              className="pic-tag-remove"
+              onClick={() => removeTag(i)}
+              aria-label={`Hapus ${tag}`}
+            >
+              ✕
+            </button>
+          )}
         </span>
       ))}
-      <input
-        className="pic-tag-draft"
-        type="text"
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        onKeyDown={handleKeyDown}
-        onBlur={() => addTag(draft)}
-        placeholder={tags.length === 0 ? "Nama PIC, tekan Enter" : "+ Tambah"}
-      />
+      {!readOnly && (
+        <input
+          className="pic-tag-draft"
+          type="text"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={handleKeyDown}
+          onBlur={() => addTag(draft)}
+          placeholder={tags.length === 0 ? "Nama PIC, tekan Enter" : "+ Tambah"}
+        />
+      )}
+      {readOnly && tags.length === 0 && (
+        <span style={{ fontSize: 12, color: "var(--color-text-muted)" }}>-</span>
+      )}
     </div>
   );
 }
@@ -118,6 +128,7 @@ export function TrialFindingCard({
   onToggleOpen,
 }: TrialFindingCardProps) {
   const dispatch = useAppDispatch();
+  const { isController, isViewer } = useAuth();
   const findingLetter = formatFindingLetter(displayOrder);
 
   const [internalOpen, setInternalOpen] = useState(false);
@@ -392,44 +403,46 @@ export function TrialFindingCard({
           )}
         </div>
 
-        <div
-          className="trial-finding-header-right"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm"
-            disabled={isFirst}
-            onClick={() => handleMoveFinding("up")}
-            title="Pindah temuan ke atas"
-            style={{ padding: "2px 6px", fontSize: 11 }}
+        {isController && (
+          <div
+            className="trial-finding-header-right"
+            onClick={(e) => e.stopPropagation()}
           >
-            ▲
-          </button>
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm"
-            disabled={isLast}
-            onClick={() => handleMoveFinding("down")}
-            title="Pindah temuan ke bawah"
-            style={{ padding: "2px 6px", fontSize: 11 }}
-          >
-            ▼
-          </button>
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm"
-            onClick={handleDeleteFinding}
-            title="Hapus temuan"
-            style={{
-              padding: "2px 6px",
-              fontSize: 11,
-              color: "var(--color-status-problem)",
-            }}
-          >
-            ✕
-          </button>
-        </div>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              disabled={isFirst}
+              onClick={() => handleMoveFinding("up")}
+              title="Pindah temuan ke atas"
+              style={{ padding: "2px 6px", fontSize: 11 }}
+            >
+              ▲
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              disabled={isLast}
+              onClick={() => handleMoveFinding("down")}
+              title="Pindah temuan ke bawah"
+              style={{ padding: "2px 6px", fontSize: 11 }}
+            >
+              ▼
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={handleDeleteFinding}
+              title="Hapus temuan"
+              style={{
+                padding: "2px 6px",
+                fontSize: 11,
+                color: "var(--color-status-problem)",
+              }}
+            >
+              ✕
+            </button>
+          </div>
+        )}
       </div>
 
       {open && (
@@ -439,13 +452,15 @@ export function TrialFindingCard({
       <div className="trial-section-block">
         <div className="trial-section-header">
           <span className="trial-section-title">Uraian Masalah</span>
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm trial-add-entry-btn"
-            onClick={handleAddProblem}
-          >
-            + Tambah Masalah
-          </button>
+          {isController && (
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm trial-add-entry-btn"
+              onClick={handleAddProblem}
+            >
+              + Tambah Masalah
+            </button>
+          )}
         </div>
         {sortedProblems.length === 0 ? (
           <div className="trial-section-empty">
@@ -457,43 +472,45 @@ export function TrialFindingCard({
               <div key={problem.id} className="trial-entry-row">
                 <div className="trial-entry-header">
                   <span className="trial-entry-index">#{problem.order}</span>
-                  <div className="trial-entry-controls">
-                    <button
-                      type="button"
-                      className="btn btn-secondary btn-sm"
-                      disabled={pIdx === 0}
-                      onClick={() => handleMoveEntry("problems", problem.id, "up")}
-                      title="Pindah ke atas"
-                      style={{ padding: "1px 5px", fontSize: 10 }}
-                    >
-                      ▲
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-secondary btn-sm"
-                      disabled={pIdx === sortedProblems.length - 1}
-                      onClick={() => handleMoveEntry("problems", problem.id, "down")}
-                      title="Pindah ke bawah"
-                      style={{ padding: "1px 5px", fontSize: 10 }}
-                    >
-                      ▼
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-secondary btn-sm"
-                      onClick={() =>
-                        handleDeleteEntry("problems", problem.id, `masalah #${problem.order}`)
-                      }
-                      title="Hapus baris masalah"
-                      style={{
-                        padding: "1px 5px",
-                        fontSize: 10,
-                        color: "var(--color-status-problem)",
-                      }}
-                    >
-                      ✕
-                    </button>
-                  </div>
+                  {isController && (
+                    <div className="trial-entry-controls">
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        disabled={pIdx === 0}
+                        onClick={() => handleMoveEntry("problems", problem.id, "up")}
+                        title="Pindah ke atas"
+                        style={{ padding: "1px 5px", fontSize: 10 }}
+                      >
+                        ▲
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        disabled={pIdx === sortedProblems.length - 1}
+                        onClick={() => handleMoveEntry("problems", problem.id, "down")}
+                        title="Pindah ke bawah"
+                        style={{ padding: "1px 5px", fontSize: 10 }}
+                      >
+                        ▼
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        onClick={() =>
+                          handleDeleteEntry("problems", problem.id, `masalah #${problem.order}`)
+                        }
+                        title="Hapus baris masalah"
+                        style={{
+                          padding: "1px 5px",
+                          fontSize: 10,
+                          color: "var(--color-status-problem)",
+                        }}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <textarea
                   className="input"
@@ -502,7 +519,8 @@ export function TrialFindingCard({
                   onChange={(e) =>
                     handleUpdateEntry("problems", problem.id, { text: e.target.value })
                   }
-                  placeholder="Deskripsi masalah yang ditemukan..."
+                  readOnly={isViewer}
+                  placeholder={isViewer ? "" : "Deskripsi masalah yang ditemukan..."}
                 />
                 <TrialPhotoUploader
                   photos={problem.photos ?? []}
@@ -519,13 +537,15 @@ export function TrialFindingCard({
       <div className="trial-section-block">
         <div className="trial-section-header">
           <span className="trial-section-title">Penyebab</span>
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm trial-add-entry-btn"
-            onClick={handleAddCause}
-          >
-            + Tambah Penyebab
-          </button>
+          {isController && (
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm trial-add-entry-btn"
+              onClick={handleAddCause}
+            >
+              + Tambah Penyebab
+            </button>
+          )}
         </div>
         {sortedCauses.length === 0 ? (
           <div className="trial-section-empty">
@@ -537,43 +557,45 @@ export function TrialFindingCard({
               <div key={cause.id} className="trial-entry-row">
                 <div className="trial-entry-header">
                   <span className="trial-entry-index">#{cause.order}</span>
-                  <div className="trial-entry-controls">
-                    <button
-                      type="button"
-                      className="btn btn-secondary btn-sm"
-                      disabled={cIdx === 0}
-                      onClick={() => handleMoveEntry("causes", cause.id, "up")}
-                      title="Pindah ke atas"
-                      style={{ padding: "1px 5px", fontSize: 10 }}
-                    >
-                      ▲
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-secondary btn-sm"
-                      disabled={cIdx === sortedCauses.length - 1}
-                      onClick={() => handleMoveEntry("causes", cause.id, "down")}
-                      title="Pindah ke bawah"
-                      style={{ padding: "1px 5px", fontSize: 10 }}
-                    >
-                      ▼
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-secondary btn-sm"
-                      onClick={() =>
-                        handleDeleteEntry("causes", cause.id, `penyebab #${cause.order}`)
-                      }
-                      title="Hapus baris penyebab"
-                      style={{
-                        padding: "1px 5px",
-                        fontSize: 10,
-                        color: "var(--color-status-problem)",
-                      }}
-                    >
-                      ✕
-                    </button>
-                  </div>
+                  {isController && (
+                    <div className="trial-entry-controls">
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        disabled={cIdx === 0}
+                        onClick={() => handleMoveEntry("causes", cause.id, "up")}
+                        title="Pindah ke atas"
+                        style={{ padding: "1px 5px", fontSize: 10 }}
+                      >
+                        ▲
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        disabled={cIdx === sortedCauses.length - 1}
+                        onClick={() => handleMoveEntry("causes", cause.id, "down")}
+                        title="Pindah ke bawah"
+                        style={{ padding: "1px 5px", fontSize: 10 }}
+                      >
+                        ▼
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        onClick={() =>
+                          handleDeleteEntry("causes", cause.id, `penyebab #${cause.order}`)
+                        }
+                        title="Hapus baris penyebab"
+                        style={{
+                          padding: "1px 5px",
+                          fontSize: 10,
+                          color: "var(--color-status-problem)",
+                        }}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <textarea
                   className="input"
@@ -582,7 +604,8 @@ export function TrialFindingCard({
                   onChange={(e) =>
                     handleUpdateEntry("causes", cause.id, { text: e.target.value })
                   }
-                  placeholder="Penyebab masalah..."
+                  readOnly={isViewer}
+                  placeholder={isViewer ? "" : "Penyebab masalah..."}
                 />
                 <TrialPhotoUploader
                   photos={cause.photos ?? []}
@@ -599,13 +622,15 @@ export function TrialFindingCard({
       <div className="trial-section-block">
         <div className="trial-section-header">
           <span className="trial-section-title">Langkah Perbaikan</span>
-          <button
-            type="button"
-            className="btn btn-primary btn-sm trial-add-entry-btn"
-            onClick={handleAddAction}
-          >
-            + Tambah Langkah Perbaikan
-          </button>
+          {isController && (
+            <button
+              type="button"
+              className="btn btn-primary btn-sm trial-add-entry-btn"
+              onClick={handleAddAction}
+            >
+              + Tambah Langkah Perbaikan
+            </button>
+          )}
         </div>
         {sortedActions.length === 0 ? (
           <div className="trial-section-empty">
@@ -617,43 +642,45 @@ export function TrialFindingCard({
               <div key={action.id} className="trial-entry-row">
                 <div className="trial-entry-header">
                   <span className="trial-entry-index">#{action.order}</span>
-                  <div className="trial-entry-controls">
-                    <button
-                      type="button"
-                      className="btn btn-secondary btn-sm"
-                      disabled={aIdx === 0}
-                      onClick={() => handleMoveEntry("correctiveActions", action.id, "up")}
-                      title="Pindah ke atas"
-                      style={{ padding: "1px 5px", fontSize: 10 }}
-                    >
-                      ▲
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-secondary btn-sm"
-                      disabled={aIdx === sortedActions.length - 1}
-                      onClick={() => handleMoveEntry("correctiveActions", action.id, "down")}
-                      title="Pindah ke bawah"
-                      style={{ padding: "1px 5px", fontSize: 10 }}
-                    >
-                      ▼
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-secondary btn-sm"
-                      onClick={() =>
-                        handleDeleteEntry("correctiveActions", action.id, `langkah perbaikan #${action.order}`)
-                      }
-                      title="Hapus baris langkah perbaikan"
-                      style={{
-                        padding: "1px 5px",
-                        fontSize: 10,
-                        color: "var(--color-status-problem)",
-                      }}
-                    >
-                      ✕
-                    </button>
-                  </div>
+                  {isController && (
+                    <div className="trial-entry-controls">
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        disabled={aIdx === 0}
+                        onClick={() => handleMoveEntry("correctiveActions", action.id, "up")}
+                        title="Pindah ke atas"
+                        style={{ padding: "1px 5px", fontSize: 10 }}
+                      >
+                        ▲
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        disabled={aIdx === sortedActions.length - 1}
+                        onClick={() => handleMoveEntry("correctiveActions", action.id, "down")}
+                        title="Pindah ke bawah"
+                        style={{ padding: "1px 5px", fontSize: 10 }}
+                      >
+                        ▼
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        onClick={() =>
+                          handleDeleteEntry("correctiveActions", action.id, `langkah perbaikan #${action.order}`)
+                        }
+                        title="Hapus baris langkah perbaikan"
+                        style={{
+                          padding: "1px 5px",
+                          fontSize: 10,
+                          color: "var(--color-status-problem)",
+                        }}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <textarea
                   className="input"
@@ -662,7 +689,8 @@ export function TrialFindingCard({
                   onChange={(e) =>
                     handleUpdateEntry("correctiveActions", action.id, { text: e.target.value })
                   }
-                  placeholder="Tindakan perbaikan..."
+                  readOnly={isViewer}
+                  placeholder={isViewer ? "" : "Tindakan perbaikan..."}
                 />
                 {/* Target · PIC · Status — each in its own column */}
                 <div className="trial-action-columns">
@@ -677,6 +705,7 @@ export function TrialFindingCard({
                       onChange={(e) =>
                         handleUpdateEntry("correctiveActions", action.id, { targetDate: e.target.value })
                       }
+                      readOnly={isViewer}
                     />
                   </div>
                   <div className="trial-action-col">
@@ -685,6 +714,7 @@ export function TrialFindingCard({
                     </label>
                     <PicTagInput
                       value={action.pic}
+                      readOnly={isViewer}
                       onChange={(v) =>
                         handleUpdateEntry("correctiveActions", action.id, { pic: v })
                       }
@@ -697,6 +727,7 @@ export function TrialFindingCard({
                     <select
                       className="select trial-finding-status-select"
                       value={action.status}
+                      disabled={isViewer}
                       onChange={(e) =>
                         handleUpdateEntry("correctiveActions", action.id, {
                           status: e.target.value as TrialFindingStatus,

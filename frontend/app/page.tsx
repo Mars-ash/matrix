@@ -7,10 +7,12 @@ import { ProjectCreateDialog } from "@/components/project-create-dialog";
 import { NewItemMenu } from "@/components/new-item-menu";
 import { NewDataDialog } from "@/components/new-data-dialog";
 import { useAppState } from "@/lib/store";
+import { useAuth } from "@/lib/auth";
 import { joProblemCount } from "@/lib/progress";
 
 export default function DashboardPage() {
   const { projects } = useAppState();
+  const { isController } = useAuth();
   const [createOpen, setCreateOpen] = useState(false);
   const [createProjectOpen, setCreateProjectOpen] = useState(false);
   const [createJoProjectId, setCreateJoProjectId] = useState<string | undefined>(undefined);
@@ -67,11 +69,28 @@ export default function DashboardPage() {
             onChange={(e) => setSearchQuery(e.target.value)}
             style={{ width: 240, minWidth: 140, flex: "1 1 140px", maxWidth: 300 }}
           />
-          <NewItemMenu
-            onNewProject={() => setCreateProjectOpen(true)}
-            onNewJo={() => setCreateOpen(true)}
-            onNewData={() => setNewDataOpen(true)}
-          />
+          {isController ? (
+            <NewItemMenu
+              onNewProject={() => setCreateProjectOpen(true)}
+              onNewJo={() => setCreateOpen(true)}
+              onNewData={() => setNewDataOpen(true)}
+            />
+          ) : (
+            <span
+              style={{
+                fontSize: 11,
+                fontWeight: 600,
+                color: "var(--color-text-muted)",
+                backgroundColor: "var(--color-bg-wash)",
+                padding: "6px 12px",
+                borderRadius: "var(--radius-md)",
+                border: "1px solid var(--color-border)",
+                whiteSpace: "nowrap",
+              }}
+            >
+              Floor Viewer (Read-Only)
+            </span>
+          )}
         </div>
       </div>
 

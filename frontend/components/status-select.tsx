@@ -3,6 +3,8 @@ import React, { useState, useCallback } from "react";
 import type { ControlStatus } from "@/lib/types";
 import { STATUSES } from "@/lib/types";
 import { Dialog } from "./dialog";
+import { StatusBadge } from "./status-badge";
+import { useAuth } from "@/lib/auth";
 
 interface StatusSelectProps {
   value: ControlStatus;
@@ -13,9 +15,21 @@ interface StatusSelectProps {
 }
 
 export function StatusSelect({ value, notes, process, allowedStatuses, onChange }: StatusSelectProps) {
+  const { isViewer } = useAuth();
   const [pendingProblem, setPendingProblem] = useState(false);
   const [problemNotes, setProblemNotes] = useState("");
   const [notesError, setNotesError] = useState("");
+
+  if (isViewer) {
+    return (
+      <span
+        title={notes ? `Problem: ${notes}` : undefined}
+        style={{ cursor: "default", display: "inline-block" }}
+      >
+        <StatusBadge status={value} />
+      </span>
+    );
+  }
 
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLSelectElement>) => {

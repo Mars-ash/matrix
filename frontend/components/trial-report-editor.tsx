@@ -2,6 +2,7 @@
 import React, { useState, useCallback, useEffect } from "react";
 import { TrialFindingCard } from "./trial-finding-card";
 import { useAppDispatch } from "@/lib/store";
+import { useAuth } from "@/lib/auth";
 import { uid } from "@/lib/format";
 import { sortTrialFindings, deriveTrialSessionStatus } from "@/lib/trial-report";
 import type { TrialSession, TrialFinding } from "@/lib/types";
@@ -20,6 +21,7 @@ export function TrialReportEditor({
   highlightedFindingId = null,
 }: TrialReportEditorProps) {
   const dispatch = useAppDispatch();
+  const { isController, isViewer } = useAuth();
   const sortedFindings = sortTrialFindings(session.findings);
   const derivedStatus = deriveTrialSessionStatus(session);
 
@@ -150,6 +152,7 @@ export function TrialReportEditor({
             type="text"
             value={session.name}
             onChange={(e) => updateSession({ name: e.target.value })}
+            readOnly={isViewer}
             style={{ fontSize: 16, fontWeight: 700 }}
             placeholder="Masukkan nama session..."
           />
@@ -177,6 +180,7 @@ export function TrialReportEditor({
             type="date"
             value={session.trialDate}
             onChange={(e) => updateSession({ trialDate: e.target.value })}
+            readOnly={isViewer}
           />
         </div>
         <div>
@@ -186,6 +190,7 @@ export function TrialReportEditor({
             type="date"
             value={session.updateDate}
             onChange={(e) => updateSession({ updateDate: e.target.value })}
+            readOnly={isViewer}
           />
         </div>
         <div>
@@ -195,6 +200,7 @@ export function TrialReportEditor({
             type="text"
             value={session.customer}
             onChange={(e) => updateSession({ customer: e.target.value })}
+            readOnly={isViewer}
           />
         </div>
         <div>
@@ -204,6 +210,7 @@ export function TrialReportEditor({
             type="text"
             value={session.jobNo}
             onChange={(e) => updateSession({ jobNo: e.target.value })}
+            readOnly={isViewer}
           />
         </div>
         <div>
@@ -213,6 +220,7 @@ export function TrialReportEditor({
             type="text"
             value={session.picName}
             onChange={(e) => updateSession({ picName: e.target.value })}
+            readOnly={isViewer}
           />
         </div>
         <div>
@@ -222,6 +230,7 @@ export function TrialReportEditor({
             type="text"
             value={session.approvedByName}
             onChange={(e) => updateSession({ approvedByName: e.target.value })}
+            readOnly={isViewer}
           />
         </div>
       </div>
@@ -256,9 +265,11 @@ export function TrialReportEditor({
               </div>
             )}
           </div>
-          <button className="btn btn-primary btn-sm" onClick={handleAddFinding}>
-            + Tambah Temuan
-          </button>
+          {isController && (
+            <button className="btn btn-primary btn-sm" onClick={handleAddFinding}>
+              + Tambah Temuan
+            </button>
+          )}
         </div>
 
         {sortedFindings.length === 0 ? (

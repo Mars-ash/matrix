@@ -10,6 +10,7 @@ import { CategoryCreateDialog } from "@/components/category-create-dialog";
 import { JoItemSearch } from "@/components/jo-item-search";
 import { Dialog } from "@/components/dialog";
 import { useAppState, useAppDispatch } from "@/lib/store";
+import { useAuth } from "@/lib/auth";
 import { joProgress, joProblemCount, categoryProgress } from "@/lib/progress";
 import { formatProgress } from "@/lib/format";
 import { SUBCONT_SUPPLIERS, type ControlStatus, type Item } from "@/lib/types";
@@ -33,6 +34,7 @@ export default function JoDetailPage({ params }: PageProps) {
   const { projectId, joId } = use(params);
   const { projects } = useAppState();
   const dispatch = useAppDispatch();
+  const { isController } = useAuth();
   const [addDataCatId, setAddDataCatId] = useState<string | null>(null);
   const [isActivityOpen, setIsActivityOpen] = useState(false);
   const [finishConfirmOpen, setFinishConfirmOpen] = useState(false);
@@ -236,7 +238,7 @@ export default function JoDetailPage({ params }: PageProps) {
               <span style={{ fontSize: 13, color: "var(--color-status-done)", fontWeight: 600, padding: "6px 12px", border: "1px solid var(--color-status-done)", borderRadius: "var(--radius-md)", background: "rgba(13, 124, 74, 0.05)", textAlign: "center" }}>
                 Finished: {jo.finishDate}
               </span>
-            ) : (
+            ) : isController ? (
               <button
                 className="btn btn-primary"
                 onClick={() => setFinishConfirmOpen(true)}
@@ -244,6 +246,10 @@ export default function JoDetailPage({ params }: PageProps) {
               >
                 Finish JO
               </button>
+            ) : (
+              <span style={{ fontSize: 12, color: "var(--color-status-in-progress)", fontWeight: 600, padding: "6px 12px", border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", background: "var(--color-bg-wash)" }}>
+                Status: In Progress
+              </span>
             )}
           </div>
         </div>
@@ -372,16 +378,18 @@ export default function JoDetailPage({ params }: PageProps) {
         ))}
       </div>
 
-      {/* Add New Category button */}
-      <div style={{ marginBottom: 28 }}>
-        <button
-          className="btn btn-secondary"
-          onClick={() => setCategoryCreateOpen(true)}
-          style={{ width: "100%", padding: 10, borderStyle: "dashed", fontSize: 13 }}
-        >
-          + Add New Category
-        </button>
-      </div>
+      {/* Add New Category button (Controller only) */}
+      {isController && (
+        <div style={{ marginBottom: 28 }}>
+          <button
+            className="btn btn-secondary"
+            onClick={() => setCategoryCreateOpen(true)}
+            style={{ width: "100%", padding: 10, borderStyle: "dashed", fontSize: 13 }}
+          >
+            + Add New Category
+          </button>
+        </div>
+      )}
 
       {/* Activity Drawer */}
       {isActivityOpen && (
@@ -490,8 +498,8 @@ export default function JoDetailPage({ params }: PageProps) {
         </p>
       </Dialog>
 
-      {/* Floating Bulk Action Bar */}
-      {selectedItemIds.length > 0 && (
+      {/* Floating Bulk Action Bar (Controller only) */}
+      {isController && selectedItemIds.length > 0 && (
         <div className="bulk-action-bar">
           <div className="bulk-action-bar-count">
             <span className="bulk-action-bar-badge">{selectedItemIds.length}</span>

@@ -3,6 +3,7 @@ import React, { useRef, useEffect } from "react";
 import type { Category } from "@/lib/types";
 import { PART_PROCESSES, COMPONENT_PROCESSES } from "@/lib/types";
 import { useAppDispatch } from "@/lib/store";
+import { useAuth } from "@/lib/auth";
 import { ProcessControlCell } from "./process-control-cell";
 import { EmptyState } from "./empty-state";
 
@@ -34,6 +35,7 @@ export function ControlTable({
   onRequestSendPo,
 }: ControlTableProps) {
   const dispatch = useAppDispatch();
+  const { isController } = useAuth();
   const processes = category.kind === "Part" ? PART_PROCESSES : COMPONENT_PROCESSES;
 
   const headerCheckboxRef = useRef<HTMLInputElement>(null);
@@ -54,9 +56,11 @@ export function ControlTable({
         title="No items yet"
         description="Add parts or components to start tracking progress."
         action={
-          <button className="btn btn-primary btn-sm" onClick={onAddData}>
-            + Add Data
-          </button>
+          isController ? (
+            <button className="btn btn-primary btn-sm" onClick={onAddData}>
+              + Add Data
+            </button>
+          ) : undefined
         }
       />
     );
@@ -68,17 +72,19 @@ export function ControlTable({
         <table className="control-table">
           <thead>
             <tr>
-              {/* Bulk select checkbox */}
-              <th className="th-sticky-checkbox" style={{ width: 34, textAlign: "center", padding: "6px 4px" }}>
-                <input
-                  ref={headerCheckboxRef}
-                  type="checkbox"
-                  checked={isAllCategorySelected}
-                  onChange={(e) => onToggleSelectAllCategory?.(categoryItemIds, e.target.checked)}
-                  style={{ cursor: "pointer", accentColor: "var(--color-accent)" }}
-                  title="Pilih semua part di kategori ini"
-                />
-              </th>
+              {/* Bulk select checkbox (Controller only) */}
+              {isController && (
+                <th className="th-sticky-checkbox" style={{ width: 34, textAlign: "center", padding: "6px 4px" }}>
+                  <input
+                    ref={headerCheckboxRef}
+                    type="checkbox"
+                    checked={isAllCategorySelected}
+                    onChange={(e) => onToggleSelectAllCategory?.(categoryItemIds, e.target.checked)}
+                    style={{ cursor: "pointer", accentColor: "var(--color-accent)" }}
+                    title="Pilih semua part di kategori ini"
+                  />
+                </th>
+              )}
               <th className="th-sticky-no" style={{ minWidth: 36 }}>No</th>
               <th style={{ minWidth: 140 }}>Description</th>
               <th style={{ minWidth: 90 }}>Dimension</th>
@@ -105,15 +111,17 @@ export function ControlTable({
                     backgroundColor: isSelected ? "color-mix(in srgb, var(--color-accent) 8%, transparent)" : undefined,
                   }}
                 >
-                  {/* Item selection checkbox */}
-                  <td className="td-sticky-checkbox" style={{ textAlign: "center", padding: "5px 4px" }}>
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={() => onToggleSelectItem?.(item.id)}
-                      style={{ cursor: "pointer", accentColor: "var(--color-accent)" }}
-                    />
-                  </td>
+                  {/* Item selection checkbox (Controller only) */}
+                  {isController && (
+                    <td className="td-sticky-checkbox" style={{ textAlign: "center", padding: "5px 4px" }}>
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => onToggleSelectItem?.(item.id)}
+                        style={{ cursor: "pointer", accentColor: "var(--color-accent)" }}
+                      />
+                    </td>
+                  )}
                   <td className="td-sticky-no" style={{ fontWeight: 500, color: "var(--color-text-secondary)" }}>{item.no}</td>
                   <td style={{ fontWeight: 500 }}>{item.description}</td>
                   <td style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>{item.dimension}</td>

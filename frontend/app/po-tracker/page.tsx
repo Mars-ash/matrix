@@ -8,6 +8,7 @@ import { Dialog } from "@/components/dialog";
 import { EmptyState } from "@/components/empty-state";
 import { StatusSelect } from "@/components/status-select";
 import { useAppDispatch, useAppState } from "@/lib/store";
+import { useAuth } from "@/lib/auth";
 import type { ControlStatus, PoTracking } from "@/lib/types";
 import {
   collectPoTrackingRows,
@@ -43,6 +44,7 @@ function deadlineColor(state: "overdue" | "today" | "soon") {
 function PoTrackerContent() {
   const { projects } = useAppState();
   const dispatch = useAppDispatch();
+  const { isController, isViewer } = useAuth();
   const searchParams = useSearchParams();
   const targetItemId = searchParams.get("item");
   const initialSearch = searchParams.get("search") || searchParams.get("q") || "";
@@ -155,15 +157,17 @@ function PoTrackerContent() {
         <table className="control-table">
           <thead>
             <tr>
-              <th style={{ width: 36, textAlign: "center" }}>
-                <input
-                  type="checkbox"
-                  checked={isAllSelected}
-                  onChange={() => toggleSelectAll(tableRows)}
-                  style={{ cursor: "pointer" }}
-                  aria-label="Pilih semua part"
-                />
-              </th>
+              {isController && (
+                <th style={{ width: 36, textAlign: "center" }}>
+                  <input
+                    type="checkbox"
+                    checked={isAllSelected}
+                    onChange={() => toggleSelectAll(tableRows)}
+                    style={{ cursor: "pointer" }}
+                    aria-label="Pilih semua part"
+                  />
+                </th>
+              )}
               <th style={{ minWidth: 80 }}>JO</th>
               <th style={{ minWidth: 170 }}>Item</th>
               <th style={{ minWidth: 60, textAlign: "center" }}>Qty</th>
@@ -187,15 +191,17 @@ function PoTrackerContent() {
                   id={`po-item-${row.item.id}`}
                   className={`${targetItemId === row.item.id ? "row-highlight" : ""} ${isSelected ? "row-selected" : ""}`.trim() || undefined}
                 >
-                  <td style={{ textAlign: "center" }}>
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={() => toggleSelectRow(row)}
-                      style={{ cursor: "pointer" }}
-                      aria-label={`Pilih ${row.item.description}`}
-                    />
-                  </td>
+                  {isController && (
+                    <td style={{ textAlign: "center" }}>
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => toggleSelectRow(row)}
+                        style={{ cursor: "pointer" }}
+                        aria-label={`Pilih ${row.item.description}`}
+                      />
+                    </td>
+                  )}
                   <td>
                     <Link
                       href={`/projects/${row.project.id}/jos/${row.jo.id}?item=${row.item.id}#item-${row.item.id}`}
@@ -222,6 +228,7 @@ function PoTrackerContent() {
                         const qty = Number.parseInt(event.target.value, 10);
                         updateRow(row, {}, { qty: Number.isNaN(qty) ? 1 : qty });
                       }}
+                      readOnly={isViewer}
                       style={{ fontSize: 12, padding: "4px 6px", width: 55, textAlign: "center" }}
                       aria-label={`Qty for ${row.item.description}`}
                     />
@@ -231,6 +238,7 @@ function PoTrackerContent() {
                       className="input"
                       value={row.supplier}
                       onChange={(event) => updateRow(row, { supplier: event.target.value })}
+                      readOnly={isViewer}
                       placeholder="-"
                       style={{ fontSize: 12, padding: "4px 7px", width: "100%" }}
                       aria-label={`Supplier for ${row.item.description}`}
@@ -241,6 +249,7 @@ function PoTrackerContent() {
                       className="input"
                       value={row.poNo}
                       onChange={(event) => updateRow(row, { poNo: event.target.value })}
+                      readOnly={isViewer}
                       placeholder="-"
                       style={{ fontSize: 12, padding: "4px 7px", width: "100%" }}
                       aria-label={`PO number for ${row.item.description}`}
@@ -252,6 +261,7 @@ function PoTrackerContent() {
                       className="input"
                       value={row.poDate}
                       onChange={(event) => updateRow(row, { poDate: event.target.value })}
+                      readOnly={isViewer}
                       title={row.poDate ? formatDate(row.poDate) : "Set PO date"}
                       style={{ fontSize: 12, padding: "3px 6px", textAlign: "center", width: "100%" }}
                       aria-label={`PO date for ${row.item.description}`}
@@ -264,6 +274,7 @@ function PoTrackerContent() {
                         className="input"
                         value={row.targetArrival}
                         onChange={(event) => updateRow(row, { targetArrival: event.target.value })}
+                        readOnly={isViewer}
                         title={row.targetArrival ? formatDate(row.targetArrival) : "Set target arrival"}
                         style={{ fontSize: 12, padding: "3px 6px", textAlign: "center", width: "100%" }}
                         aria-label={`Target arrival for ${row.item.description}`}
@@ -295,29 +306,38 @@ function PoTrackerContent() {
                     />
                   </td>
                   <td style={{ textAlign: "center" }}>
-                    <button
-                      onClick={() => {
-                        setEditingNotesRow(row);
-                        setNotesTemp(row.notes);
-                      }}
-                      title={row.notes || "Add note"}
-                      style={{
-                        background: "none",
-                        border: "none",
-                        cursor: "pointer",
-                        padding: "4px 6px",
-                        borderRadius: 4,
-                        color: row.notes ? "var(--color-accent)" : "var(--color-text-muted)",
-                        fontSize: 14,
-                        lineHeight: 1,
-                      }}
-                      aria-label={`Edit PO notes for ${row.item.description}`}
-                    >
-                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M13.5 2.5l-1-1-9 9-.5 2.5 2.5-.5 9-9z" />
-                        <path d="M11 3l2 2" />
-                      </svg>
-                    </button>
+                    {isController ? (
+                      <button
+                        onClick={() => {
+                          setEditingNotesRow(row);
+                          setNotesTemp(row.notes);
+                        }}
+                        title={row.notes || "Add note"}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          padding: "4px 6px",
+                          borderRadius: 4,
+                          color: row.notes ? "var(--color-accent)" : "var(--color-text-muted)",
+                          fontSize: 14,
+                          lineHeight: 1,
+                        }}
+                        aria-label={`Edit PO notes for ${row.item.description}`}
+                      >
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M13.5 2.5l-1-1-9 9-.5 2.5 2.5-.5 9-9z" />
+                          <path d="M11 3l2 2" />
+                        </svg>
+                      </button>
+                    ) : (
+                      <span
+                        title={row.notes || undefined}
+                        style={{ fontSize: 12, color: row.notes ? "var(--color-accent)" : "var(--color-text-muted)" }}
+                      >
+                        {row.notes ? "📝" : "-"}
+                      </span>
+                    )}
                   </td>
                 </tr>
               );
@@ -494,8 +514,8 @@ function PoTrackerContent() {
         />
       </Dialog>
 
-      {/* Floating Bulk Action Bar */}
-      {selectedKeys.size > 0 && (
+      {/* Floating Bulk Action Bar (Controller only) */}
+      {isController && selectedKeys.size > 0 && (
         <div className="bulk-action-bar">
           <div className="bulk-action-bar-count">
             <span className="bulk-action-bar-badge">{selectedKeys.size}</span>

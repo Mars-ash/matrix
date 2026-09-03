@@ -2,6 +2,7 @@
 import React, { useRef, useCallback } from "react";
 import { uid } from "@/lib/format";
 import type { TrialEntryPhoto } from "@/lib/types";
+import { useAuth } from "@/lib/auth";
 
 interface TrialPhotoUploaderProps {
   photos: TrialEntryPhoto[];
@@ -14,6 +15,7 @@ export function TrialPhotoUploader({
   onAddPhoto,
   onRemovePhoto,
 }: TrialPhotoUploaderProps) {
+  const { isController } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileAdd = useCallback(
@@ -36,7 +38,6 @@ export function TrialPhotoUploader({
   const handleRemove = useCallback(
     (photoId: string, previewUrl: string) => {
       if (!confirm("Hapus foto ini?")) return;
-      // Only revoke blob URLs, not local public paths
       if (previewUrl.startsWith("blob:")) {
         URL.revokeObjectURL(previewUrl);
       }
@@ -47,17 +48,19 @@ export function TrialPhotoUploader({
 
   return (
     <div className="trial-photo-uploader">
-      <label className="trial-photo-upload-btn">
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          multiple
-          style={{ display: "none" }}
-          onChange={(e) => handleFileAdd(e.target.files)}
-        />
-        📷 Tambah Foto
-      </label>
+      {isController && (
+        <label className="trial-photo-upload-btn">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            style={{ display: "none" }}
+            onChange={(e) => handleFileAdd(e.target.files)}
+          />
+          📷 Tambah Foto
+        </label>
+      )}
       {photos.length > 0 && (
         <div className="trial-photo-grid">
           {photos.map((photo) => (
@@ -85,14 +88,16 @@ export function TrialPhotoUploader({
               >
                 {photo.name}
               </div>
-              <button
-                type="button"
-                onClick={() => handleRemove(photo.id, photo.previewUrl)}
-                className="trial-photo-remove-btn"
-                aria-label={`Hapus ${photo.name}`}
-              >
-                ✕
-              </button>
+              {isController && (
+                <button
+                  type="button"
+                  onClick={() => handleRemove(photo.id, photo.previewUrl)}
+                  className="trial-photo-remove-btn"
+                  aria-label={`Hapus ${photo.name}`}
+                >
+                  ✕
+                </button>
+              )}
             </div>
           ))}
         </div>
