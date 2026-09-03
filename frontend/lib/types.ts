@@ -240,3 +240,15 @@ export interface Project {
   customer: string;
   jos: JO[];
 }
+
+/** User roles supported by MATRIX. */
+export type UserRole = "controller" | "viewer";
+
+/** Authenticated user profile. */
+export interface AuthUser {
+  id: number;
+  name: string;
+  email: string;
+  role: UserRole;
+}
+

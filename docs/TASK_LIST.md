@@ -9,7 +9,7 @@ Dokumen pelacakan progress per fase implementasi. Setiap item harus dicentang se
 | Fase | Deskripsi | Status | Progress |
 | :--- | :--- | :---: | :---: |
 | **Fase 1** | Database Schema & Eloquent Models (PostgreSQL) | ✅ Completed | 7/7 |
-| **Fase 2** | Authentication & Role Authorization (Sanctum) | ⏳ Pending | 0/6 |
+| **Fase 2** | Authentication & Role Authorization (Sanctum) | ✅ Completed | 6/6 |
 | **Fase 3** | REST API Core CRUD & Data Synchronization | ⏳ Pending | 0/10 |
 | **Fase 4** | Trial Reports & Photo Storage Management | ⏳ Pending | 0/6 |
 | **Fase 5** | OCR Vision AI (Gemini 2.0 Flash) | ⏳ Pending | 0/6 |
@@ -32,12 +32,12 @@ Dokumen pelacakan progress per fase implementasi. Setiap item harus dicentang se
 ---
 
 ### Fase 2: Authentication & Role Authorization
-- [ ] **2.1** Tambah kolom `role` (`controller`, `viewer`) pada migrasi `users`
-- [ ] **2.2** Buat Artisan command `php artisan user:create` untuk manajemen admin manual
-- [ ] **2.3** Konfigurasi Laravel Sanctum SPA & login/logout/me controller
-- [ ] **2.4** Buat Laravel Policies & Gates untuk role `controller` (write) vs `viewer` (read)
-- [ ] **2.5** Implementasi Frontend Auth Provider (`useAuth`), login page (`/login`), & Next.js middleware
-- [ ] **2.6** **Verification Gate 2**: Test login flow, token validation, & role access rejection (403)
+- [x] **2.1** Tambah kolom `role` (`controller`, `viewer`) pada migrasi `users`
+- [x] **2.2** Buat Artisan command `php artisan user:create` untuk manajemen admin manual
+- [x] **2.3** Konfigurasi Laravel Sanctum SPA & login/logout/me controller
+- [x] **2.4** Buat Laravel Policies & Gates untuk role `controller` (write) vs `viewer` (read)
+- [x] **2.5** Implementasi Frontend Auth Provider (`useAuth`), login page (`/login`), & Next.js middleware
+- [x] **2.6** **Verification Gate 2**: Test login flow, token validation, & role access rejection (403)
 
 ---
 

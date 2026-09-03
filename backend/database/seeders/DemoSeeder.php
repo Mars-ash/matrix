@@ -12,9 +12,11 @@ use App\Models\Project;
 use App\Models\TrialEntry;
 use App\Models\TrialFinding;
 use App\Models\TrialSession;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 
 class DemoSeeder extends Seeder
 {
@@ -22,6 +24,25 @@ class DemoSeeder extends Seeder
     {
         DB::transaction(function () {
             $now = Carbon::now();
+
+            // Default demo users
+            User::firstOrCreate(
+                ['email' => 'controller@matrix.com'],
+                [
+                    'name' => 'Admin Controller',
+                    'password' => Hash::make('password123'),
+                    'role' => 'controller',
+                ]
+            );
+
+            User::firstOrCreate(
+                ['email' => 'viewer@matrix.com'],
+                [
+                    'name' => 'Floor Viewer',
+                    'password' => Hash::make('password123'),
+                    'role' => 'viewer',
+                ]
+            );
 
             // ---------------------------------------------------------------
             // 1. Project 1: Automotive Stamping Dies

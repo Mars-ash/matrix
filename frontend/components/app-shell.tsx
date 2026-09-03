@@ -2,6 +2,7 @@
 import React, { type ReactNode, useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useAppState } from "@/lib/store";
+import { useAuth } from "@/lib/auth";
 import type { Project } from "@/lib/types";
 
 interface AppShellProps {
@@ -423,6 +424,7 @@ function NotificationBell() {
 }
 
 export function AppShell({ children, breadcrumbs }: AppShellProps) {
+  const { user, role, switchRoleDemo, logout } = useAuth();
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
       {/* Top Header */}
@@ -445,10 +447,50 @@ export function AppShell({ children, breadcrumbs }: AppShellProps) {
 
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <NotificationBell />
-          <div className="header-user-badge" style={{ textAlign: "right" }}>
-            <div style={{ fontSize: 11, fontWeight: 500, color: "var(--color-text-secondary)" }}>
-              Staff Engineering
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <button
+              type="button"
+              onClick={() => switchRoleDemo(role === "controller" ? "viewer" : "controller")}
+              title="Click to toggle between Controller and Viewer role"
+              style={{
+                fontSize: 10,
+                fontWeight: 700,
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+                padding: "3px 8px",
+                borderRadius: "var(--radius-sm)",
+                border: "1px solid var(--color-border)",
+                backgroundColor: role === "controller" ? "rgba(13, 124, 74, 0.12)" : "rgba(37, 99, 235, 0.12)",
+                color: role === "controller" ? "var(--color-status-done)" : "var(--color-accent)",
+                cursor: "pointer",
+                transition: "all 120ms ease",
+              }}
+            >
+              Role: {role} ⇄
+            </button>
+            <div className="header-user-badge" style={{ textAlign: "right" }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: "var(--color-text)" }}>
+                {user?.name || "Staff Engineering"}
+              </div>
             </div>
+            <button
+              type="button"
+              onClick={logout}
+              title="Sign Out"
+              style={{
+                background: "none",
+                border: "none",
+                color: "var(--color-text-muted)",
+                fontSize: 12,
+                cursor: "pointer",
+                padding: "4px 6px",
+                borderRadius: 4,
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = "var(--color-status-problem)")}
+              onMouseLeave={(e) => (e.currentTarget.style.color = "var(--color-text-muted)")}
+            >
+              Sign Out
+            </button>
           </div>
         </div>
       </header>

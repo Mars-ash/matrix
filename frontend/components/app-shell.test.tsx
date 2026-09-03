@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import { AuthProvider } from "@/lib/auth";
 import { AppShell } from "./app-shell";
 
 vi.mock("next/navigation", () => ({
@@ -9,9 +10,11 @@ vi.mock("next/navigation", () => ({
 describe("AppShell navigation", () => {
   it("includes a PO Tracker link beside SC Tracker", () => {
     render(
-      <AppShell>
-        <div>Content</div>
-      </AppShell>
+      <AuthProvider>
+        <AppShell>
+          <div>Content</div>
+        </AppShell>
+      </AuthProvider>
     );
 
     expect(screen.getByRole("link", { name: "PO Tracker" })).toHaveAttribute(
