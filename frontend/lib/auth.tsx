@@ -42,6 +42,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Default to demo controller user so prototype remains completely frictionless
         setUser(DEFAULT_DEMO_USER);
         setToken("demo-prototype-token");
+        try {
+          localStorage.setItem("matrix_auth_token", "demo-prototype-token");
+          localStorage.setItem("matrix_auth_user", JSON.stringify(DEFAULT_DEMO_USER));
+        } catch {}
       }
     } catch {
       setUser(DEFAULT_DEMO_USER);

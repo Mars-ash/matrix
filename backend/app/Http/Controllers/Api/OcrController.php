@@ -24,7 +24,7 @@ class OcrController extends Controller
             'kind' => ['nullable', 'string', 'in:Part,Component'],
         ]);
 
-        $cat = Category::find($category);
+        $cat = \Illuminate\Support\Str::isUuid($category) ? Category::find($category) : null;
         $kind = $cat ? $cat->kind : ($request->input('kind') ?? 'Part');
 
         $file = $request->file('image');

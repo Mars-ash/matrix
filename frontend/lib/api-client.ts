@@ -29,7 +29,7 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
 
   let token: string | null = null;
   if (typeof window !== "undefined") {
-    token = localStorage.getItem("matrix_auth_token");
+    token = localStorage.getItem("matrix_auth_token") || "demo-prototype-token";
   }
 
   const headers: HeadersInit = {
@@ -417,7 +417,8 @@ export const api = {
     const formData = new FormData();
     formData.append("image", file);
 
-    const token = typeof window !== "undefined" ? localStorage.getItem("matrix_auth_token") : null;
+    const token =
+      (typeof window !== "undefined" && localStorage.getItem("matrix_auth_token")) || "demo-prototype-token";
     const res = await fetch(`${API_BASE_URL}/categories/${categoryId}/ocr-upload`, {
       method: "POST",
       headers: {
