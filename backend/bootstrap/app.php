@@ -14,6 +14,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
+            'auth.token' => \App\Http\Middleware\AuthenticateTokenOrDemo::class,
             'role.controller' => \App\Http\Middleware\EnsureControllerRole::class,
         ]);
     })

@@ -1,0 +1,43 @@
+<?php
+
+namespace App\Http\Middleware;
+
+use App\Models\User;
+use Closure;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Laravel\Sanctum\PersonalAccessToken;
+use Symfony\Component\HttpFoundation\Response;
+
+class AuthenticateTokenOrDemo
+{
+    public function handle(Request $request, Closure $next): Response
+    {
+        $token = $request->bearerToken();
+
+        if ($token === 'demo-prototype-token') {
+            $user = User::where('role', 'controller')->first();
+            if ($user) {
+                Auth::setUser($user);
+                $request->setUserResolver(fn () => $user);
+                return $next($request);
+            }
+        }
+
+        if ($token) {
+            $pat = PersonalAccessToken::findToken($token);
+            if ($pat && $pat->tokenable) {
+                Auth::setUser($pat->tokenable);
+                $request->setUserResolver(fn () => $pat->tokenable);
+                return $next($request);
+            }
+        }
+
+        // Fallback to Sanctum session guard if available
+        if (Auth::guard('sanctum')->check()) {
+            return $next($request);
+        }
+
+        return response()->json(['message' => 'Unauthenticated.'], 401);
+    }
+}

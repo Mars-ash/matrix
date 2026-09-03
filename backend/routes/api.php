@@ -28,12 +28,15 @@ Route::prefix('auth')->group(function () {
     });
 });
 
+// OCR Vision AI Standalone Extraction
+Route::post('/ocr/extract', [\App\Http\Controllers\Api\OcrController::class, 'extract']);
+
 /*
 |--------------------------------------------------------------------------
 | Protected Domain REST API Routes
 |--------------------------------------------------------------------------
 */
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware('auth.token')->group(function () {
     // Read-only endpoints (Accessible to all authenticated users: controller & viewer)
     Route::get('/projects', [ProjectController::class, 'index']);
     Route::get('/projects/{project}', [ProjectController::class, 'show']);

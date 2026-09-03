@@ -98,15 +98,19 @@ export function AddDataDialog({
         const res = await api.uploadOcrImage(categoryId, file);
         if (res.items && res.items.length > 0) {
           setConvRows(res.items);
-          setExtractionNotice(res.message || `Berhasil mengekstrak ${res.items.length} item.`);
+          setExtractionNotice(res.message || `Berhasil mengekstrak ${res.items.length} item dari gambar via Gemini Vision AI.`);
         } else {
           setConvRows(FALLBACK_EXTRACTION.map((r) => ({ ...r })));
-          setExtractionNotice("Tidak ada teks tabel terdeteksi. Menampilkan template simulasi.");
+          setExtractionNotice(res.message || "Tidak ada teks tabel terdeteksi. Menampilkan template simulasi.");
         }
-      } catch {
-        // Fallback for offline testing or without API key
+      } catch (err: any) {
+        console.error("OCR Extraction Error:", err);
         setConvRows(FALLBACK_EXTRACTION.map((r) => ({ ...r })));
-        setExtractionNotice("Simulasi offline aktif. Silakan tinjau dan sesuaikan kolom sebelum konfirmasi.");
+        setExtractionNotice(
+          err?.message
+            ? `Peringatan (${err.message}). Menampilkan template simulasi.`
+            : "Simulasi offline aktif. Silakan tinjau dan sesuaikan kolom sebelum konfirmasi."
+        );
       } finally {
         setIsExtracting(false);
         setConvStep("preview");
@@ -311,7 +315,7 @@ export function AddDataDialog({
               />
               <span style={{ fontSize: 36, display: "block", marginBottom: 12 }}>📄</span>
               <p style={{ fontSize: 14, fontWeight: 600, color: "var(--color-text)", margin: 0 }}>
-                Drop engineering drawing or BOM table here
+                Drop data list
               </p>
               <p style={{ fontSize: 12, color: "var(--color-text-secondary)", marginTop: 4 }}>
                 or click to browse files (JPG, PNG, WebP), or press Ctrl+V to paste
