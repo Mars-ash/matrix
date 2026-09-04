@@ -80,7 +80,7 @@ export function AddDataDialog({
         description: formData.description.trim(),
         dimension: formData.dimension.trim(),
         material: formData.material.trim(),
-        qty: formData.qty || 1,
+        qty: Math.max(1, formData.qty || 1),
         hrc: formData.hrc.trim(),
         isSubcont: formData.isSubcont || undefined,
         subcontNotes: formData.isSubcont ? formData.subcontNotes.trim() : undefined,
@@ -98,7 +98,11 @@ export function AddDataDialog({
         const res = await api.uploadOcrImage(categoryId, file);
         if (res.items && res.items.length > 0) {
           setConvRows(res.items);
-          setExtractionNotice(res.message || `Berhasil mengekstrak ${res.items.length} item dari gambar via Gemini Vision AI.`);
+          if (res.provider === "offline_fallback") {
+            setExtractionNotice(res.message || "Simulasi offline aktif. Silakan tinjau dan sesuaikan kolom sebelum konfirmasi.");
+          } else {
+            setExtractionNotice("");
+          }
         } else {
           setConvRows(FALLBACK_EXTRACTION.map((r) => ({ ...r })));
           setExtractionNotice(res.message || "Tidak ada teks tabel terdeteksi. Menampilkan template simulasi.");
@@ -109,7 +113,7 @@ export function AddDataDialog({
         setExtractionNotice(
           err?.message
             ? `Peringatan (${err.message}). Menampilkan template simulasi.`
-            : "Simulasi offline aktif. Silakan tinjau dan sesuaikan kolom sebelum konfirmasi."
+            : "Gagal mengekstrak gambar. Menampilkan template simulasi."
         );
       } finally {
         setIsExtracting(false);
@@ -130,11 +134,11 @@ export function AddDataDialog({
       categoryId,
       items: validRows.map((r) => ({
         no: r.no || "-",
-        description: r.description,
-        dimension: r.dimension,
-        material: r.material,
-        qty: r.qty,
-        hrc: r.hrc,
+        description: r.description.trim(),
+        dimension: r.dimension.trim(),
+        material: r.material.trim(),
+        qty: Math.max(1, parseInt(String(r.qty), 10) || 1),
+        hrc: r.hrc.trim(),
       })),
       kind: categoryKind,
     });
@@ -145,7 +149,12 @@ export function AddDataDialog({
   const updateConvRow = useCallback((idx: number, field: string, value: string) => {
     setConvRows((prev) => {
       const next = [...prev];
-      next[idx] = { ...next[idx], [field]: field === "qty" ? parseInt(value) || 0 : value };
+      if (field === "qty") {
+        const val = parseInt(value, 10);
+        next[idx] = { ...next[idx], qty: isNaN(val) || val < 1 ? 1 : val };
+      } else {
+        next[idx] = { ...next[idx], [field]: value };
+      }
       return next;
     });
   }, []);
@@ -269,7 +278,7 @@ export function AddDataDialog({
                 }}
               />
               <p style={{ fontWeight: 600, fontSize: 14, margin: 0 }}>
-                Analyzing
+                Extracting Data...
               </p>
             </div>
           ) : (
@@ -323,25 +332,24 @@ export function AddDataDialog({
 
       {mode === "conversion" && convStep === "preview" && (
         <div onKeyDown={(e) => { if (e.key === "Enter") handleConversionConfirm(); }}>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              padding: "8px 12px",
-              backgroundColor: "rgba(37, 99, 235, 0.08)",
-              border: "1px solid rgba(37, 99, 235, 0.2)",
-              borderRadius: "var(--radius-md)",
-              marginBottom: 14,
-              fontSize: 12,
-              color: "var(--color-text)",
-            }}
-          >
-            <span>{extractionNotice || "Silakan periksa dan edit data hasil ekstraksi sebelum konfirmasi."}</span>
-            <span style={{ fontSize: 11, color: "var(--color-text-secondary)" }}>
-              {convRows.filter((r) => r.description.trim()).length} baris terdeteksi
-            </span>
-          </div>
+          {extractionNotice && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "8px 12px",
+                backgroundColor: "rgba(239, 68, 68, 0.08)",
+                border: "1px solid rgba(239, 68, 68, 0.25)",
+                borderRadius: "var(--radius-md)",
+                marginBottom: 14,
+                fontSize: 12,
+                color: "var(--color-danger, #dc2626)",
+              }}
+            >
+              <span>{extractionNotice}</span>
+            </div>
+          )}
 
           <div className="table-scroll" style={{ maxHeight: "360px", overflowY: "auto" }}>
             <table className="control-table">
@@ -394,6 +402,7 @@ export function AddDataDialog({
                       <input
                         className="input"
                         type="number"
+                        min={1}
                         value={row.qty}
                         onChange={(e) => updateConvRow(idx, "qty", e.target.value)}
                         style={{ width: "100%", padding: "4px 6px", textAlign: "center" }}

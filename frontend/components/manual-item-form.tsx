@@ -93,8 +93,9 @@ export function ManualItemForm({
           <input
             className="input"
             type="number"
+            min={1}
             value={data.qty}
-            onChange={(e) => update("qty", parseInt(e.target.value) || 1)}
+            onChange={(e) => update("qty", Math.max(1, parseInt(e.target.value) || 1))}
           />
         </div>
         <div>

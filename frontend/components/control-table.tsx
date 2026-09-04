@@ -74,18 +74,37 @@ export function ControlTable({
             <tr>
               {/* Bulk select checkbox (Controller only) */}
               {isController && (
-                <th className="th-sticky-checkbox" style={{ width: 34, textAlign: "center", padding: "6px 4px" }}>
+                <th
+                  className="th-sticky-checkbox"
+                  style={{ width: 34, textAlign: "center", padding: "6px 4px", cursor: "pointer" }}
+                  onClick={() => onToggleSelectAllCategory?.(categoryItemIds, !isAllCategorySelected)}
+                  title="Pilih semua part di kategori ini"
+                >
                   <input
                     ref={headerCheckboxRef}
                     type="checkbox"
                     checked={isAllCategorySelected}
                     onChange={(e) => onToggleSelectAllCategory?.(categoryItemIds, e.target.checked)}
+                    onClick={(e) => e.stopPropagation()}
                     style={{ cursor: "pointer", accentColor: "var(--color-accent)" }}
                     title="Pilih semua part di kategori ini"
                   />
                 </th>
               )}
-              <th className="th-sticky-no" style={{ minWidth: 36 }}>No</th>
+              <th
+                className="th-sticky-no"
+                style={{
+                  minWidth: 36,
+                  cursor: isController ? "pointer" : "default",
+                  userSelect: "none",
+                }}
+                onClick={() => {
+                  if (isController) onToggleSelectAllCategory?.(categoryItemIds, !isAllCategorySelected);
+                }}
+                title={isController ? "Pilih semua part di kategori ini" : undefined}
+              >
+                No
+              </th>
               <th style={{ minWidth: 140 }}>Description</th>
               <th style={{ minWidth: 90 }}>Dimension</th>
               <th style={{ minWidth: 70 }}>Material</th>
@@ -106,23 +125,48 @@ export function ControlTable({
                 <tr
                   key={item.id}
                   id={`item-${item.id}`}
-                  className={highlightedItemId === item.id ? "row-highlight" : undefined}
+                  className={[
+                    highlightedItemId === item.id ? "row-highlight" : "",
+                    isSelected ? "row-selected" : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
                   style={{
                     backgroundColor: isSelected ? "color-mix(in srgb, var(--color-accent) 8%, transparent)" : undefined,
                   }}
                 >
                   {/* Item selection checkbox (Controller only) */}
                   {isController && (
-                    <td className="td-sticky-checkbox" style={{ textAlign: "center", padding: "5px 4px" }}>
+                    <td
+                      className="td-sticky-checkbox"
+                      style={{ textAlign: "center", padding: "5px 4px", cursor: "pointer" }}
+                      onClick={() => onToggleSelectItem?.(item.id)}
+                      title="Klik untuk memilih/membatalkan pilihan baris"
+                    >
                       <input
                         type="checkbox"
                         checked={isSelected}
                         onChange={() => onToggleSelectItem?.(item.id)}
+                        onClick={(e) => e.stopPropagation()}
                         style={{ cursor: "pointer", accentColor: "var(--color-accent)" }}
                       />
                     </td>
                   )}
-                  <td className="td-sticky-no" style={{ fontWeight: 500, color: "var(--color-text-secondary)" }}>{item.no}</td>
+                  <td
+                    className="td-sticky-no"
+                    style={{
+                      fontWeight: 500,
+                      color: isSelected ? "var(--color-accent)" : "var(--color-text-secondary)",
+                      cursor: isController ? "pointer" : "default",
+                      userSelect: "none",
+                    }}
+                    onClick={() => {
+                      if (isController) onToggleSelectItem?.(item.id);
+                    }}
+                    title={isController ? "Klik untuk memilih/membatalkan pilihan baris" : undefined}
+                  >
+                    {item.no}
+                  </td>
                   <td style={{ fontWeight: 500 }}>{item.description}</td>
                   <td style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>{item.dimension}</td>
                   <td style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>{item.material}</td>

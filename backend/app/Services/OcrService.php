@@ -15,12 +15,12 @@ class OcrService
     public function __construct()
     {
         $this->apiKey = (string) config('ocr.gemini_api_key', '');
-        $this->model = (string) config('ocr.model', 'gemini-2.0-flash');
+        $this->model = (string) config('ocr.model', 'gemini-3.5-flash-lite');
         $this->baseUrl = (string) config('ocr.base_url', 'https://generativelanguage.googleapis.com/v1beta');
     }
 
     /**
-     * Extract table rows from an uploaded image using Gemini 2.0 Flash Vision API.
+     * Extract table rows from an uploaded image using Gemini Vision API.
      * Falls back to offline heuristic parser if API key is not configured or network error occurs.
      *
      * @param UploadedFile|string $file
@@ -37,9 +37,11 @@ class OcrService
         }
 
         try {
-            $imageData = base64_encode(file_get_contents($filePath));
+            @set_time_limit(120);
 
-            $endpoint = "{$this->baseUrl}/models/{$this->model}:generateContent?key={$this->apiKey}";
+            $optimized = $this->prepareImagePayload($filePath, $mime);
+            $imageData = $optimized['data'];
+            $mimeType = $optimized['mime'];
 
             $prompt = <<<PROMPT
 You are an expert manufacturing engineer specialized in parsing mechanical drawing BOMs, parts lists, and fabrication tables.
@@ -62,7 +64,7 @@ PROMPT;
                             ['text' => $prompt],
                             [
                                 'inline_data' => [
-                                    'mime_type' => $mime ?: 'image/jpeg',
+                                    'mime_type' => $mimeType,
                                     'data' => $imageData,
                                 ],
                             ],
@@ -71,6 +73,9 @@ PROMPT;
                 ],
                 'generationConfig' => [
                     'response_mime_type' => 'application/json',
+                    'thinking_config' => [
+                        'thinking_level' => 'minimal',
+                    ],
                     'response_schema' => [
                         'type' => 'ARRAY',
                         'items' => [
@@ -89,11 +94,44 @@ PROMPT;
                 ],
             ];
 
-            $response = Http::timeout(30)->post($endpoint, $payload);
+            $modelsToTry = array_values(array_unique([
+                $this->model,
+                'gemini-3.5-flash-lite',
+                'gemini-3.1-flash-lite',
+            ]));
 
-            if (!$response->successful()) {
-                Log::warning('Gemini OCR API error: ' . $response->body());
-                return $this->fallbackParse($categoryKind, 'Gemini API response error: ' . $response->status());
+            $response = null;
+            $lastError = '';
+
+            foreach ($modelsToTry as $m) {
+                $endpoint = "{$this->baseUrl}/models/{$m}:generateContent";
+                try {
+                    $res = Http::withHeaders([
+                        'x-goog-api-key' => $this->apiKey,
+                    ])->timeout(45)->connectTimeout(10)->post($endpoint, $payload);
+
+                    if ($res->successful()) {
+                        $response = $res;
+                        break;
+                    }
+
+                    $status = $res->status();
+                    $lastError = "status {$status}";
+                    Log::warning("Gemini OCR error for model {$m} ({$status}): " . substr($res->body(), 0, 200));
+
+                    // If quota exceeded or temporary model error, proceed to fallback model
+                    if (in_array($status, [429, 503])) {
+                        continue;
+                    }
+                } catch (\Throwable $attemptEx) {
+                    $lastError = $attemptEx->getMessage();
+                    Log::warning("Gemini OCR connection attempt failed for {$m}: " . $attemptEx->getMessage());
+                    continue;
+                }
+            }
+
+            if (!$response || !$response->successful()) {
+                return $this->fallbackParse($categoryKind, 'Layanan Gemini sedang sibuk atau batas kuota tercapai (' . $lastError . ').');
             }
 
             $json = $response->json();
@@ -124,9 +162,100 @@ PROMPT;
                 'message' => 'Berhasil mengekstrak ' . count($sanitized) . ' item dari gambar.',
             ];
         } catch (\Throwable $e) {
-            Log::error('Gemini OCR exception: ' . $e->getMessage());
-            return $this->fallbackParse($categoryKind, 'Exception: ' . $e->getMessage());
+            $msg = $e->getMessage();
+            $cleanMsg = preg_replace('/key=[^\s&"\'<>]+/i', 'key=[REDACTED]', $msg);
+            if (!empty($this->apiKey)) {
+                $cleanMsg = str_replace($this->apiKey, '[REDACTED]', $cleanMsg);
+            }
+            Log::error('Gemini OCR exception: ' . $cleanMsg);
+
+            if (str_contains(strtolower($msg), 'timed out') || str_contains(strtolower($msg), 'curl error 28')) {
+                return $this->fallbackParse($categoryKind, 'Koneksi ke Gemini AI timeout saat memproses gambar.');
+            }
+
+            return $this->fallbackParse($categoryKind, 'Koneksi OCR terputus: ' . substr($cleanMsg, 0, 100));
         }
+    }
+
+    /**
+     * Resize or optimize image if necessary to prevent oversized network payloads and timeouts.
+     *
+     * @return array{data: string, mime: string}
+     */
+    private function prepareImagePayload(string $filePath, ?string $mime): array
+    {
+        $defaultMime = $mime ?: 'image/jpeg';
+        if (!file_exists($filePath)) {
+            return ['data' => '', 'mime' => $defaultMime];
+        }
+
+        if (!extension_loaded('gd')) {
+            return [
+                'data' => base64_encode(file_get_contents($filePath)),
+                'mime' => $defaultMime,
+            ];
+        }
+
+        $imageInfo = @getimagesize($filePath);
+        if (!$imageInfo) {
+            return [
+                'data' => base64_encode(file_get_contents($filePath)),
+                'mime' => $defaultMime,
+            ];
+        }
+
+        [$origW, $origH, $imageType] = $imageInfo;
+        $maxDim = 2048;
+
+        // If dimensions and file size are already compact, send original
+        if ($origW <= $maxDim && $origH <= $maxDim && filesize($filePath) < 1200000) {
+            return [
+                'data' => base64_encode(file_get_contents($filePath)),
+                'mime' => $defaultMime,
+            ];
+        }
+
+        $src = match ($imageType) {
+            IMAGETYPE_JPEG => @imagecreatefromjpeg($filePath),
+            IMAGETYPE_PNG => @imagecreatefrompng($filePath),
+            IMAGETYPE_WEBP => @imagecreatefromwebp($filePath),
+            default => null,
+        };
+
+        if (!$src) {
+            return [
+                'data' => base64_encode(file_get_contents($filePath)),
+                'mime' => $defaultMime,
+            ];
+        }
+
+        $scale = min($maxDim / max($origW, 1), $maxDim / max($origH, 1), 1.0);
+        $newW = (int) round($origW * $scale);
+        $newH = (int) round($origH * $scale);
+
+        $dst = imagecreatetruecolor($newW, $newH);
+        $white = imagecolorallocate($dst, 255, 255, 255);
+        imagefilledrectangle($dst, 0, 0, $newW, $newH, $white);
+        imagecopyresampled($dst, $src, 0, 0, 0, 0, $newW, $newH, $origW, $origH);
+
+        ob_start();
+        imagejpeg($dst, null, 85);
+        $optimizedData = ob_get_clean();
+
+        imagedestroy($src);
+        imagedestroy($dst);
+
+        if ($optimizedData !== false && strlen($optimizedData) > 0) {
+            return [
+                'data' => base64_encode($optimizedData),
+                'mime' => 'image/jpeg',
+            ];
+        }
+
+        return [
+            'data' => base64_encode(file_get_contents($filePath)),
+            'mime' => $defaultMime,
+        ];
     }
 
     /**

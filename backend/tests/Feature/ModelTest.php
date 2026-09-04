@@ -137,7 +137,7 @@ class ModelTest extends TestCase
         $this->seed(\Database\Seeders\DemoSeeder::class);
 
         $this->assertDatabaseCount('projects', 3);
-        $this->assertDatabaseHas('projects', ['name' => 'Automotive Stamping Dies']);
+        $this->assertDatabaseHas('projects', ['name' => 'HB24']);
         $this->assertDatabaseHas('jos', ['jo_number' => '126.110']);
         $this->assertDatabaseHas('items', ['description' => 'Upper Die Shoe']);
         $this->assertDatabaseHas('trial_sessions', ['name' => 'Lower 140826']);
