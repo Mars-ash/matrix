@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { TrialReportSessionList } from "@/components/trial-report-session-list";
 import { TrialReportEditor } from "@/components/trial-report-editor";
+import { TrialReportMatrixView } from "@/components/trial-report-matrix-view";
 import { TrialSmartSearch } from "@/components/trial-smart-search";
 import { TrialSessionFormDialog } from "@/components/trial-session-form-dialog";
 import { useAppState, useAppDispatch } from "@/lib/store";
@@ -22,7 +23,7 @@ export default function TrialReportsPage({ params }: PageProps) {
   const { projectId, joId } = use(params);
   const { projects } = useAppState();
   const dispatch = useAppDispatch();
-  const { isController } = useAuth();
+  const { isController, isViewer } = useAuth();
 
   const project = projects.find((p) => p.id === projectId)
     || projects.find((p) => p.jos.some((j) => j.id === joId || j.joNumber === joId))
@@ -42,10 +43,11 @@ export default function TrialReportsPage({ params }: PageProps) {
 
   // Keep selection valid
   const selectedSession = sessions.find((s) => s.id === selectedId) ?? null;
-  if (selectedId && !selectedSession && sessions.length > 0) {
-    // Selection was invalidated (delete), auto-select first
-    setTimeout(() => setSelectedId(sessions[0].id), 0);
-  }
+  useEffect(() => {
+    if ((!selectedId || !sessions.some((s) => s.id === selectedId)) && sessions.length > 0) {
+      setSelectedId(sessions[0].id);
+    }
+  }, [selectedId, sessions]);
 
   // Handle smart search jump to session and finding
   const handleSmartSearchSelect = useCallback(
@@ -215,12 +217,19 @@ export default function TrialReportsPage({ params }: PageProps) {
 
         <div className="trial-page-editor-area">
           {selectedSession ? (
-            <TrialReportEditor
-              projectId={projectId}
-              joId={joId}
-              session={selectedSession}
-              highlightedFindingId={highlightedFindingId}
-            />
+            isViewer ? (
+              <TrialReportMatrixView
+                session={selectedSession}
+                joProduct={jo.product}
+              />
+            ) : (
+              <TrialReportEditor
+                projectId={projectId}
+                joId={joId}
+                session={selectedSession}
+                highlightedFindingId={highlightedFindingId}
+              />
+            )
           ) : (
             <div className="trial-page-empty">
               <div>

@@ -13,6 +13,7 @@ class ProjectResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'customer' => $this->customer,
+            'company' => $this->company ?? 'BKP',
             'jos' => JOResource::collection($this->whenLoaded('jos')),
         ];
     }

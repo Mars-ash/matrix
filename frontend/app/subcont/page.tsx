@@ -255,7 +255,7 @@ function SubcontTrackingContent() {
               <th style={{ minWidth: 120 }}>Supplier</th>
               <th style={{ minWidth: 90, textAlign: "center" }}>Proses</th>
               <th style={{ minWidth: 110, textAlign: "center" }}>Delivery</th>
-              <th style={{ minWidth: 155, textAlign: "center" }}>Target Arrival</th>
+              <th className="col-date" style={{ minWidth: 165, textAlign: "center" }}>Target Arrival</th>
               <th style={{ minWidth: 125, textAlign: "center" }}>Status</th>
               <th style={{ width: 50, textAlign: "center" }}>Notes</th>
             </tr>
@@ -387,7 +387,7 @@ function SubcontTrackingContent() {
                   </td>
 
                   {/* Target Arrival */}
-                  <td style={{ textAlign: "center", minWidth: 155 }}>
+                  <td className="col-date" style={{ textAlign: "center", minWidth: 165 }}>
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, width: "100%" }}>
                       {isViewer ? (
                         <span style={{ fontSize: 12, fontWeight: 500, color: row.item.arrivalTargetDate ? "var(--color-text)" : "var(--color-text-muted)" }}>
@@ -397,7 +397,15 @@ function SubcontTrackingContent() {
                         <input
                           type="date"
                           className="input"
-                          style={{ padding: "3px 6px", fontSize: 12, textAlign: "center", width: "100%" }}
+                          style={{
+                            padding: "4px 8px",
+                            fontSize: 12,
+                            textAlign: "center",
+                            width: "100%",
+                            maxWidth: 130,
+                            margin: "0 auto",
+                            display: "block",
+                          }}
                           value={row.item.arrivalTargetDate || ""}
                           onChange={(e) => {
                             dispatch({
@@ -489,39 +497,73 @@ function SubcontTrackingContent() {
 
                   {/* Notes */}
                   <td style={{ textAlign: "center" }}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditingNotesRow(row);
-                        setNotesTemp(row.item.subcontNotes || "");
-                      }}
-                      title={
-                        row.item.subcontNotes
-                          ? `Catatan: ${row.item.subcontNotes}`
-                          : isViewer
-                          ? "Lihat catatan"
-                          : "Tambah catatan"
-                      }
-                      style={{
-                        background: "none",
-                        border: "none",
-                        cursor: "pointer",
-                        padding: "4px 6px",
-                        borderRadius: 4,
-                        color: row.item.subcontNotes ? "var(--color-accent)" : "var(--color-text-muted)",
-                        fontSize: 14,
-                        lineHeight: 1,
-                        display: "inline-flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                      aria-label={`Catatan untuk ${row.item.description}`}
-                    >
-                      <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M13.5 2.5l-1-1-9 9-.5 2.5 2.5-.5 9-9z" />
-                        <path d="M11 3l2 2" />
-                      </svg>
-                    </button>
+                    {isViewer ? (
+                      row.item.subcontNotes ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingNotesRow(row);
+                            setNotesTemp(row.item.subcontNotes || "");
+                          }}
+                          title={`Lihat catatan: ${row.item.subcontNotes}`}
+                          style={{
+                            background: "none",
+                            border: "none",
+                            cursor: "pointer",
+                            padding: "4px 6px",
+                            borderRadius: 4,
+                            color: "var(--color-accent)",
+                            fontSize: 14,
+                            lineHeight: 1,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                          aria-label={`Lihat catatan untuk ${row.item.description}`}
+                        >
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                            <polyline points="14 2 14 8 20 8" />
+                            <line x1="16" y1="13" x2="8" y2="13" />
+                            <line x1="16" y1="17" x2="8" y2="17" />
+                          </svg>
+                        </button>
+                      ) : (
+                        <span style={{ color: "var(--color-text-muted)", fontSize: 12 }}>—</span>
+                      )
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingNotesRow(row);
+                          setNotesTemp(row.item.subcontNotes || "");
+                        }}
+                        title={
+                          row.item.subcontNotes
+                            ? `Catatan: ${row.item.subcontNotes}`
+                            : "Tambah catatan"
+                        }
+                        style={{
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          padding: "4px 6px",
+                          borderRadius: 4,
+                          color: row.item.subcontNotes ? "var(--color-accent)" : "var(--color-text-muted)",
+                          fontSize: 14,
+                          lineHeight: 1,
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                        aria-label={`Catatan untuk ${row.item.description}`}
+                      >
+                        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M13.5 2.5l-1-1-9 9-.5 2.5 2.5-.5 9-9z" />
+                          <path d="M11 3l2 2" />
+                        </svg>
+                      </button>
+                    )}
                   </td>
                 </tr>
               );
@@ -755,7 +797,7 @@ function SubcontTrackingContent() {
       <Dialog
         open={!!editingNotesRow}
         onClose={() => setEditingNotesRow(null)}
-        title="Subcont Notes"
+        title={isViewer ? "Lihat Catatan Subcont" : "Subcont Notes"}
         footer={
           <>
             <button className="btn btn-secondary" onClick={() => setEditingNotesRow(null)}>
@@ -790,15 +832,31 @@ function SubcontTrackingContent() {
             {editingNotesRow.item.description} — {editingNotesRow.jo.joNumber}
           </p>
         )}
-        <textarea
-          className="input"
-          rows={4}
-          placeholder={isViewer ? "Tidak ada catatan." : "Tulis catatan..."}
-          value={notesTemp}
-          onChange={(e) => setNotesTemp(e.target.value)}
-          readOnly={isViewer}
-          autoFocus={!isViewer}
-        />
+        {isViewer ? (
+          <div
+            style={{
+              padding: "10px 14px",
+              background: "var(--color-bg-wash)",
+              border: "1px solid var(--color-border)",
+              borderRadius: "var(--radius-md)",
+              fontSize: 13,
+              whiteSpace: "pre-wrap",
+              minHeight: 60,
+              color: notesTemp ? "var(--color-text)" : "var(--color-text-muted)",
+            }}
+          >
+            {notesTemp || "Tidak ada catatan."}
+          </div>
+        ) : (
+          <textarea
+            className="input"
+            rows={4}
+            placeholder="Tulis catatan..."
+            value={notesTemp}
+            onChange={(e) => setNotesTemp(e.target.value)}
+            autoFocus
+          />
+        )}
       </Dialog>
 
       {/* Floating Bulk Action Bar */}

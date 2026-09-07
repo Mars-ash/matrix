@@ -47,8 +47,8 @@ class AuthenticateTokenOrDemo
             return $next($request);
         }
 
-        // In local/testing environment, fallback to demo controller if no token was sent
-        if (!$token && app()->environment('local', 'testing')) {
+        // In local/testing environment, fallback to demo controller if token was missing or expired
+        if (app()->environment('local', 'testing')) {
             $user = User::where('role', 'controller')->first();
             if ($user) {
                 Auth::setUser($user);

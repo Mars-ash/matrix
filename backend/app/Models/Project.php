@@ -14,10 +14,11 @@ class Project extends Model
     protected $fillable = [
         'name',
         'customer',
+        'company',
     ];
 
     public function jos(): HasMany
     {
-        return $this->hasMany(JO::class);
+        return $this->hasMany(JO::class)->orderBy('jo_number', 'asc');
     }
 }

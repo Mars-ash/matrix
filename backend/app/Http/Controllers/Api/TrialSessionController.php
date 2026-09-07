@@ -51,6 +51,7 @@ class TrialSessionController extends Controller
         }
 
         $validated = $request->validate([
+            'id' => ['nullable', 'string', 'max:255'],
             'name' => ['required', 'string', 'max:255'],
             'trialDate' => ['nullable', 'date'],
             'updateDate' => ['nullable', 'date'],
@@ -64,6 +65,7 @@ class TrialSessionController extends Controller
             $nowDate = Carbon::now()->format('Y-m-d');
 
             $session = $jo->trialSessions()->create([
+                'id' => $validated['id'] ?? (string) Str::uuid(),
                 'name' => $validated['name'],
                 'trial_date' => $validated['trialDate'] ?? $nowDate,
                 'update_date' => $validated['updateDate'] ?? $nowDate,
@@ -207,17 +209,68 @@ class TrialSessionController extends Controller
         return response()->json(['message' => 'Trial Session deleted successfully.']);
     }
 
+    public function publish(Request $request, TrialSession $session): JsonResponse
+    {
+        if (!$request->user()?->isController()) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
+        $now = Carbon::now();
+        $inputSnapshot = $request->input('snapshot');
+
+        if (is_array($inputSnapshot) && !empty($inputSnapshot)) {
+            $snapshotData = $inputSnapshot;
+            $snapshotData['lastPublishedAt'] = $now->toIso8601String();
+            $snapshotData['updateDate'] = $now->toDateString();
+
+            // Also keep top-level session fields aligned in PostgreSQL
+            $metadataUpdates = [
+                'published_snapshot' => $snapshotData,
+                'last_published_at' => $now,
+                'update_date' => $now->toDateString(),
+            ];
+            if (!empty($inputSnapshot['name'])) $metadataUpdates['name'] = $inputSnapshot['name'];
+            if (!empty($inputSnapshot['customer'])) $metadataUpdates['customer'] = $inputSnapshot['customer'];
+            if (!empty($inputSnapshot['jobNo'])) $metadataUpdates['job_no'] = $inputSnapshot['jobNo'];
+            if (!empty($inputSnapshot['picName'])) $metadataUpdates['pic_name'] = $inputSnapshot['picName'];
+            if (!empty($inputSnapshot['approvedByName'])) $metadataUpdates['approved_by_name'] = $inputSnapshot['approvedByName'];
+            if (!empty($inputSnapshot['trialDate'])) $metadataUpdates['trial_date'] = $inputSnapshot['trialDate'];
+
+            $session->update($metadataUpdates);
+        } else {
+            $session->load(['findings.entries.photos']);
+            $resource = new TrialSessionResource($session);
+            $snapshotData = $resource->resolve();
+
+            $session->update([
+                'published_snapshot' => $snapshotData,
+                'last_published_at' => $now,
+                'update_date' => $now->toDateString(),
+            ]);
+        }
+
+        return response()->json([
+            'data' => new TrialSessionResource($session->fresh(['findings.entries.photos'])),
+            'message' => 'Trial session snapshot published to viewer successfully.',
+        ]);
+    }
+
     public function addFinding(Request $request, TrialSession $session): JsonResponse
     {
         if (!$request->user()?->isController()) {
             return response()->json(['message' => 'Forbidden.'], 403);
         }
 
+        $validated = $request->validate([
+            'id' => ['nullable', 'string', 'max:255'],
+        ]);
+
         $nowDate = Carbon::now()->format('Y-m-d');
         $maxOrder = $session->findings()->max('order') ?? 0;
 
-        $finding = DB::transaction(function () use ($session, $maxOrder, $nowDate) {
+        $finding = DB::transaction(function () use ($session, $maxOrder, $nowDate, $validated) {
             $finding = $session->findings()->create([
+                'id' => $validated['id'] ?? (string) Str::uuid(),
                 'order' => $maxOrder + 1,
             ]);
 
@@ -263,6 +316,7 @@ class TrialSessionController extends Controller
         }
 
         $validated = $request->validate([
+            'id' => ['nullable', 'string', 'max:255'],
             'section' => ['required', 'in:problems,causes,correctiveActions'],
             'text' => ['nullable', 'string'],
             'targetDate' => ['nullable', 'date'],
@@ -273,6 +327,7 @@ class TrialSessionController extends Controller
         $maxOrder = $finding->entries()->where('section', $validated['section'])->max('order') ?? 0;
 
         $entry = $finding->entries()->create([
+            'id' => $validated['id'] ?? (string) Str::uuid(),
             'section' => $validated['section'],
             'order' => $maxOrder + 1,
             'text' => $validated['text'] ?? '',

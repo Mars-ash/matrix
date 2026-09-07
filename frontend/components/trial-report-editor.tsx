@@ -4,7 +4,11 @@ import { TrialFindingCard } from "./trial-finding-card";
 import { useAppDispatch } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
 import { uid } from "@/lib/format";
-import { sortTrialFindings, deriveTrialSessionStatus } from "@/lib/trial-report";
+import {
+  sortTrialFindings,
+  deriveTrialSessionStatus,
+  formatDateTimeDDMMYYYYHHmm,
+} from "@/lib/trial-report";
 import type { TrialSession, TrialFinding } from "@/lib/types";
 
 interface TrialReportEditorProps {
@@ -24,13 +28,32 @@ export function TrialReportEditor({
   const { isController, isViewer } = useAuth();
   const sortedFindings = sortTrialFindings(session.findings);
   const derivedStatus = deriveTrialSessionStatus(session);
+  const [showToast, setShowToast] = useState(false);
 
-  // Set of expanded finding IDs (default: empty set -> all collapsed)
-  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const formatPublishedTimestamp = (iso?: string) => {
+    if (!iso) return "Belum pernah";
+    return formatDateTimeDDMMYYYYHHmm(iso);
+  };
 
-  // Reset expanded findings when session changes
+  const handlePublishToViewer = () => {
+    dispatch({
+      type: "PUBLISH_TRIAL_SESSION_TO_VIEWER",
+      projectId,
+      joId,
+      sessionId: session.id,
+    });
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 4000);
+  };
+
+  // Set of expanded finding IDs (default: all findings expanded so inputs and statuses are immediately accessible)
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(
+    () => new Set(session.findings.map((f) => f.id))
+  );
+
+  // Expand all findings when session changes
   useEffect(() => {
-    setExpandedIds(new Set());
+    setExpandedIds(new Set(session.findings.map((f) => f.id)));
   }, [session.id]);
 
   // Auto-expand highlighted finding if smart search jumps to it
@@ -141,6 +164,51 @@ export function TrialReportEditor({
 
   return (
     <div className="trial-editor">
+      {/* Staff Engineering Synchronization Bar */}
+      {isController && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "8px 14px",
+            marginBottom: 16,
+            background: "var(--color-bg-surface, #ffffff)",
+            border: "1px solid var(--color-border)",
+            borderRadius: "var(--radius-md)",
+            gap: 12,
+          }}
+        >
+          <div style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>
+            Terakhir diperbarui:{" "}
+            <span style={{ color: "var(--color-text)", fontWeight: 600 }}>
+              {formatPublishedTimestamp(session.lastPublishedAt)}
+            </span>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            {showToast && (
+              <span style={{ fontSize: 12, color: "var(--color-status-done)", fontWeight: 500 }}>
+                Tersimpan
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={handlePublishToViewer}
+              className="btn btn-primary"
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                letterSpacing: "0.04em",
+                padding: "5px 14px",
+              }}
+            >
+              UPDATE
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Session identity */}
       <div className="trial-editor-identity">
         <div style={{ flex: 1, minWidth: 240, maxWidth: 460 }}>

@@ -9,6 +9,9 @@ import {
   sortTrialEntries,
   formatFindingLetter,
   cloneTrialSessionWithoutPhotos,
+  createTrialSessionSnapshot,
+  hasUnpublishedTrialChanges,
+  formatDateTimeDDMMYYYYHHmm,
 } from "./trial-report";
 import type {
   TrialSession,
@@ -530,3 +533,54 @@ describe("deriveTrialSessionStatus", () => {
     expect(deriveTrialSessionStatus(session)).toBe("Close");
   });
 });
+
+describe("createTrialSessionSnapshot and hasUnpublishedTrialChanges", () => {
+  it("detects unpublished changes when publishedSnapshot is undefined", () => {
+    const session = makeSession();
+    expect(hasUnpublishedTrialChanges(session)).toBe(true);
+  });
+
+  it("creates a snapshot and recognizes that there are no unpublished changes", () => {
+    const session = makeSession();
+    const snapshot = createTrialSessionSnapshot(session);
+    session.publishedSnapshot = snapshot;
+    expect(hasUnpublishedTrialChanges(session)).toBe(false);
+  });
+
+  it("detects unpublished changes when session findings are updated", () => {
+    const session = makeSession();
+    session.publishedSnapshot = createTrialSessionSnapshot(session);
+    expect(hasUnpublishedTrialChanges(session)).toBe(false);
+
+    // Modify a finding problem text
+    session.findings.push(makeFinding({ order: 2 }));
+    expect(hasUnpublishedTrialChanges(session)).toBe(true);
+  });
+
+  it("detects unpublished changes when session metadata like name or trialDate is changed", () => {
+    const session = makeSession();
+    session.publishedSnapshot = createTrialSessionSnapshot(session);
+    expect(hasUnpublishedTrialChanges(session)).toBe(false);
+
+    session.name = "Updated Session Name";
+    expect(hasUnpublishedTrialChanges(session)).toBe(true);
+  });
+});
+
+describe("formatDateTimeDDMMYYYYHHmm", () => {
+  it("returns '—' when input is undefined or empty", () => {
+    expect(formatDateTimeDDMMYYYYHHmm()).toBe("—");
+    expect(formatDateTimeDDMMYYYYHHmm("")).toBe("—");
+  });
+
+  it("formats date-only string with 00:00 time", () => {
+    expect(formatDateTimeDDMMYYYYHHmm("2026-08-25")).toBe("25-08-2026 00:00");
+  });
+
+  it("formats ISO string with date and time", () => {
+    const formatted = formatDateTimeDDMMYYYYHHmm("2026-08-25T10:30:00Z");
+    // Verify it contains dd-mm-yyyy and hh:mm format
+    expect(formatted).toMatch(/^\d{2}-\d{2}-2026 \d{2}:\d{2}$/);
+  });
+});
+

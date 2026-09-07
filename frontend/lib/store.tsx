@@ -25,6 +25,7 @@ import type {
   TrialTextEntry,
   TrialCorrectiveActionEntry,
   TrialEntryPhoto,
+  CompanyEntity,
 } from "./types";
 import { INITIAL_PROJECTS } from "./mock-data";
 import { defaultControls } from "./category";
@@ -57,6 +58,7 @@ export type AppAction =
       id: string;
       name: string;
       customer: string;
+      company?: CompanyEntity;
     }
   | {
       type: "CREATE_JO";
@@ -218,6 +220,12 @@ export type AppAction =
       updates: Partial<Omit<TrialSession, "id" | "joId" | "findings" | "createdAt">>;
     }
   | {
+      type: "PUBLISH_TRIAL_SESSION_TO_VIEWER";
+      projectId: string;
+      joId: string;
+      sessionId: string;
+    }
+  | {
       type: "DELETE_TRIAL_SESSION";
       projectId: string;
       joId: string;
@@ -294,6 +302,7 @@ export type AppAction =
       section: TrialEntrySection;
       entryId: string;
       photo: { id: string; name: string; previewUrl: string };
+      file?: File;
     }
   | {
       type: "REMOVE_TRIAL_ENTRY_PHOTO";
@@ -304,11 +313,52 @@ export type AppAction =
       section: TrialEntrySection;
       entryId: string;
       photoId: string;
+    }
+  | {
+      type: "HYDRATE_TRIAL_STORAGE";
+      stored?: Record<string, TrialSession[]>;
     };
 
 // ---------------------------------------------------------------------------
-// Helpers
+// Helpers & Storage
 // ---------------------------------------------------------------------------
+import {
+  TRIAL_STORAGE_KEY,
+  CLIENT_TAB_ID,
+  updateTrialMemoryCache,
+  saveTrialSessionsToStorage,
+  loadTrialSessionsFromStorage,
+  loadTrialSessionsFromIndexedDB,
+  hydrateTrialSessions,
+  canonicalMergeTrialSessions,
+  clearTrialStorageCache,
+} from "./trial-storage";
+
+export {
+  TRIAL_STORAGE_KEY,
+  CLIENT_TAB_ID,
+  updateTrialMemoryCache,
+  saveTrialSessionsToStorage,
+  loadTrialSessionsFromStorage,
+  loadTrialSessionsFromIndexedDB,
+  hydrateTrialSessions,
+  canonicalMergeTrialSessions,
+  clearTrialStorageCache,
+};
+
+function findProjectAndJo(
+  projects: Project[],
+  projectId: string,
+  joId: string
+): { project?: Project; jo?: JO } {
+  let project = projects.find((p) => p.id === projectId);
+  if (!project) {
+    project = projects.find((p) => p.jos?.some((j) => j.id === joId || j.joNumber === joId));
+  }
+  const jo = project?.jos?.find((j) => j.id === joId || j.joNumber === joId);
+  return { project, jo };
+}
+
 function addActivity(jo: JO, message: string): void {
   if (!jo.activities) {
     jo.activities = [];
@@ -323,25 +373,49 @@ function addActivity(jo: JO, message: string): void {
 // ---------------------------------------------------------------------------
 // Reducer
 // ---------------------------------------------------------------------------
-function reducer(state: AppState, action: AppAction): AppState {
-  // Deep-clone to guarantee immutability without library overhead.
-  const next = structuredClone(state);
+function executeReducer(next: AppState, state: AppState, action: AppAction): AppState {
 
   switch (action.type) {
     case "SET_PROJECTS": {
+      const storedTrials = loadTrialSessionsFromStorage();
+      const existingTrialsByJoNumber = new Map<string, TrialSession[]>();
+      const existingTrialsById = new Map<string, TrialSession[]>();
+      for (const p of state.projects) {
+        for (const j of p.jos || []) {
+          if (j.trialSessions && j.trialSessions.length > 0) {
+            existingTrialsByJoNumber.set(j.joNumber, j.trialSessions);
+            existingTrialsById.set(j.id, j.trialSessions);
+          }
+        }
+      }
+
       next.projects = action.projects.map((p) => ({
         ...p,
-        jos: (p.jos || []).map((j) => ({
-          ...j,
-          activities: j.activities || [],
-          categories: (j.categories || []).map((c) => ({
-            ...c,
-            items: (c.items || []).map((item) => ({
-              ...item,
-              controls: item.controls || [],
+        jos: (p.jos || []).map((j) => {
+          const fromStored = storedTrials[j.id] || (j.joNumber ? storedTrials[j.joNumber] : undefined) || [];
+          const fromExisting = existingTrialsById.get(j.id) || (j.joNumber ? existingTrialsByJoNumber.get(j.joNumber) : undefined) || [];
+          const backendSessions = j.trialSessions || [];
+
+          // Canonical merge of backend sessions (with database ULIDs), existing in-memory state, and storage
+          const mergedSessions = canonicalMergeTrialSessions([
+            ...backendSessions,
+            ...fromExisting,
+            ...fromStored,
+          ]);
+
+          return {
+            ...j,
+            activities: j.activities || [],
+            trialSessions: mergedSessions,
+            categories: (j.categories || []).map((c) => ({
+              ...c,
+              items: (c.items || []).map((item) => ({
+                ...item,
+                controls: item.controls || [],
+              })),
             })),
-          })),
-        })),
+          };
+        }),
       }));
       return next;
     }
@@ -351,6 +425,7 @@ function reducer(state: AppState, action: AppAction): AppState {
         id: action.id,
         name: action.name,
         customer: action.customer,
+        company: action.company || "BKP",
         jos: [],
       };
       next.projects.push(newProj);
@@ -816,9 +891,13 @@ function reducer(state: AppState, action: AppAction): AppState {
     // -----------------------------------------------------------------------
     // Trial report actions
     // -----------------------------------------------------------------------
+    case "HYDRATE_TRIAL_STORAGE": {
+      next.projects = hydrateTrialSessions(next.projects, action.stored);
+      return next;
+    }
+
     case "CREATE_TRIAL_SESSION": {
-      const project = next.projects.find((p) => p.id === action.projectId);
-      const jo = project?.jos.find((j) => j.id === action.joId);
+      const { jo } = findProjectAndJo(next.projects, action.projectId, action.joId);
       if (!jo) return state;
       if (!jo.trialSessions) jo.trialSessions = [];
       jo.trialSessions.push(action.session);
@@ -826,8 +905,7 @@ function reducer(state: AppState, action: AppAction): AppState {
     }
 
     case "DUPLICATE_TRIAL_SESSION": {
-      const project = next.projects.find((p) => p.id === action.projectId);
-      const jo = project?.jos.find((j) => j.id === action.joId);
+      const { jo } = findProjectAndJo(next.projects, action.projectId, action.joId);
       if (!jo) return state;
       if (!jo.trialSessions) jo.trialSessions = [];
       const sourceExists = jo.trialSessions.some(
@@ -839,8 +917,7 @@ function reducer(state: AppState, action: AppAction): AppState {
     }
 
     case "UPDATE_TRIAL_SESSION": {
-      const project = next.projects.find((p) => p.id === action.projectId);
-      const jo = project?.jos.find((j) => j.id === action.joId);
+      const { jo } = findProjectAndJo(next.projects, action.projectId, action.joId);
       if (!jo) return state;
       const sessions = jo.trialSessions ?? [];
       const session = sessions.find((s) => s.id === action.sessionId);
@@ -850,9 +927,37 @@ function reducer(state: AppState, action: AppAction): AppState {
       return next;
     }
 
+    case "PUBLISH_TRIAL_SESSION_TO_VIEWER": {
+      const { jo } = findProjectAndJo(next.projects, action.projectId, action.joId);
+      if (!jo) return state;
+      const sessions = jo.trialSessions ?? [];
+      const session = sessions.find(
+        (s) => s.id === action.sessionId || (s.name && s.name.trim().toLowerCase() === action.sessionId.trim().toLowerCase())
+      );
+      if (!session) return state;
+      const now = new Date().toISOString();
+      session.updateDate = now;
+      session.updatedAt = now;
+      session.publishedSnapshot = {
+        id: session.id,
+        joId: session.joId,
+        name: session.name,
+        trialDate: session.trialDate,
+        updateDate: now,
+        customer: session.customer,
+        jobNo: session.jobNo,
+        picName: session.picName,
+        approvedByName: session.approvedByName,
+        findings: JSON.parse(JSON.stringify(session.findings)),
+        createdAt: session.createdAt,
+        updatedAt: now,
+      };
+      session.lastPublishedAt = now;
+      return next;
+    }
+
     case "DELETE_TRIAL_SESSION": {
-      const project = next.projects.find((p) => p.id === action.projectId);
-      const jo = project?.jos.find((j) => j.id === action.joId);
+      const { jo } = findProjectAndJo(next.projects, action.projectId, action.joId);
       if (!jo) return state;
       const sessions = jo.trialSessions ?? [];
       const idx = sessions.findIndex((s) => s.id === action.sessionId);
@@ -863,8 +968,7 @@ function reducer(state: AppState, action: AppAction): AppState {
     }
 
     case "ADD_TRIAL_FINDING": {
-      const project = next.projects.find((p) => p.id === action.projectId);
-      const jo = project?.jos.find((j) => j.id === action.joId);
+      const { jo } = findProjectAndJo(next.projects, action.projectId, action.joId);
       if (!jo) return state;
       const session = (jo.trialSessions ?? []).find(
         (s) => s.id === action.sessionId
@@ -876,8 +980,7 @@ function reducer(state: AppState, action: AppAction): AppState {
     }
 
     case "DELETE_TRIAL_FINDING": {
-      const project = next.projects.find((p) => p.id === action.projectId);
-      const jo = project?.jos.find((j) => j.id === action.joId);
+      const { jo } = findProjectAndJo(next.projects, action.projectId, action.joId);
       if (!jo) return state;
       const session = (jo.trialSessions ?? []).find(
         (s) => s.id === action.sessionId
@@ -897,8 +1000,7 @@ function reducer(state: AppState, action: AppAction): AppState {
     }
 
     case "REORDER_TRIAL_FINDING": {
-      const project = next.projects.find((p) => p.id === action.projectId);
-      const jo = project?.jos.find((j) => j.id === action.joId);
+      const { jo } = findProjectAndJo(next.projects, action.projectId, action.joId);
       if (!jo) return state;
       const session = (jo.trialSessions ?? []).find(
         (s) => s.id === action.sessionId
@@ -921,8 +1023,7 @@ function reducer(state: AppState, action: AppAction): AppState {
     }
 
     case "ADD_TRIAL_ENTRY": {
-      const project = next.projects.find((p) => p.id === action.projectId);
-      const jo = project?.jos.find((j) => j.id === action.joId);
+      const { jo } = findProjectAndJo(next.projects, action.projectId, action.joId);
       if (!jo) return state;
       const session = (jo.trialSessions ?? []).find(
         (s) => s.id === action.sessionId
@@ -955,8 +1056,7 @@ function reducer(state: AppState, action: AppAction): AppState {
     }
 
     case "UPDATE_TRIAL_ENTRY": {
-      const project = next.projects.find((p) => p.id === action.projectId);
-      const jo = project?.jos.find((j) => j.id === action.joId);
+      const { jo } = findProjectAndJo(next.projects, action.projectId, action.joId);
       if (!jo) return state;
       const session = (jo.trialSessions ?? []).find(
         (s) => s.id === action.sessionId
@@ -985,8 +1085,7 @@ function reducer(state: AppState, action: AppAction): AppState {
     }
 
     case "DELETE_TRIAL_ENTRY": {
-      const project = next.projects.find((p) => p.id === action.projectId);
-      const jo = project?.jos.find((j) => j.id === action.joId);
+      const { jo } = findProjectAndJo(next.projects, action.projectId, action.joId);
       if (!jo) return state;
       const session = (jo.trialSessions ?? []).find(
         (s) => s.id === action.sessionId
@@ -1021,8 +1120,7 @@ function reducer(state: AppState, action: AppAction): AppState {
     }
 
     case "REORDER_TRIAL_ENTRY": {
-      const project = next.projects.find((p) => p.id === action.projectId);
-      const jo = project?.jos.find((j) => j.id === action.joId);
+      const { jo } = findProjectAndJo(next.projects, action.projectId, action.joId);
       if (!jo) return state;
       const session = (jo.trialSessions ?? []).find(
         (s) => s.id === action.sessionId
@@ -1061,8 +1159,7 @@ function reducer(state: AppState, action: AppAction): AppState {
     }
 
     case "ADD_TRIAL_ENTRY_PHOTO": {
-      const project = next.projects.find((p) => p.id === action.projectId);
-      const jo = project?.jos.find((j) => j.id === action.joId);
+      const { jo } = findProjectAndJo(next.projects, action.projectId, action.joId);
       if (!jo) return state;
       const session = (jo.trialSessions ?? []).find(
         (s) => s.id === action.sessionId
@@ -1093,8 +1190,7 @@ function reducer(state: AppState, action: AppAction): AppState {
     }
 
     case "REMOVE_TRIAL_ENTRY_PHOTO": {
-      const project = next.projects.find((p) => p.id === action.projectId);
-      const jo = project?.jos.find((j) => j.id === action.joId);
+      const { jo } = findProjectAndJo(next.projects, action.projectId, action.joId);
       if (!jo) return state;
       const session = (jo.trialSessions ?? []).find(
         (s) => s.id === action.sessionId
@@ -1122,9 +1218,26 @@ function reducer(state: AppState, action: AppAction): AppState {
       return next;
     }
 
+    case "HYDRATE_TRIAL_STORAGE": {
+      const stored = action.stored || loadTrialSessionsFromStorage();
+      if (!stored || Object.keys(stored).length === 0) return state;
+      next.projects = hydrateTrialSessions(next.projects, stored);
+      return next;
+    }
+
     default:
       return state;
   }
+}
+
+function reducer(state: AppState, action: AppAction): AppState {
+  // Deep-clone to guarantee immutability without library overhead.
+  const next = structuredClone(state);
+  const result = executeReducer(next, state, action);
+  if (action.type.includes("TRIAL") && result !== state) {
+    saveTrialSessionsToStorage(result.projects);
+  }
+  return result;
 }
 
 // ---------------------------------------------------------------------------
@@ -1135,6 +1248,41 @@ const DispatchContext = createContext<Dispatch<AppAction>>(() => {});
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [state, rawDispatch] = useReducer(reducer, initialState);
+
+  // Hydrate trial sessions from localStorage & IndexedDB once mounted on client (avoids SSR hydration mismatch)
+  useEffect(() => {
+    // 1. Fast sync hydration from memoryCache or localStorage
+    rawDispatch({ type: "HYDRATE_TRIAL_STORAGE" });
+
+    // 2. Full IndexedDB hydration (handles large base64 photos without browser quota limits)
+    loadTrialSessionsFromIndexedDB().then((stored) => {
+      if (stored && Object.keys(stored).length > 0) {
+        rawDispatch({ type: "HYDRATE_TRIAL_STORAGE", stored });
+      }
+    });
+
+    // 3. Real-time cross-tab listener via BroadcastChannel
+    let channel: BroadcastChannel | null = null;
+    if (typeof window !== "undefined" && "BroadcastChannel" in window) {
+      channel = new BroadcastChannel("matrix_trial_sync_channel");
+      channel.onmessage = async (e) => {
+        if (e.data?.type === "TRIAL_STORAGE_UPDATED") {
+          // Discard self-broadcast! This tab already has the newest state in memory
+          if (e.data?.senderTabId === CLIENT_TAB_ID) {
+            return;
+          }
+          const stored = await loadTrialSessionsFromIndexedDB();
+          if (stored && Object.keys(stored).length > 0) {
+            rawDispatch({ type: "HYDRATE_TRIAL_STORAGE", stored });
+          }
+        }
+      };
+    }
+
+    return () => {
+      channel?.close();
+    };
+  }, []);
 
   // Sync initial state from backend on mount
   useEffect(() => {
@@ -1163,7 +1311,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     // 2. Background API persistence
     switch (action.type) {
       case "CREATE_PROJECT":
-        api.createProject(action.name, action.customer).catch(() => {});
+        api.createProject(action.name, action.customer, action.company).catch(() => {});
         break;
 
       case "CREATE_JO":
@@ -1261,6 +1409,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       case "CREATE_TRIAL_SESSION":
         api
           .createTrialSession(action.joId, {
+            id: action.session.id,
             name: action.session.name,
             trialDate: action.session.trialDate,
             updateDate: action.session.updateDate,
@@ -1284,12 +1433,49 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           .catch(() => {});
         break;
 
+      case "PUBLISH_TRIAL_SESSION_TO_VIEWER": {
+        const { jo } = findProjectAndJo(state.projects, action.projectId, action.joId);
+        const session = (jo?.trialSessions ?? []).find(
+          (s) => s.id === action.sessionId || (s.name && s.name.trim().toLowerCase() === action.sessionId.trim().toLowerCase())
+        );
+        if (session) {
+          let targetSessionId = session.id;
+          if (!Boolean(targetSessionId && targetSessionId.length >= 26 && targetSessionId.includes("-"))) {
+            const matchWithBackendId = (jo?.trialSessions ?? []).find(
+              (s) => s.id.length >= 26 && s.id.includes("-") && s.name.trim().toLowerCase() === session.name.trim().toLowerCase()
+            );
+            if (matchWithBackendId) {
+              targetSessionId = matchWithBackendId.id;
+            }
+          }
+          const now = new Date().toISOString();
+          const freshSnapshot: TrialSession = {
+            id: targetSessionId,
+            joId: session.joId,
+            name: session.name,
+            trialDate: session.trialDate,
+            updateDate: now,
+            customer: session.customer,
+            jobNo: session.jobNo,
+            picName: session.picName,
+            approvedByName: session.approvedByName,
+            findings: JSON.parse(JSON.stringify(session.findings)),
+            createdAt: session.createdAt,
+            updatedAt: now,
+          };
+          api.publishTrialSession(targetSessionId, freshSnapshot).catch((err) => {
+            console.error("Failed to publish trial session to backend:", err);
+          });
+        }
+        break;
+      }
+
       case "DELETE_TRIAL_SESSION":
         api.deleteTrialSession(action.sessionId).catch(() => {});
         break;
 
       case "ADD_TRIAL_FINDING":
-        api.addTrialFinding(action.sessionId).catch(() => {});
+        api.addTrialFinding(action.sessionId, { id: action.finding.id }).catch(() => {});
         break;
 
       case "DELETE_TRIAL_FINDING":
@@ -1299,6 +1485,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       case "ADD_TRIAL_ENTRY":
         api
           .addTrialEntry(action.findingId, {
+            id: (action.entry as any).id,
             section: action.section,
             text: (action.entry as any).text,
             targetDate: (action.entry as any).targetDate,
@@ -1321,6 +1508,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
       case "DELETE_TRIAL_ENTRY":
         api.deleteTrialEntry(action.entryId).catch(() => {});
+        break;
+
+      case "ADD_TRIAL_ENTRY_PHOTO":
+        if (action.file) {
+          api.uploadTrialPhoto(action.entryId, action.file).catch(() => {});
+        }
         break;
 
       case "REMOVE_TRIAL_ENTRY_PHOTO":

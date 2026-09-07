@@ -13,6 +13,7 @@ class TrialSession extends Model
     use HasFactory, HasUuids;
 
     protected $fillable = [
+        'id',
         'jo_id',
         'name',
         'trial_date',
@@ -21,6 +22,8 @@ class TrialSession extends Model
         'job_no',
         'pic_name',
         'approved_by_name',
+        'published_snapshot',
+        'last_published_at',
     ];
 
     protected function casts(): array
@@ -28,6 +31,8 @@ class TrialSession extends Model
         return [
             'trial_date' => 'date:Y-m-d',
             'update_date' => 'date:Y-m-d',
+            'published_snapshot' => 'array',
+            'last_published_at' => 'datetime',
         ];
     }
 

@@ -4,6 +4,7 @@
 // ---------------------------------------------------------------------------
 import type {
   TrialSession,
+  TrialSessionSnapshot,
   TrialFinding,
   TrialFindingStatus,
 } from "./types";
@@ -23,6 +24,33 @@ export function formatDateDDMMYYYY(date: string): string {
     return date;
   }
   return `${dd.padStart(2, "0")}-${mm.padStart(2, "0")}-${yyyy}`;
+}
+
+/**
+ * Convert an ISO date/time string or YYYY-MM-DD date to dd-mm-yyyy hh:mm format.
+ * Returns "—" for empty input.
+ */
+export function formatDateTimeDDMMYYYYHHmm(dateStr?: string): string {
+  if (!dateStr) return "—";
+  try {
+    if (!dateStr.includes("T") && !dateStr.includes(":") && !dateStr.includes(" ")) {
+      const parts = dateStr.split("-");
+      if (parts.length === 3) {
+        const [yyyy, mm, dd] = parts;
+        return `${dd.padStart(2, "0")}-${mm.padStart(2, "0")}-${yyyy} 00:00`;
+      }
+    }
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    const day = d.getDate().toString().padStart(2, "0");
+    const month = (d.getMonth() + 1).toString().padStart(2, "0");
+    const year = d.getFullYear();
+    const hours = d.getHours().toString().padStart(2, "0");
+    const mins = d.getMinutes().toString().padStart(2, "0");
+    return `${day}-${month}-${year} ${hours}:${mins}`;
+  } catch {
+    return dateStr;
+  }
 }
 
 /**
@@ -191,3 +219,58 @@ export function cloneTrialSessionWithoutPhotos(
     updatedAt: now,
   };
 }
+
+/**
+ * Create a deep-cloned snapshot of a trial session for viewer consumption.
+ */
+export function createTrialSessionSnapshot(
+  session: TrialSession
+): TrialSessionSnapshot {
+  return {
+    id: session.id,
+    joId: session.joId,
+    name: session.name,
+    trialDate: session.trialDate,
+    updateDate: session.updateDate,
+    customer: session.customer,
+    jobNo: session.jobNo,
+    picName: session.picName,
+    approvedByName: session.approvedByName,
+    findings: JSON.parse(JSON.stringify(session.findings)),
+    createdAt: session.createdAt,
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+/**
+ * Check whether a session has draft changes that have not been published to the viewer.
+ * Returns true if never published or if any relevant field has changed since last publish.
+ */
+export function hasUnpublishedTrialChanges(session: TrialSession): boolean {
+  if (!session.publishedSnapshot) return true;
+
+  const currentPayload = {
+    name: session.name,
+    trialDate: session.trialDate,
+    updateDate: session.updateDate,
+    customer: session.customer,
+    jobNo: session.jobNo,
+    picName: session.picName,
+    approvedByName: session.approvedByName,
+    findings: session.findings,
+  };
+
+  const publishedPayload = {
+    name: session.publishedSnapshot.name,
+    trialDate: session.publishedSnapshot.trialDate,
+    updateDate: session.publishedSnapshot.updateDate,
+    customer: session.publishedSnapshot.customer,
+    jobNo: session.publishedSnapshot.jobNo,
+    picName: session.publishedSnapshot.picName,
+    approvedByName: session.publishedSnapshot.approvedByName,
+    findings: session.publishedSnapshot.findings,
+  };
+
+  return JSON.stringify(currentPayload) !== JSON.stringify(publishedPayload);
+}
+

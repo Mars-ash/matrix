@@ -1,5 +1,12 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { reducer, initialState, type AppState } from "./store";
+import {
+  reducer,
+  initialState,
+  type AppState,
+  saveTrialSessionsToStorage,
+  loadTrialSessionsFromStorage,
+  hydrateTrialSessions,
+} from "./store";
 import { MOCK_PROJECT } from "./mock-data";
 
 let state: AppState;
@@ -7,6 +14,41 @@ const projectId = MOCK_PROJECT.id;
 
 beforeEach(() => {
   state = structuredClone(initialState);
+});
+
+describe("CREATE_PROJECT", () => {
+  it("adds a new project with BMI company", () => {
+    const next = reducer(state, {
+      type: "CREATE_PROJECT",
+      id: "test-proj-bmi",
+      name: "Project Alpha",
+      customer: "Customer Alpha",
+      company: "BMI",
+    });
+
+    const project = next.projects.find((p) => p.id === "test-proj-bmi");
+    expect(project).toBeDefined();
+    expect(project!.name).toBe("Project Alpha");
+    expect(project!.customer).toBe("Customer Alpha");
+    expect(project!.company).toBe("BMI");
+    expect(project!.jos).toEqual([]);
+  });
+
+  it("adds a new project with BKP company", () => {
+    const next = reducer(state, {
+      type: "CREATE_PROJECT",
+      id: "test-proj-bkp",
+      name: "Project Beta",
+      customer: "Customer Beta",
+      company: "BKP",
+    });
+
+    const project = next.projects.find((p) => p.id === "test-proj-bkp");
+    expect(project).toBeDefined();
+    expect(project!.name).toBe("Project Beta");
+    expect(project!.customer).toBe("Customer Beta");
+    expect(project!.company).toBe("BKP");
+  });
 });
 
 describe("CREATE_JO", () => {
@@ -995,6 +1037,37 @@ describe("UPDATE_TRIAL_SESSION", () => {
   });
 });
 
+describe("PUBLISH_TRIAL_SESSION_TO_VIEWER", () => {
+  it("creates a publishedSnapshot and updates lastPublishedAt timestamp", () => {
+    const session = makeTrialSession({
+      id: "ts-pub",
+      name: "Trial 1 Initial",
+      findings: [makeTrialFinding({ order: 1 })],
+    });
+    let next = reducer(state, {
+      type: "CREATE_TRIAL_SESSION",
+      projectId,
+      joId,
+      session,
+    });
+    expect(next.projects[0].jos[0].trialSessions!.find((s) => s.id === "ts-pub")?.publishedSnapshot).toBeUndefined();
+
+    next = reducer(next, {
+      type: "PUBLISH_TRIAL_SESSION_TO_VIEWER",
+      projectId,
+      joId,
+      sessionId: "ts-pub",
+    });
+
+    const publishedSession = next.projects[0].jos[0].trialSessions!.find((s) => s.id === "ts-pub")!;
+    expect(publishedSession.publishedSnapshot).toBeDefined();
+    expect(publishedSession.publishedSnapshot?.name).toBe("Trial 1 Initial");
+    expect(publishedSession.publishedSnapshot?.findings).toHaveLength(1);
+    expect(publishedSession.lastPublishedAt).toBeDefined();
+  });
+});
+
+
 describe("DELETE_TRIAL_SESSION", () => {
   it("removes the session", () => {
     const session = makeTrialSession({ id: "ts-del" });
@@ -1527,5 +1600,307 @@ describe("Progress regression", () => {
     });
     const progressAfter = joProgress(next.projects[0].jos[0]);
     expect(progressAfter).toBe(progressBefore);
+  });
+});
+
+describe("Trial sessions storage persistence and hydration", () => {
+  it("persists trial sessions to localStorage and re-hydrates them", () => {
+    const session = makeTrialSession({
+      name: "Persisted Session",
+      findings: [makeTrialFinding()],
+    });
+
+    const next = reducer(state, {
+      type: "CREATE_TRIAL_SESSION",
+      projectId,
+      joId,
+      session,
+    });
+
+    const loaded = loadTrialSessionsFromStorage();
+    expect(loaded[joId]).toBeDefined();
+    expect(loaded[joId].some((s) => s.name === "Persisted Session")).toBe(true);
+
+    // Test hydration into fresh projects
+    const freshProjects = structuredClone(initialState.projects);
+    const hydrated = hydrateTrialSessions(freshProjects);
+    const targetJo = hydrated.find((p) => p.id === projectId)?.jos.find((j) => j.id === joId);
+    expect(targetJo?.trialSessions?.some((s) => s.name === "Persisted Session")).toBe(true);
+  });
+
+  it("persists entry photo and re-hydrates it across fresh state and SET_PROJECTS", () => {
+    const session = makeTrialSession({
+      id: "ts-photo-test",
+      name: "Photo Session",
+      findings: [
+        makeTrialFinding({
+          id: "tf-photo-test",
+          problems: [
+            {
+              id: "prob-1",
+              order: 1,
+              text: "Flange wave issue",
+              photos: [],
+              createdAt: "2026-08-25T00:00:00Z",
+              updatedAt: "2026-08-25T00:00:00Z",
+            },
+          ],
+        }),
+      ],
+    });
+
+    // 1. Create session
+    let cur = reducer(state, {
+      type: "CREATE_TRIAL_SESSION",
+      projectId,
+      joId,
+      session,
+    });
+
+    // 2. Add photo to problem
+    cur = reducer(cur, {
+      type: "ADD_TRIAL_ENTRY_PHOTO",
+      projectId,
+      joId,
+      sessionId: "ts-photo-test",
+      findingId: "tf-photo-test",
+      section: "problems",
+      entryId: "prob-1",
+      photo: {
+        id: "photo-flange-1",
+        name: "flange-defect.jpg",
+        previewUrl: "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD...",
+      },
+    });
+
+    // Verify storage has the photo
+    const loaded = loadTrialSessionsFromStorage();
+    const storedSession = loaded[joId]?.find((s) => s.id === "ts-photo-test");
+    expect(storedSession).toBeDefined();
+    const storedProb = storedSession?.findings[0].problems[0];
+    expect(storedProb?.photos).toHaveLength(1);
+    expect(storedProb?.photos[0].id).toBe("photo-flange-1");
+
+    // 3. Simulate page refresh: Fresh initial projects, then SET_PROJECTS from backend
+    const freshProjects = structuredClone(initialState.projects);
+    const hydrated = hydrateTrialSessions(freshProjects);
+    const targetJo = hydrated.find((p) => p.id === projectId)?.jos.find((j) => j.id === joId);
+    const hydratedProb = targetJo?.trialSessions?.find((s) => s.id === "ts-photo-test")?.findings[0].problems[0];
+    expect(hydratedProb?.photos).toHaveLength(1);
+    expect(hydratedProb?.photos[0].name).toBe("flange-defect.jpg");
+
+    // 4. Test SET_PROJECTS preserving stored trial sessions
+    const nextState = reducer({ projects: freshProjects }, {
+      type: "SET_PROJECTS",
+      projects: structuredClone(initialState.projects),
+    });
+    const setProjectJo = nextState.projects.find((p) => p.id === projectId)?.jos.find((j) => j.id === joId);
+    const setProb = setProjectJo?.trialSessions?.find((s) => s.id === "ts-photo-test")?.findings[0].problems[0];
+    expect(setProb?.photos).toHaveLength(1);
+    expect(setProb?.photos[0].id).toBe("photo-flange-1");
+  });
+
+  it("deletes photo, adds new photo, and does not revert on subsequent SET_PROJECTS or HYDRATE_TRIAL_STORAGE", () => {
+    // 1. Setup session with an initial photo (e.g. placeholder photo A)
+    const p1 = makeTrialTextEntry({
+      id: "prob-1",
+      photos: [{ id: "photo-old", name: "old-placeholder.svg", previewUrl: "/report-placeholder-1.svg", addedAt: "2026-08-15T10:00:00.000Z" }],
+    });
+    const finding = makeTrialFinding({ id: "f-1", problems: [p1] });
+    const session = makeTrialSession({ id: "ts-swap-test", findings: [finding] });
+
+    let appState = reducer(state, {
+      type: "CREATE_TRIAL_SESSION",
+      projectId,
+      joId,
+      session,
+    });
+
+    // Verify initial photo is present
+    let curSession = appState.projects[0].jos[0].trialSessions!.find((s) => s.id === "ts-swap-test")!;
+    expect(curSession.findings[0].problems[0].photos).toHaveLength(1);
+    expect(curSession.findings[0].problems[0].photos[0].id).toBe("photo-old");
+
+    // 2. User deletes old photo
+    appState = reducer(appState, {
+      type: "REMOVE_TRIAL_ENTRY_PHOTO",
+      projectId,
+      joId,
+      sessionId: "ts-swap-test",
+      findingId: "f-1",
+      section: "problems",
+      entryId: "prob-1",
+      photoId: "photo-old",
+    });
+
+    curSession = appState.projects[0].jos[0].trialSessions!.find((s) => s.id === "ts-swap-test")!;
+    expect(curSession.findings[0].problems[0].photos).toHaveLength(0);
+
+    // 3. User adds new photo
+    appState = reducer(appState, {
+      type: "ADD_TRIAL_ENTRY_PHOTO",
+      projectId,
+      joId,
+      sessionId: "ts-swap-test",
+      findingId: "f-1",
+      section: "problems",
+      entryId: "prob-1",
+      photo: {
+        id: "photo-new-user",
+        name: "my-screenshot.png",
+        previewUrl: "data:image/png;base64,iVBORw0KGgo...",
+      },
+    });
+
+    curSession = appState.projects[0].jos[0].trialSessions!.find((s) => s.id === "ts-swap-test")!;
+    expect(curSession.findings[0].problems[0].photos).toHaveLength(1);
+    expect(curSession.findings[0].problems[0].photos[0].id).toBe("photo-new-user");
+
+    // 4. Background API returns after 3 seconds with SET_PROJECTS
+    appState = reducer(appState, {
+      type: "SET_PROJECTS",
+      projects: structuredClone(initialState.projects),
+    });
+
+    // The user's active session must NOT have reverted!
+    curSession = appState.projects.find((p) => p.id === projectId)!.jos.find((j) => j.id === joId)!.trialSessions!.find((s) => s.id === "ts-swap-test")!;
+    expect(curSession.findings[0].problems[0].photos).toHaveLength(1);
+    expect(curSession.findings[0].problems[0].photos[0].id).toBe("photo-new-user");
+    expect(curSession.findings[0].problems[0].photos.some((p) => p.id === "photo-old")).toBe(false);
+
+    // 5. HYDRATE_TRIAL_STORAGE with older storage snapshot must NOT overwrite newer in-memory state
+    const olderSnapshot: Record<string, typeof session[]> = {
+      [joId]: [
+        {
+          ...session,
+          updatedAt: "2020-01-01T00:00:00.000Z", // old timestamp
+          findings: [
+            {
+              ...finding,
+              problems: [
+                {
+                  ...p1,
+                  photos: [{ id: "photo-old", name: "old-placeholder.svg", previewUrl: "/report-placeholder-1.svg", addedAt: "2020-01-01T00:00:00.000Z" }],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    appState = reducer(appState, {
+      type: "HYDRATE_TRIAL_STORAGE",
+      stored: olderSnapshot,
+    });
+
+    curSession = appState.projects.find((p) => p.id === projectId)!.jos.find((j) => j.id === joId)!.trialSessions!.find((s) => s.id === "ts-swap-test")!;
+    expect(curSession.findings[0].problems[0].photos).toHaveLength(1);
+    expect(curSession.findings[0].problems[0].photos[0].id).toBe("photo-new-user");
+    expect(curSession.findings[0].problems[0].photos.some((p) => p.id === "photo-old")).toBe(false);
+  });
+
+  it("deduplicates trial sessions by normalized name and adopts backend database ULID", () => {
+    const backendULID = "01a06a2b-3584-719b-b481-a89e79edb95a";
+    const jo = state.projects[0].jos[0];
+
+    // Backend sends a session with 1 finding and a database ULID
+    const backendSession = makeTrialSession({
+      id: backendULID,
+      name: "Lower 140826",
+      findings: [makeTrialFinding({ id: "bf-1" })],
+    });
+
+    // In-memory has mock session with 3 findings and client ID
+    const localSession = makeTrialSession({
+      id: "ts-mock-client-1",
+      name: "Lower 140826",
+      findings: [
+        makeTrialFinding({ id: "lf-1" }),
+        makeTrialFinding({ id: "lf-2" }),
+        makeTrialFinding({ id: "lf-3" }),
+      ],
+    });
+
+    let appState = reducer(state, {
+      type: "CREATE_TRIAL_SESSION",
+      projectId,
+      joId: jo.id,
+      session: localSession,
+    });
+
+    // SET_PROJECTS brings in backendSession
+    const projectsWithBackend = structuredClone(appState.projects);
+    const targetJo = projectsWithBackend[0].jos.find((j) => j.id === jo.id)!;
+    targetJo.trialSessions = [backendSession];
+
+    appState = reducer(appState, {
+      type: "SET_PROJECTS",
+      projects: projectsWithBackend,
+    });
+
+    const activeSessions = appState.projects[0].jos.find((j) => j.id === jo.id)!.trialSessions!;
+    const lowerSessions = activeSessions.filter((s) => s.name.toLowerCase() === "lower 140826");
+
+    // Exactly 1 deduplicated session
+    expect(lowerSessions).toHaveLength(1);
+    const merged = lowerSessions[0];
+    // Must adopt database ULID
+    expect(merged.id).toBe(backendULID);
+    // Must keep 3 findings from local/storage
+    expect(merged.findings).toHaveLength(3);
+  });
+
+  it("PUBLISH_TRIAL_SESSION_TO_VIEWER updates updatedAt and synchronizes publishedSnapshot containing uploaded photos", () => {
+    const jo = state.projects[0].jos[0];
+    const session = makeTrialSession({
+      id: "ts-publish-photo-test",
+      name: "Lower 140826",
+      findings: [
+        makeTrialFinding({
+          id: "f-photo",
+          problems: [
+            makeTrialTextEntry({
+              id: "prob-photo",
+              text: "Hasil stamping bagian flange tidak rata",
+              photos: [
+                {
+                  id: "ph-uploaded",
+                  name: "my-trial-photo.png",
+                  previewUrl: "data:image/png;base64,iVBORw0KGgo...",
+                  addedAt: "2026-09-07T15:21:00.000Z",
+                },
+              ],
+            }),
+          ],
+        }),
+      ],
+    });
+
+    let appState = reducer(state, {
+      type: "CREATE_TRIAL_SESSION",
+      projectId,
+      joId: jo.id,
+      session,
+    });
+
+    // Staff clicks "Update ke Viewer"
+    appState = reducer(appState, {
+      type: "PUBLISH_TRIAL_SESSION_TO_VIEWER",
+      projectId,
+      joId: jo.id,
+      sessionId: "ts-publish-photo-test",
+    });
+
+    const curSession = appState.projects[0].jos.find((j) => j.id === jo.id)!.trialSessions!.find((s) => s.id === "ts-publish-photo-test")!;
+    expect(curSession.publishedSnapshot).toBeDefined();
+    expect(curSession.lastPublishedAt).toBeDefined();
+    expect(curSession.updatedAt).toBe(curSession.lastPublishedAt);
+
+    // Published snapshot must have the uploaded photo
+    const publishedProb = curSession.publishedSnapshot!.findings[0].problems[0];
+    expect(publishedProb.photos).toHaveLength(1);
+    expect(publishedProb.photos[0].id).toBe("ph-uploaded");
+    expect(publishedProb.photos[0].name).toBe("my-trial-photo.png");
   });
 });

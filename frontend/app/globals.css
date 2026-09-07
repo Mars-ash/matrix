@@ -159,6 +159,13 @@ p {
   outline: none;
 }
 
+input[type="date"].input {
+  appearance: none;
+  -webkit-appearance: none;
+  min-height: 28px;
+  box-sizing: border-box;
+}
+
 .select {
   appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' fill='%235c5b56' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
@@ -880,6 +887,12 @@ tr.row-highlight .td-sticky-no {
 
   .control-table td {
     padding: 5px 6px;
+  }
+
+  .control-table th.col-date,
+  .control-table td.col-date {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
   }
 
   .jo-detail-header {

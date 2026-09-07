@@ -63,6 +63,7 @@ class DemoSeeder extends Seeder
             $proj1 = Project::create([
                 'name' => 'HB24',
                 'customer' => 'PT Astra Daihatsu Motor',
+                'company' => 'BMI',
             ]);
 
             // JO 126.110
@@ -366,14 +367,266 @@ class DemoSeeder extends Seeder
                 'status' => 'On Process',
             ]);
 
-            // JO 126.111 (TANDEM)
-            JO::create([
+            // JO 126.111 (TANDEM — Bracket Forming Die)
+            $jo111 = JO::create([
                 'project_id' => $proj1->id,
                 'jo_number' => '126.111',
-                'product' => 'Rear Pillar Reinforcement',
+                'product' => 'Bracket Forming Die',
                 'type' => 'TANDEM',
                 'target_date' => $now->copy()->addDays(56)->format('Y-m-d'),
             ]);
+
+            Activity::create([
+                'jo_id' => $jo111->id,
+                'message' => 'Forming Insert → Hardening → In Progress SC (KANETSU).',
+                'created_at' => $now->copy()->subDays(3),
+            ]);
+
+            $catPart111 = Category::create([
+                'jo_id' => $jo111->id,
+                'label' => 'PART DIES OP 20',
+                'kind' => 'Part',
+                'is_custom' => false,
+                'sort_order' => 1,
+            ]);
+
+            $partList111 = [
+                ['1', 'Upper Plate', '500×400×55', 'S50C', 1, '', ['Done', 'Done', 'In Progress', '-', 'Not Started', '-', 'Not Started'], null, []],
+                ['2', 'Lower Plate', '500×400×50', 'S50C', 1, '', ['Done', 'Done', 'In Progress', '-', 'Not Started', '-', 'Not Started'], null, []],
+                ['3', 'Forming Insert', '80×60×40', 'SKD11', 2, '58-60', ['Done', 'Done', 'Done', 'In Progress SC', 'Not Started', 'Not Started', 'Not Started'], [
+                    'is_subcont' => true,
+                    'subcont_supplier' => 'KANETSU',
+                    'subcont_process' => 'Hardening',
+                    'subcont_status' => 'In Progress',
+                    'subcont_dispatch_date' => $now->copy()->subDays(3),
+                    'arrival_target_date' => $now->copy()->addDays(5)->format('Y-m-d'),
+                    'subcont_notes' => 'Heat treatment + subzero',
+                ], []],
+                ['4', 'Guide Post', 'Ø32×180', 'SK3', 4, '58-60', ['Done', 'Done', 'Done', 'Done', 'Done', '-', 'Not Started'], null, []],
+            ];
+
+            foreach ($partList111 as $idx => [$no, $desc, $dim, $mat, $qty, $hrc, $statuses, $subcont, $customNotes]) {
+                $item = Item::create([
+                    'category_id' => $catPart111->id,
+                    'no' => $no,
+                    'description' => $desc,
+                    'dimension' => $dim,
+                    'material' => $mat,
+                    'qty' => $qty,
+                    'hrc' => $hrc,
+                    'sort_order' => $idx + 1,
+                    ...($subcont ?? []),
+                ]);
+
+                foreach ($partProcesses as $pIdx => $pName) {
+                    $status = $statuses[$pIdx] ?? '-';
+                    Control::create([
+                        'item_id' => $item->id,
+                        'process' => $pName,
+                        'status' => $status,
+                        'notes' => $customNotes[$pName] ?? '',
+                        'in_progress_at' => in_array($status, ['In Progress', 'In Progress SC']) ? $now->copy()->subDays(2) : null,
+                    ]);
+                }
+            }
+
+            $catComp111 = Category::create([
+                'jo_id' => $jo111->id,
+                'label' => 'COMPONENT',
+                'kind' => 'Component',
+                'is_custom' => false,
+                'sort_order' => 2,
+            ]);
+
+            $compList111 = [
+                ['1', 'Socket Head Cap Screw', 'M10×40', 'SCM435', 8, '', ['Done', 'Done']],
+                ['2', 'Dowel Pin', 'Ø10×35', 'SUJ2', 4, '', ['Done', 'In Progress']],
+            ];
+
+            foreach ($compList111 as $idx => [$no, $desc, $dim, $mat, $qty, $hrc, $statuses]) {
+                $item = Item::create([
+                    'category_id' => $catComp111->id,
+                    'no' => $no,
+                    'description' => $desc,
+                    'dimension' => $dim,
+                    'material' => $mat,
+                    'qty' => $qty,
+                    'hrc' => $hrc,
+                    'sort_order' => $idx + 1,
+                ]);
+
+                foreach ($compProcesses as $pIdx => $pName) {
+                    $status = $statuses[$pIdx] ?? '-';
+                    Control::create([
+                        'item_id' => $item->id,
+                        'process' => $pName,
+                        'status' => $status,
+                        'notes' => '',
+                        'in_progress_at' => $status === 'In Progress' ? $now->copy()->subDays(1) : null,
+                    ]);
+                }
+            }
+
+            // JO 126.112 (JIG — Locator Jig)
+            $jo112 = JO::create([
+                'project_id' => $proj1->id,
+                'jo_number' => '126.112',
+                'product' => 'Locator Jig',
+                'type' => 'JIG',
+                'target_date' => $now->copy()->addDays(14)->format('Y-m-d'),
+            ]);
+
+            Activity::create([
+                'jo_id' => $jo112->id,
+                'message' => 'JO 126.112 created.',
+                'created_at' => $now->copy()->subDays(5),
+            ]);
+
+            $catPart112 = Category::create([
+                'jo_id' => $jo112->id,
+                'label' => 'PART JIG',
+                'kind' => 'Part',
+                'is_custom' => false,
+                'sort_order' => 1,
+            ]);
+
+            $partList112 = [
+                ['1', 'Base Plate', '300×200×25', 'S50C', 1, '', ['Done', 'In Progress', 'Not Started', '-', '-', '-', 'Not Started'], null, []],
+                ['2', 'Locator Block', '50×30×40', 'S45C', 4, '', ['Done', 'Done', 'In Progress SC', '-', '-', '-', 'Not Started'], [
+                    'is_subcont' => true,
+                    'subcont_supplier' => 'NCI',
+                    'subcont_process' => 'Machining',
+                    'subcont_status' => 'In Progress',
+                    'subcont_dispatch_date' => $now->copy()->subDays(5),
+                    'arrival_target_date' => $now->copy()->subDays(3)->format('Y-m-d'),
+                    'subcont_notes' => 'Machining slot 10mm H7',
+                ], []],
+            ];
+
+            foreach ($partList112 as $idx => [$no, $desc, $dim, $mat, $qty, $hrc, $statuses, $subcont, $customNotes]) {
+                $item = Item::create([
+                    'category_id' => $catPart112->id,
+                    'no' => $no,
+                    'description' => $desc,
+                    'dimension' => $dim,
+                    'material' => $mat,
+                    'qty' => $qty,
+                    'hrc' => $hrc,
+                    'sort_order' => $idx + 1,
+                    ...($subcont ?? []),
+                ]);
+
+                foreach ($partProcesses as $pIdx => $pName) {
+                    $status = $statuses[$pIdx] ?? '-';
+                    Control::create([
+                        'item_id' => $item->id,
+                        'process' => $pName,
+                        'status' => $status,
+                        'notes' => $customNotes[$pName] ?? '',
+                        'in_progress_at' => in_array($status, ['In Progress', 'In Progress SC']) ? $now->copy()->subDays(2) : null,
+                    ]);
+                }
+            }
+
+            // JO 126.113 (WIRECUT SERVICE — Wirecut Service Set)
+            $jo113 = JO::create([
+                'project_id' => $proj1->id,
+                'jo_number' => '126.113',
+                'product' => 'Wirecut Service Set',
+                'type' => 'WIRECUT SERVICE',
+                'target_date' => $now->copy()->addDays(7)->format('Y-m-d'),
+            ]);
+
+            $catPart113 = Category::create([
+                'jo_id' => $jo113->id,
+                'label' => 'PART',
+                'kind' => 'Part',
+                'is_custom' => false,
+                'sort_order' => 1,
+            ]);
+
+            $partList113 = [
+                ['1', 'Die Insert A', '60×40×25', 'SKD11', 1, '58-60', ['-', '-', '-', '-', '-', 'Done', '-'], null, []],
+                ['2', 'Die Insert B', '60×40×25', 'SKD11', 1, '58-60', ['-', '-', '-', '-', '-', 'In Progress', '-'], null, []],
+            ];
+
+            foreach ($partList113 as $idx => [$no, $desc, $dim, $mat, $qty, $hrc, $statuses, $subcont, $customNotes]) {
+                $item = Item::create([
+                    'category_id' => $catPart113->id,
+                    'no' => $no,
+                    'description' => $desc,
+                    'dimension' => $dim,
+                    'material' => $mat,
+                    'qty' => $qty,
+                    'hrc' => $hrc,
+                    'sort_order' => $idx + 1,
+                    ...($subcont ?? []),
+                ]);
+
+                foreach ($partProcesses as $pIdx => $pName) {
+                    $status = $statuses[$pIdx] ?? '-';
+                    Control::create([
+                        'item_id' => $item->id,
+                        'process' => $pName,
+                        'status' => $status,
+                        'notes' => $customNotes[$pName] ?? '',
+                        'in_progress_at' => in_array($status, ['In Progress', 'In Progress SC']) ? $now->copy()->subDays(2) : null,
+                    ]);
+                }
+            }
+
+            // JO 126.114 (MACHINING SERVICE — Machining Service Set with Problem)
+            $jo114 = JO::create([
+                'project_id' => $proj1->id,
+                'jo_number' => '126.114',
+                'product' => 'Machining Service Set',
+                'type' => 'MACHINING SERVICE',
+                'target_date' => null,
+            ]);
+
+            Activity::create([
+                'jo_id' => $jo114->id,
+                'message' => 'Bracket B → Machining → Problem. Note: Material defect found during setup.',
+                'created_at' => $now->copy()->subDays(1),
+            ]);
+
+            $catPart114 = Category::create([
+                'jo_id' => $jo114->id,
+                'label' => 'PART',
+                'kind' => 'Part',
+                'is_custom' => false,
+                'sort_order' => 1,
+            ]);
+
+            $partList114 = [
+                ['1', 'Bracket A', '150×80×20', 'S45C', 2, '', ['-', '-', 'Done', '-', '-', '-', '-'], null, []],
+                ['2', 'Bracket B', '150×80×20', 'S45C', 2, '', ['-', '-', 'Problem', '-', '-', '-', '-'], null, ['Machining' => 'Material defect found during setup.']],
+            ];
+
+            foreach ($partList114 as $idx => [$no, $desc, $dim, $mat, $qty, $hrc, $statuses, $subcont, $customNotes]) {
+                $item = Item::create([
+                    'category_id' => $catPart114->id,
+                    'no' => $no,
+                    'description' => $desc,
+                    'dimension' => $dim,
+                    'material' => $mat,
+                    'qty' => $qty,
+                    'hrc' => $hrc,
+                    'sort_order' => $idx + 1,
+                    ...($subcont ?? []),
+                ]);
+
+                foreach ($partProcesses as $pIdx => $pName) {
+                    $status = $statuses[$pIdx] ?? '-';
+                    Control::create([
+                        'item_id' => $item->id,
+                        'process' => $pName,
+                        'status' => $status,
+                        'notes' => $customNotes[$pName] ?? '',
+                        'in_progress_at' => in_array($status, ['In Progress', 'In Progress SC']) ? $now->copy()->subDays(2) : null,
+                    ]);
+                }
+            }
 
             // ---------------------------------------------------------------
             // 2. Project 2: K2SA
@@ -381,6 +634,7 @@ class DemoSeeder extends Seeder
             $proj2 = Project::create([
                 'name' => 'K2SA',
                 'customer' => 'PT Yamaha Indonesia Motor',
+                'company' => 'BKP',
             ]);
 
             JO::create([
@@ -405,6 +659,7 @@ class DemoSeeder extends Seeder
             $proj3 = Project::create([
                 'name' => '737D',
                 'customer' => 'PT Panasonic Manufacturing',
+                'company' => 'BMI',
             ]);
 
             JO::create([

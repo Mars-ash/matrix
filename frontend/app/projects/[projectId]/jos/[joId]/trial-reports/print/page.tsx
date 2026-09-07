@@ -16,8 +16,11 @@ export default function TrialReportPrintPage({ params }: PageProps) {
   const searchParams = useSearchParams();
   const { projects } = useAppState();
 
-  const project = projects.find((p) => p.id === projectId);
-  const jo = project?.jos.find((j) => j.id === joId);
+  const project = projects.find((p) => p.id === projectId)
+    || projects.find((p) => p.jos.some((j) => j.id === joId || j.joNumber === joId))
+    || projects[0];
+  const jo = project?.jos.find((j) => j.id === joId || j.joNumber === joId)
+    || project?.jos[0];
 
   if (!project || !jo) {
     notFound();

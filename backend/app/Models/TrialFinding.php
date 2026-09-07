@@ -13,6 +13,7 @@ class TrialFinding extends Model
     use HasFactory, HasUuids;
 
     protected $fillable = [
+        'id',
         'trial_session_id',
         'order',
     ];

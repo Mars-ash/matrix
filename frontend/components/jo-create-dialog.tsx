@@ -164,7 +164,7 @@ export function JoCreateDialog({ open, onClose, projectId, onCreated }: JoCreate
             >
               {projects.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.name} ({p.customer})
+                  {p.name} {p.company ? `[${p.company}]` : ""} ({p.customer})
                 </option>
               ))}
             </select>

@@ -15,7 +15,8 @@ class ProjectController extends Controller
     {
         $projects = Project::with([
             'jos.categories.items.controls',
-        ])->latest()->get();
+            'jos.trialSessions.findings.entries.photos',
+        ])->oldest()->get();
 
         return ProjectResource::collection($projects);
     }
@@ -25,6 +26,7 @@ class ProjectController extends Controller
         $project = Project::create([
             'name' => $request->validated('name'),
             'customer' => $request->validated('customer'),
+            'company' => $request->validated('company') ?: 'BKP',
         ]);
 
         return response()->json([
@@ -37,6 +39,7 @@ class ProjectController extends Controller
     {
         return new ProjectResource($project->load([
             'jos.categories.items.controls',
+            'jos.trialSessions.findings.entries.photos',
         ]));
     }
 }

@@ -435,7 +435,7 @@ export function AppShell({ children, breadcrumbs }: AppShellProps) {
   }, [isLoading, user, router]);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
+    <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }} suppressHydrationWarning>
       {/* Top Header */}
       <header className="top-header">
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
@@ -466,7 +466,6 @@ export function AppShell({ children, breadcrumbs }: AppShellProps) {
               type="button"
               onClick={() => {
                 logout();
-                router.push("/login");
               }}
               title="Sign Out"
               style={{

@@ -45,22 +45,25 @@ class ApiTest extends TestCase
 
     public function test_controller_can_create_and_viewer_can_list_projects(): void
     {
-        // 1. Controller creates project
+        // 1. Controller creates project with company BKP
         $response = $this->withHeader('Authorization', 'Bearer ' . $this->controllerToken)
             ->postJson('/api/projects', [
                 'name' => 'Test Project X',
                 'customer' => 'Customer X',
+                'company' => 'BKP',
             ]);
 
         $response->assertStatus(201)
-            ->assertJsonPath('data.name', 'Test Project X');
+            ->assertJsonPath('data.name', 'Test Project X')
+            ->assertJsonPath('data.company', 'BKP');
 
         // 2. Viewer can list projects
         $listResponse = $this->withHeader('Authorization', 'Bearer ' . $this->viewerToken)
             ->getJson('/api/projects');
 
         $listResponse->assertStatus(200)
-            ->assertJsonCount(1, 'data');
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.company', 'BKP');
     }
 
     public function test_viewer_cannot_create_project(): void
@@ -226,4 +229,88 @@ class ApiTest extends TestCase
             ->assertJsonPath('data.0.supplier', 'MISUMI')
             ->assertJsonPath('data.0.poNo', 'PO-999');
     }
+
+    public function test_trial_session_publish_with_snapshot_and_custom_ids(): void
+    {
+        $project = Project::create(['name' => 'P Trial', 'customer' => 'C Trial', 'company' => 'BKP']);
+        $jo = $project->jos()->create(['jo_number' => 'JO-TRL-01', 'product' => 'Bracket', 'type' => 'PROGRESSIVE']);
+
+        $customSessionId = (string) \Illuminate\Support\Str::uuid();
+
+        // 1. Create trial session with custom id
+        $createRes = $this->withHeader('Authorization', 'Bearer ' . $this->controllerToken)
+            ->postJson("/api/jos/{$jo->id}/trial-sessions", [
+                'id' => $customSessionId,
+                'name' => 'Trial T0',
+                'trialDate' => '2026-09-07',
+                'customer' => 'PT Astra',
+                'jobNo' => 'JO-TRL-01',
+                'picName' => 'Budi',
+                'approvedByName' => 'Pak Joko',
+            ]);
+
+        $createRes->assertStatus(201)
+            ->assertJsonPath('data.id', $customSessionId)
+            ->assertJsonPath('data.name', 'Trial T0');
+
+        // 2. Publish with snapshot payload
+        $snapshotPayload = [
+            'id' => $customSessionId,
+            'name' => 'Trial T0',
+            'customer' => 'PT Astra Honda',
+            'jobNo' => 'JO-TRL-01',
+            'picName' => 'Budi Staff',
+            'approvedByName' => 'Pak Joko Manager',
+            'trialDate' => '2026-09-07',
+            'findings' => [
+                [
+                    'id' => 'f-1',
+                    'order' => 1,
+                    'problems' => [
+                        [
+                            'id' => 'p-1',
+                            'text' => 'Flange burr on edge',
+                            'photos' => [
+                                ['id' => 'ph-1', 'name' => 'burr.jpg', 'previewUrl' => 'data:image/jpeg;base64,...']
+                            ]
+                        ]
+                    ],
+                    'causes' => [
+                        ['id' => 'c-1', 'text' => 'Die clearance too small', 'photos' => []]
+                    ],
+                    'correctiveActions' => [
+                        ['id' => 'a-1', 'order' => 1, 'text' => 'Regrind punch clearance', 'status' => 'On Process', 'pic' => 'Andi']
+                    ]
+                ]
+            ]
+        ];
+
+        $publishRes = $this->withHeader('Authorization', 'Bearer ' . $this->controllerToken)
+            ->postJson("/api/trial-sessions/{$customSessionId}/publish", [
+                'snapshot' => $snapshotPayload,
+            ]);
+
+        $publishRes->assertStatus(200)
+            ->assertJsonPath('data.publishedSnapshot.customer', 'PT Astra Honda')
+            ->assertJsonPath('data.publishedSnapshot.findings.0.problems.0.text', 'Flange burr on edge');
+
+        $this->assertNotNull($publishRes->json('data.lastPublishedAt'));
+
+        // 3. Viewer retrieves via GET /projects and GET /trial-sessions/{session}
+        $viewerProjRes = $this->withHeader('Authorization', 'Bearer ' . $this->viewerToken)
+            ->getJson('/api/projects');
+
+        $viewerProjRes->assertStatus(200);
+        $retrievedJo = collect($viewerProjRes->json('data.0.jos'))->firstWhere('id', $jo->id);
+        $this->assertNotEmpty($retrievedJo['trialSessions']);
+        $this->assertEquals('PT Astra Honda', $retrievedJo['trialSessions'][0]['publishedSnapshot']['customer']);
+
+        $viewerSessionRes = $this->withHeader('Authorization', 'Bearer ' . $this->viewerToken)
+            ->getJson("/api/trial-sessions/{$customSessionId}");
+
+        $viewerSessionRes->assertStatus(200)
+            ->assertJsonPath('data.publishedSnapshot.customer', 'PT Astra Honda')
+            ->assertJsonPath('data.publishedSnapshot.findings.0.problems.0.photos.0.name', 'burr.jpg');
+    }
 }
+

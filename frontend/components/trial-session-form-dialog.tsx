@@ -78,11 +78,10 @@ function TrialSessionFormDialogContent({
     >
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         <div>
-          <label className="label">Nama Prefix (opsional)</label>
+          <label className="label">Nama Sesi</label>
           <input
             className="input"
             type="text"
-            placeholder="contoh: Trial Lower Arm"
             value={prefix}
             onChange={(e) => setPrefix(e.target.value)}
           />

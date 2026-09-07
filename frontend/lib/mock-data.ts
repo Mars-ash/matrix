@@ -564,6 +564,21 @@ const jo110TrialSessions: TrialSession[] = [
     findings: trialSession1Findings,
     createdAt: "2026-08-14T08:00:00+07:00",
     updatedAt: "2026-08-25T10:00:00+07:00",
+    publishedSnapshot: {
+      id: "",
+      joId: "",
+      name: "Lower 140826",
+      trialDate: "2026-08-14",
+      updateDate: "2026-08-25",
+      customer: "PT. Mercedes",
+      jobNo: "126.110",
+      picName: "Andi Prasetyo",
+      approvedByName: "Pak Hendra",
+      findings: trialSession1Findings,
+      createdAt: "2026-08-14T08:00:00+07:00",
+      updatedAt: "2026-08-25T10:00:00+07:00",
+    },
+    lastPublishedAt: "2026-08-25T10:00:00+07:00",
   },
   {
     id: id("ts"),
@@ -578,6 +593,21 @@ const jo110TrialSessions: TrialSession[] = [
     findings: trialSession2Findings,
     createdAt: "2026-08-25T14:00:00+07:00",
     updatedAt: "2026-08-26T09:00:00+07:00",
+    publishedSnapshot: {
+      id: "",
+      joId: "",
+      name: "Upper 250826",
+      trialDate: "2026-08-25",
+      updateDate: "2026-08-26",
+      customer: "PT. Mercedes",
+      jobNo: "126.110",
+      picName: "Andi Prasetyo",
+      approvedByName: "Pak Hendra",
+      findings: trialSession2Findings,
+      createdAt: "2026-08-25T14:00:00+07:00",
+      updatedAt: "2026-08-26T09:00:00+07:00",
+    },
+    lastPublishedAt: "2026-08-26T09:00:00+07:00",
   },
 ];
 
@@ -626,6 +656,10 @@ const jo110: JO = {
 // Patch trial session joIds
 for (const ts of jo110TrialSessions) {
   ts.joId = jo110.id;
+  if (ts.publishedSnapshot) {
+    ts.publishedSnapshot.id = ts.id;
+    ts.publishedSnapshot.joId = jo110.id;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -790,6 +824,7 @@ export const MOCK_PROJECT: Project = {
   id: "proj-1",
   name: "HB24",
   customer: "PT Astra Daihatsu Motor",
+  company: "BMI",
   jos: [jo110, jo111, jo112, jo113, jo114],
 };
 
@@ -797,6 +832,7 @@ export const MOCK_PROJECT_2: Project = {
   id: "proj-2",
   name: "K2SA",
   customer: "PT Yamaha Indonesia Motor",
+  company: "BKP",
   jos: [
     {
       id: "jo-127001",
@@ -823,6 +859,7 @@ export const MOCK_PROJECT_3: Project = {
   id: "proj-3",
   name: "737D",
   customer: "PT Panasonic Manufacturing",
+  company: "BMI",
   jos: [
     {
       id: "jo-128010",

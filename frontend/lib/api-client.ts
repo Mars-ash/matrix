@@ -8,6 +8,7 @@ import type {
   PoTracking,
   JoType,
   CategoryKind,
+  CompanyEntity,
 } from "./types";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
@@ -64,10 +65,14 @@ export const api = {
     return request<{ data: Project[] }>("/projects");
   },
 
-  async createProject(name: string, customer: string): Promise<{ data: Project; message: string }> {
+  async createProject(
+    name: string,
+    customer: string,
+    company?: CompanyEntity
+  ): Promise<{ data: Project; message: string }> {
     return request<{ data: Project; message: string }>("/projects", {
       method: "POST",
-      body: JSON.stringify({ name, customer }),
+      body: JSON.stringify({ name, customer, company: company || "BKP" }),
     });
   },
 
@@ -288,6 +293,7 @@ export const api = {
   async createTrialSession(
     joId: string,
     payload: {
+      id?: string;
       name: string;
       trialDate?: string;
       updateDate?: string;
@@ -313,6 +319,13 @@ export const api = {
     });
   },
 
+  async publishTrialSession(sessionId: string, snapshot?: any): Promise<{ data: any; message: string }> {
+    return request<{ data: any; message: string }>(`/trial-sessions/${sessionId}/publish`, {
+      method: "POST",
+      body: JSON.stringify(snapshot ? { snapshot } : {}),
+    });
+  },
+
   async duplicateTrialSession(
     sessionId: string,
     name?: string
@@ -329,9 +342,10 @@ export const api = {
     });
   },
 
-  async addTrialFinding(sessionId: string): Promise<{ data: any; message: string }> {
+  async addTrialFinding(sessionId: string, payload?: { id?: string }): Promise<{ data: any; message: string }> {
     return request<{ data: any; message: string }>(`/trial-sessions/${sessionId}/findings`, {
       method: "POST",
+      body: payload ? JSON.stringify(payload) : undefined,
     });
   },
 
@@ -344,6 +358,7 @@ export const api = {
   async addTrialEntry(
     findingId: string,
     payload: {
+      id?: string;
       section: "problems" | "causes" | "correctiveActions";
       text?: string;
       targetDate?: string;

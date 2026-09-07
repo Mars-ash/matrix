@@ -187,8 +187,8 @@ function PoTrackerContent() {
               <th style={{ minWidth: 60, textAlign: "center" }}>Qty</th>
               <th style={{ minWidth: 130 }}>Supplier</th>
               <th style={{ minWidth: 125 }}>No. PO</th>
-              <th style={{ minWidth: 140, textAlign: "center" }}>PO Date</th>
-              <th style={{ minWidth: 155, textAlign: "center" }}>Target Arrival</th>
+              <th className="col-date" style={{ minWidth: 150, textAlign: "center" }}>PO Date</th>
+              <th className="col-date" style={{ minWidth: 165, textAlign: "center" }}>Target Arrival</th>
               <th style={{ minWidth: 130, textAlign: "center" }}>Status</th>
               <th style={{ width: 54, textAlign: "center" }}>Notes</th>
             </tr>
@@ -284,7 +284,7 @@ function PoTrackerContent() {
                       />
                     )}
                   </td>
-                  <td style={{ textAlign: "center", minWidth: 140 }}>
+                  <td className="col-date" style={{ textAlign: "center", minWidth: 150 }}>
                     {isViewer ? (
                       <span style={{ fontSize: 12, color: row.poDate ? "var(--color-text)" : "var(--color-text-muted)" }}>
                         {row.poDate ? formatDate(row.poDate) : "—"}
@@ -296,12 +296,20 @@ function PoTrackerContent() {
                         value={row.poDate}
                         onChange={(event) => updateRow(row, { poDate: event.target.value })}
                         title={row.poDate ? formatDate(row.poDate) : "Set PO date"}
-                        style={{ fontSize: 12, padding: "3px 6px", textAlign: "center", width: "100%" }}
+                        style={{
+                          fontSize: 12,
+                          padding: "4px 8px",
+                          textAlign: "center",
+                          width: "100%",
+                          maxWidth: 130,
+                          margin: "0 auto",
+                          display: "block",
+                        }}
                         aria-label={`PO date for ${row.item.description}`}
                       />
                     )}
                   </td>
-                  <td style={{ textAlign: "center", minWidth: 155 }}>
+                  <td className="col-date" style={{ textAlign: "center", minWidth: 165 }}>
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, width: "100%" }}>
                       {isViewer ? (
                         <span style={{ fontSize: 12, fontWeight: 500, color: row.targetArrival ? "var(--color-text)" : "var(--color-text-muted)" }}>
@@ -314,7 +322,15 @@ function PoTrackerContent() {
                           value={row.targetArrival}
                           onChange={(event) => updateRow(row, { targetArrival: event.target.value })}
                           title={row.targetArrival ? formatDate(row.targetArrival) : "Set target arrival"}
-                          style={{ fontSize: 12, padding: "3px 6px", textAlign: "center", width: "100%" }}
+                          style={{
+                            fontSize: 12,
+                            padding: "4px 8px",
+                            textAlign: "center",
+                            width: "100%",
+                            maxWidth: 130,
+                            margin: "0 auto",
+                            display: "block",
+                          }}
                           aria-label={`Target arrival for ${row.item.description}`}
                         />
                       )}
@@ -345,39 +361,69 @@ function PoTrackerContent() {
                     />
                   </td>
                   <td style={{ textAlign: "center" }}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditingNotesRow(row);
-                        setNotesTemp(row.notes);
-                      }}
-                      title={
-                        row.notes
-                          ? `Catatan: ${row.notes}`
-                          : isViewer
-                          ? "Lihat catatan"
-                          : "Tambah catatan"
-                      }
-                      style={{
-                        background: "none",
-                        border: "none",
-                        cursor: "pointer",
-                        padding: "4px 6px",
-                        borderRadius: 4,
-                        color: row.notes ? "var(--color-accent)" : "var(--color-text-muted)",
-                        fontSize: 14,
-                        lineHeight: 1,
-                        display: "inline-flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                      aria-label={`PO notes for ${row.item.description}`}
-                    >
-                      <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M13.5 2.5l-1-1-9 9-.5 2.5 2.5-.5 9-9z" />
-                        <path d="M11 3l2 2" />
-                      </svg>
-                    </button>
+                    {isViewer ? (
+                      row.notes ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingNotesRow(row);
+                            setNotesTemp(row.notes);
+                          }}
+                          title={`Lihat catatan: ${row.notes}`}
+                          style={{
+                            background: "none",
+                            border: "none",
+                            cursor: "pointer",
+                            padding: "4px 6px",
+                            borderRadius: 4,
+                            color: "var(--color-accent)",
+                            fontSize: 14,
+                            lineHeight: 1,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                          aria-label={`Lihat catatan untuk ${row.item.description}`}
+                        >
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                            <polyline points="14 2 14 8 20 8" />
+                            <line x1="16" y1="13" x2="8" y2="13" />
+                            <line x1="16" y1="17" x2="8" y2="17" />
+                          </svg>
+                        </button>
+                      ) : (
+                        <span style={{ color: "var(--color-text-muted)", fontSize: 12 }}>—</span>
+                      )
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingNotesRow(row);
+                          setNotesTemp(row.notes);
+                        }}
+                        title={row.notes ? `Catatan: ${row.notes}` : "Tambah catatan"}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          padding: "4px 6px",
+                          borderRadius: 4,
+                          color: row.notes ? "var(--color-accent)" : "var(--color-text-muted)",
+                          fontSize: 14,
+                          lineHeight: 1,
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                        aria-label={`Catatan PO untuk ${row.item.description}`}
+                      >
+                        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M13.5 2.5l-1-1-9 9-.5 2.5 2.5-.5 9-9z" />
+                          <path d="M11 3l2 2" />
+                        </svg>
+                      </button>
+                    )}
                   </td>
                 </tr>
               );
@@ -521,11 +567,11 @@ function PoTrackerContent() {
       <Dialog
         open={!!editingNotesRow}
         onClose={() => setEditingNotesRow(null)}
-        title="PO Notes"
+        title={isViewer ? "Lihat Catatan PO" : "Catatan PO"}
         footer={
           <>
             <button className="btn btn-secondary" onClick={() => setEditingNotesRow(null)}>
-              {isViewer ? "Close" : "Cancel"}
+              {isViewer ? "Tutup" : "Batal"}
             </button>
             {isController && (
               <button
@@ -536,7 +582,7 @@ function PoTrackerContent() {
                   setEditingNotesRow(null);
                 }}
               >
-                Save
+                Simpan
               </button>
             )}
           </>
@@ -547,15 +593,31 @@ function PoTrackerContent() {
             {editingNotesRow.item.description} - {editingNotesRow.jo.joNumber}
           </p>
         )}
-        <textarea
-          className="input"
-          rows={4}
-          placeholder={isViewer ? "Tidak ada catatan." : "Tulis catatan PO..."}
-          value={notesTemp}
-          readOnly={isViewer}
-          onChange={(event) => setNotesTemp(event.target.value)}
-          autoFocus={!isViewer}
-        />
+        {isViewer ? (
+          <div
+            style={{
+              padding: "10px 14px",
+              background: "var(--color-bg-wash)",
+              border: "1px solid var(--color-border)",
+              borderRadius: "var(--radius-md)",
+              fontSize: 13,
+              whiteSpace: "pre-wrap",
+              minHeight: 60,
+              color: notesTemp ? "var(--color-text)" : "var(--color-text-muted)",
+            }}
+          >
+            {notesTemp || "Tidak ada catatan."}
+          </div>
+        ) : (
+          <textarea
+            className="input"
+            rows={4}
+            placeholder="Tulis catatan PO..."
+            value={notesTemp}
+            onChange={(event) => setNotesTemp(event.target.value)}
+            autoFocus
+          />
+        )}
       </Dialog>
 
       {/* Floating Bulk Action Bar (Controller only) */}

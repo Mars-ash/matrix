@@ -112,8 +112,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = () => {
     try {
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
       if (token && (token.startsWith("1|") || token?.startsWith("2|") || token.includes("|"))) {
-        fetch("http://127.0.0.1:8000/api/auth/logout", {
+        fetch(`${apiBase}/auth/logout`, {
           method: "POST",
           headers: {
             Authorization: `Bearer ${token}`,
@@ -127,6 +128,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.removeItem("matrix_auth_token");
       localStorage.removeItem("matrix_auth_user");
       document.cookie = "matrix_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+      if (typeof window !== "undefined") {
+        window.location.href = "/login";
+      }
     }
   };
 

@@ -72,6 +72,7 @@ Route::middleware('auth.token')->group(function () {
         // Trial Sessions & Photos (Mutating)
         Route::post('/jos/{jo}/trial-sessions', [TrialSessionController::class, 'store']);
         Route::patch('/trial-sessions/{session}', [TrialSessionController::class, 'update']);
+        Route::post('/trial-sessions/{session}/publish', [TrialSessionController::class, 'publish']);
         Route::post('/trial-sessions/{session}/duplicate', [TrialSessionController::class, 'duplicate']);
         Route::delete('/trial-sessions/{session}', [TrialSessionController::class, 'destroy']);
 

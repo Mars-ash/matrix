@@ -16,6 +16,7 @@ class StoreProjectRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255'],
             'customer' => ['required', 'string', 'max:255'],
+            'company' => ['nullable', 'string', 'in:BMI,BKP'],
         ];
     }
 }

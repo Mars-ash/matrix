@@ -304,7 +304,8 @@ export function TrialFindingCard({
   const handleAddPhoto = (
     section: "problems" | "causes" | "correctiveActions",
     entryId: string,
-    photo: { id: string; name: string; previewUrl: string }
+    photo: { id: string; name: string; previewUrl: string },
+    file?: File
   ) => {
     dispatch({
       type: "ADD_TRIAL_ENTRY_PHOTO",
@@ -315,6 +316,7 @@ export function TrialFindingCard({
       section,
       entryId,
       photo,
+      file,
     });
   };
 
@@ -512,19 +514,35 @@ export function TrialFindingCard({
                     </div>
                   )}
                 </div>
-                <textarea
-                  className="input"
-                  rows={2}
-                  value={problem.text}
-                  onChange={(e) =>
-                    handleUpdateEntry("problems", problem.id, { text: e.target.value })
-                  }
-                  readOnly={isViewer}
-                  placeholder={isViewer ? "" : "Deskripsi masalah yang ditemukan..."}
-                />
+                {isViewer ? (
+                  <div
+                    style={{
+                      padding: "8px 10px",
+                      background: "var(--color-bg-wash)",
+                      border: "1px solid var(--color-border)",
+                      borderRadius: "var(--radius-md)",
+                      fontSize: 13,
+                      whiteSpace: "pre-wrap",
+                      color: problem.text ? "var(--color-text)" : "var(--color-text-muted)",
+                      minHeight: 38,
+                    }}
+                  >
+                    {problem.text || "—"}
+                  </div>
+                ) : (
+                  <textarea
+                    className="input"
+                    rows={2}
+                    value={problem.text}
+                    onChange={(e) =>
+                      handleUpdateEntry("problems", problem.id, { text: e.target.value })
+                    }
+                    placeholder="Deskripsi masalah yang ditemukan..."
+                  />
+                )}
                 <TrialPhotoUploader
                   photos={problem.photos ?? []}
-                  onAddPhoto={(photo) => handleAddPhoto("problems", problem.id, photo)}
+                  onAddPhoto={(photo, file) => handleAddPhoto("problems", problem.id, photo, file)}
                   onRemovePhoto={(photoId) => handleRemovePhoto("problems", problem.id, photoId)}
                 />
               </div>
@@ -597,19 +615,35 @@ export function TrialFindingCard({
                     </div>
                   )}
                 </div>
-                <textarea
-                  className="input"
-                  rows={2}
-                  value={cause.text}
-                  onChange={(e) =>
-                    handleUpdateEntry("causes", cause.id, { text: e.target.value })
-                  }
-                  readOnly={isViewer}
-                  placeholder={isViewer ? "" : "Penyebab masalah..."}
-                />
+                {isViewer ? (
+                  <div
+                    style={{
+                      padding: "8px 10px",
+                      background: "var(--color-bg-wash)",
+                      border: "1px solid var(--color-border)",
+                      borderRadius: "var(--radius-md)",
+                      fontSize: 13,
+                      whiteSpace: "pre-wrap",
+                      color: cause.text ? "var(--color-text)" : "var(--color-text-muted)",
+                      minHeight: 38,
+                    }}
+                  >
+                    {cause.text || "—"}
+                  </div>
+                ) : (
+                  <textarea
+                    className="input"
+                    rows={2}
+                    value={cause.text}
+                    onChange={(e) =>
+                      handleUpdateEntry("causes", cause.id, { text: e.target.value })
+                    }
+                    placeholder="Penyebab masalah..."
+                  />
+                )}
                 <TrialPhotoUploader
                   photos={cause.photos ?? []}
-                  onAddPhoto={(photo) => handleAddPhoto("causes", cause.id, photo)}
+                  onAddPhoto={(photo, file) => handleAddPhoto("causes", cause.id, photo, file)}
                   onRemovePhoto={(photoId) => handleRemovePhoto("causes", cause.id, photoId)}
                 />
               </div>
@@ -682,16 +716,32 @@ export function TrialFindingCard({
                     </div>
                   )}
                 </div>
-                <textarea
-                  className="input"
-                  rows={2}
-                  value={action.text}
-                  onChange={(e) =>
-                    handleUpdateEntry("correctiveActions", action.id, { text: e.target.value })
-                  }
-                  readOnly={isViewer}
-                  placeholder={isViewer ? "" : "Tindakan perbaikan..."}
-                />
+                {isViewer ? (
+                  <div
+                    style={{
+                      padding: "8px 10px",
+                      background: "var(--color-bg-wash)",
+                      border: "1px solid var(--color-border)",
+                      borderRadius: "var(--radius-md)",
+                      fontSize: 13,
+                      whiteSpace: "pre-wrap",
+                      color: action.text ? "var(--color-text)" : "var(--color-text-muted)",
+                      minHeight: 38,
+                    }}
+                  >
+                    {action.text || "—"}
+                  </div>
+                ) : (
+                  <textarea
+                    className="input"
+                    rows={2}
+                    value={action.text}
+                    onChange={(e) =>
+                      handleUpdateEntry("correctiveActions", action.id, { text: e.target.value })
+                    }
+                    placeholder="Tindakan perbaikan..."
+                  />
+                )}
                 {/* Target · PIC · Status — each in its own column */}
                 <div className="trial-action-columns">
                   <div className="trial-action-col">
@@ -763,7 +813,7 @@ export function TrialFindingCard({
                 </div>
                 <TrialPhotoUploader
                   photos={action.photos ?? []}
-                  onAddPhoto={(photo) => handleAddPhoto("correctiveActions", action.id, photo)}
+                  onAddPhoto={(photo, file) => handleAddPhoto("correctiveActions", action.id, photo, file)}
                   onRemovePhoto={(photoId) => handleRemovePhoto("correctiveActions", action.id, photoId)}
                 />
               </div>

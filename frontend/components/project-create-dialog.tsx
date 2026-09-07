@@ -3,6 +3,7 @@ import React, { useState, useCallback } from "react";
 import { Dialog } from "./dialog";
 import { useAppDispatch } from "@/lib/store";
 import { uid } from "@/lib/format";
+import { COMPANIES, type CompanyEntity } from "@/lib/types";
 
 interface ProjectCreateDialogProps {
   open: boolean;
@@ -14,11 +15,13 @@ export function ProjectCreateDialog({ open, onClose, onCreated }: ProjectCreateD
   const dispatch = useAppDispatch();
 
   const [name, setName] = useState("");
+  const [company, setCompany] = useState<CompanyEntity>("BKP");
   const [customer, setCustomer] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const reset = useCallback(() => {
     setName("");
+    setCompany("BKP");
     setCustomer("");
     setErrors({});
   }, []);
@@ -26,6 +29,7 @@ export function ProjectCreateDialog({ open, onClose, onCreated }: ProjectCreateD
   const handleSubmit = useCallback(() => {
     const errs: Record<string, string> = {};
     if (!name.trim()) errs.name = "Project name is required.";
+    if (!company) errs.company = "Company (BMI / BKP) is required.";
     if (!customer.trim()) errs.customer = "Customer name is required.";
 
     if (Object.keys(errs).length > 0) {
@@ -39,12 +43,13 @@ export function ProjectCreateDialog({ open, onClose, onCreated }: ProjectCreateD
       id: newId,
       name: name.trim(),
       customer: customer.trim(),
+      company: company as CompanyEntity,
     });
 
     reset();
     onClose();
     if (onCreated) onCreated(newId);
-  }, [name, customer, dispatch, onClose, reset, onCreated]);
+  }, [name, company, customer, dispatch, onClose, reset, onCreated]);
 
   return (
     <Dialog
@@ -89,6 +94,27 @@ export function ProjectCreateDialog({ open, onClose, onCreated }: ProjectCreateD
             autoFocus
           />
           {errors.name && <p className="error-text">{errors.name}</p>}
+        </div>
+
+        <div>
+          <label className="label">
+            Project  <span style={{ fontWeight: 400, color: "var(--color-text-muted)" }}>(BMI / BKP)</span>
+          </label>
+          <select
+            className="select"
+            value={company}
+            onChange={(e) => {
+              setCompany(e.target.value as CompanyEntity);
+              setErrors((p) => ({ ...p, company: "" }));
+            }}
+          >
+            {COMPANIES.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+          {errors.company && <p className="error-text">{errors.company}</p>}
         </div>
 
         <div>

@@ -12,6 +12,7 @@ class TrialEntryPhoto extends Model
     use HasFactory, HasUuids;
 
     protected $fillable = [
+        'id',
         'trial_entry_id',
         'name',
         'path',

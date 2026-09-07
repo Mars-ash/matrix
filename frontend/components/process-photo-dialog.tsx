@@ -124,6 +124,7 @@ export function ProcessPhotoDialog({
           {photos.map((photo) => (
             <div
               key={photo.id}
+              title={photo.name}
               style={{
                 position: "relative",
                 borderRadius: "var(--radius-md)",
@@ -137,18 +138,6 @@ export function ProcessPhotoDialog({
                 alt={photo.name}
                 style={{ width: "100%", height: 80, objectFit: "cover", display: "block" }}
               />
-              <div
-                style={{
-                  padding: "4px 6px",
-                  fontSize: 10,
-                  color: "var(--color-text-muted)",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {photo.name}
-              </div>
               {isController && (
                 <button
                   onClick={() => handleRemove(photo.id, photo.previewUrl)}

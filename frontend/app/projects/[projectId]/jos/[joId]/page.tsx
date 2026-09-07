@@ -163,7 +163,7 @@ export default function JoDetailPage({ params }: PageProps) {
     <AppShell
       breadcrumbs={[
         { label: "Dashboard", href: "/" },
-        { label: project.name, href: "/" },
+        { label: project.company ? `${project.name} (${project.company})` : project.name, href: "/" },
         { label: jo.joNumber },
       ]}
     >
@@ -173,14 +173,32 @@ export default function JoDetailPage({ params }: PageProps) {
         <div className="jo-detail-title-block">
           {/* JO Info */}
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            <h1 style={{ fontSize: "clamp(20px, 4.5vw, 30px)", fontWeight: 800, margin: 0, lineHeight: 1, letterSpacing: "-0.02em" }}>
-              JO {jo.joNumber}
-            </h1>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <h1 style={{ fontSize: "clamp(20px, 4.5vw, 30px)", fontWeight: 800, margin: 0, lineHeight: 1, letterSpacing: "-0.02em" }}>
+                JO {jo.joNumber}
+              </h1>
+              {project.company && (
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    padding: "2px 8px",
+                    borderRadius: "var(--radius-sm)",
+                    background: project.company === "BMI" ? "var(--color-status-done-bg)" : "var(--color-status-not-started-bg)",
+                    color: project.company === "BMI" ? "var(--color-status-done)" : "var(--color-status-not-started)",
+                    border: `1px solid ${project.company === "BMI" ? "rgba(13, 124, 74, 0.3)" : "rgba(37, 99, 235, 0.3)"}`,
+                    letterSpacing: "0.04em",
+                  }}
+                >
+                  {project.company}
+                </span>
+              )}
+            </div>
             <span style={{ fontSize: "clamp(12px, 2.8vw, 16px)", fontWeight: 500, letterSpacing: "0.04em", color: "var(--color-text)", lineHeight: 1 }}>
               {jo.type.toUpperCase()}
             </span>
             <span style={{ fontSize: "clamp(11px, 2.2vw, 15px)", color: "var(--color-text-muted)", lineHeight: 1 }}>
-              {jo.product}
+              {jo.product} · {project.name} ({project.customer})
             </span>
           </div>
 

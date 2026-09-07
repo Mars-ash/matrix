@@ -114,6 +114,7 @@ export function TrialReportSessionList({
                       {session.name}
                     </div>
                     <div
+                      suppressHydrationWarning
                       style={{
                         fontSize: 11,
                         color: "var(--color-text-muted)",
@@ -164,7 +165,7 @@ export function TrialReportSessionList({
               className="btn btn-primary btn-sm"
               style={{ textDecoration: "none", width: "100%" }}
             >
-              🖨️ Print Terpilih ({printSelectedIds.length})
+              Print Terpilih ({printSelectedIds.length})
             </Link>
           ) : (
             <span

@@ -204,6 +204,12 @@ export interface TrialFinding {
   updatedAt: string; // ISO-8601
 }
 
+/** A snapshot of a trial session published for the viewer role. */
+export type TrialSessionSnapshot = Omit<
+  TrialSession,
+  "publishedSnapshot" | "lastPublishedAt"
+>;
+
 /** A trial session belonging to a JO. */
 export interface TrialSession {
   id: string;
@@ -218,6 +224,8 @@ export interface TrialSession {
   findings: TrialFinding[];
   createdAt: string;
   updatedAt: string;
+  publishedSnapshot?: TrialSessionSnapshot;
+  lastPublishedAt?: string;
 }
 
 /** A Job Order (JO). */
@@ -233,11 +241,16 @@ export interface JO {
   trialSessions?: TrialSession[];
 }
 
+/** Internal company entities (BKP or BMI). */
+export const COMPANIES = ["BKP", "BMI"] as const;
+export type CompanyEntity = (typeof COMPANIES)[number];
+
 /** A Project. */
 export interface Project {
   id: string;
   name: string;
   customer: string;
+  company?: CompanyEntity;
   jos: JO[];
 }
 

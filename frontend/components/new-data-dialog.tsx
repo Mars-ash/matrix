@@ -68,7 +68,25 @@ export function NewDataDialog({ open, onClose }: NewDataDialogProps) {
                   onClick={() => setSelectedProjectId(p.id)}
                   style={{ textAlign: "left", cursor: "pointer", padding: "10px 14px", border: "1px solid var(--color-border)" }}
                 >
-                  <div style={{ fontWeight: 600, fontSize: 13 }}>{p.name}</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <span style={{ fontWeight: 600, fontSize: 13 }}>{p.name}</span>
+                    {p.company && (
+                      <span
+                        style={{
+                          fontSize: 9.5,
+                          fontWeight: 700,
+                          padding: "1px 5px",
+                          borderRadius: "var(--radius-sm)",
+                          background: p.company === "BMI" ? "var(--color-status-done-bg)" : "var(--color-status-not-started-bg)",
+                          color: p.company === "BMI" ? "var(--color-status-done)" : "var(--color-status-not-started)",
+                          border: `1px solid ${p.company === "BMI" ? "rgba(13, 124, 74, 0.3)" : "rgba(37, 99, 235, 0.3)"}`,
+                          letterSpacing: "0.03em",
+                        }}
+                      >
+                        {p.company}
+                      </span>
+                    )}
+                  </div>
                   <div style={{ fontSize: 11, color: "var(--color-text-muted)" }}>{p.customer} · {p.jos.length} JO{p.jos.length !== 1 ? "s" : ""}</div>
                 </button>
               ))}

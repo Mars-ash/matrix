@@ -6,8 +6,53 @@ import { useAuth } from "@/lib/auth";
 
 interface TrialPhotoUploaderProps {
   photos: TrialEntryPhoto[];
-  onAddPhoto: (photo: { id: string; name: string; previewUrl: string }) => void;
+  onAddPhoto: (photo: { id: string; name: string; previewUrl: string }, file?: File) => void;
   onRemovePhoto: (photoId: string, previewUrl: string) => void;
+}
+
+/**
+ * Compress image file to base64 data URL for persistence across tabs and sessions.
+ */
+function compressImageFile(file: File, maxWidth = 1024, maxHeight = 1024, quality = 0.80): Promise<string> {
+  return new Promise((resolve) => {
+    if (file.type === "image/svg+xml") {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve((e.target?.result as string) || "");
+      reader.onerror = () => resolve("");
+      reader.readAsDataURL(file);
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxWidth || height > maxHeight) {
+          if (width > height) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          } else {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL("image/jpeg", quality));
+        } else {
+          resolve((e.target?.result as string) || "");
+        }
+      };
+      img.onerror = () => resolve((e.target?.result as string) || "");
+      img.src = (e.target?.result as string) || "";
+    };
+    reader.onerror = () => resolve("");
+    reader.readAsDataURL(file);
+  });
 }
 
 export function TrialPhotoUploader({
@@ -19,16 +64,21 @@ export function TrialPhotoUploader({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileAdd = useCallback(
-    (files: FileList | null) => {
+    async (files: FileList | null) => {
       if (!files) return;
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        const previewUrl = URL.createObjectURL(file);
-        onAddPhoto({
-          id: uid(),
-          name: file.name,
-          previewUrl,
-        });
+        const previewUrl = await compressImageFile(file);
+        if (previewUrl) {
+          onAddPhoto(
+            {
+              id: uid(),
+              name: file.name,
+              previewUrl,
+            },
+            file
+          );
+        }
       }
       if (fileInputRef.current) fileInputRef.current.value = "";
     },
@@ -38,9 +88,6 @@ export function TrialPhotoUploader({
   const handleRemove = useCallback(
     (photoId: string, previewUrl: string) => {
       if (!confirm("Hapus foto ini?")) return;
-      if (previewUrl.startsWith("blob:")) {
-        URL.revokeObjectURL(previewUrl);
-      }
       onRemovePhoto(photoId, previewUrl);
     },
     [onRemovePhoto]
@@ -64,7 +111,7 @@ export function TrialPhotoUploader({
       {photos.length > 0 && (
         <div className="trial-photo-grid">
           {photos.map((photo) => (
-            <div key={photo.id} className="trial-photo-thumb">
+            <div key={photo.id} className="trial-photo-thumb" title={photo.name}>
               <img
                 src={photo.previewUrl}
                 alt={photo.name}
@@ -76,24 +123,13 @@ export function TrialPhotoUploader({
                   borderRadius: "var(--radius-sm)",
                 }}
               />
-              <div
-                style={{
-                  padding: "2px 4px",
-                  fontSize: 10,
-                  color: "var(--color-text-muted)",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {photo.name}
-              </div>
               {isController && (
                 <button
                   type="button"
                   onClick={() => handleRemove(photo.id, photo.previewUrl)}
                   className="trial-photo-remove-btn"
-                  aria-label={`Hapus ${photo.name}`}
+                  aria-label={`Hapus foto`}
+                  title="Hapus foto"
                 >
                   ✕
                 </button>

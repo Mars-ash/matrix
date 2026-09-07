@@ -110,11 +110,18 @@ export function AddDataDialog({
       } catch (err: any) {
         console.error("OCR Extraction Error:", err);
         setConvRows(FALLBACK_EXTRACTION.map((r) => ({ ...r })));
-        setExtractionNotice(
-          err?.message
-            ? `Peringatan (${err.message}). Menampilkan template simulasi.`
-            : "Gagal mengekstrak gambar. Menampilkan template simulasi."
-        );
+        const errMsg = err?.message || "";
+        if (errMsg.toLowerCase().includes("unauthenticated")) {
+          setExtractionNotice("Sesi login tidak valid atau telah berakhir. Silakan login kembali sebagai Staff/Controller.");
+        } else if (errMsg.toLowerCase().includes("forbidden")) {
+          setExtractionNotice("Akses ditolak. Fitur Add Data hanya dapat dilakukan oleh role Staff / Controller.");
+        } else {
+          setExtractionNotice(
+            errMsg
+              ? `Peringatan (${errMsg}). Menampilkan template simulasi.`
+              : "Gagal mengekstrak gambar. Menampilkan template simulasi."
+          );
+        }
       } finally {
         setIsExtracting(false);
         setConvStep("preview");
