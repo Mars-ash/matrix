@@ -10,6 +10,7 @@ export type ControlStatus = (typeof STATUSES)[number];
 /** JO types — single-select per JO. */
 export const JO_TYPES = [
   "PROGRESSIVE",
+  "SEMI PROGRESSIVE",
   "TANDEM",
   "JIG",
   "WIRECUT SERVICE",
@@ -20,13 +21,26 @@ export type JoType = (typeof JO_TYPES)[number];
 /** Known subcont suppliers. */
 export const SUBCONT_SUPPLIERS = [
   "CHIYODA",
-  "PRO-TECH",
   "GEMA",
-  "PUTRA",
-  "NCI",
   "KANETSU",
+  "NCI",
+  "OERLICON",
+  "PRO-TECH",
+  "PUTRA",
 ] as const;
 export type SubcontSupplier = (typeof SUBCONT_SUPPLIERS)[number];
+
+/** Known PO suppliers. */
+export const PO_SUPPLIERS = [
+  "CV Sansei Engineering",
+  "CV Three Jaya",
+  "PT Astra Daido",
+  "PT Fujimaki",
+  "PT Misumi",
+  "PT Precision Special Steel",
+  "PT Rukun Sejahtera Teknik",
+] as const;
+export type PoSupplier = (typeof PO_SUPPLIERS)[number];
 
 /** Standard Part category keys. */
 export const PART_CATEGORIES = [

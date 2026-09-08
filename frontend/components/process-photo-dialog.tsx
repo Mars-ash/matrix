@@ -1,10 +1,11 @@
 "use client";
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import { Dialog } from "./dialog";
+import { ConfirmDialog } from "./confirm-dialog";
 import { useAppDispatch } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
 import { uid } from "@/lib/format";
-import type { Control } from "@/lib/types";
+import type { Control, ProcessPhoto } from "@/lib/types";
 
 interface ProcessPhotoDialogProps {
   open: boolean;
@@ -30,6 +31,7 @@ export function ProcessPhotoDialog({
   const dispatch = useAppDispatch();
   const { isController } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [deletePhotoTarget, setDeletePhotoTarget] = useState<ProcessPhoto | null>(null);
 
   const handleFileAdd = useCallback(
     (files: FileList | null) => {
@@ -140,7 +142,8 @@ export function ProcessPhotoDialog({
               />
               {isController && (
                 <button
-                  onClick={() => handleRemove(photo.id, photo.previewUrl)}
+                  type="button"
+                  onClick={() => setDeletePhotoTarget(photo)}
                   style={{
                     position: "absolute",
                     top: 4,
@@ -159,6 +162,7 @@ export function ProcessPhotoDialog({
                     justifyContent: "center",
                   }}
                   aria-label={`Remove ${photo.name}`}
+                  title="Hapus foto"
                 >
                   ✕
                 </button>
@@ -167,6 +171,23 @@ export function ProcessPhotoDialog({
           ))}
         </div>
       )}
+
+      {/* Custom photo delete confirmation */}
+      <ConfirmDialog
+        open={!!deletePhotoTarget}
+        onClose={() => setDeletePhotoTarget(null)}
+        onConfirm={() => {
+          if (deletePhotoTarget) {
+            handleRemove(deletePhotoTarget.id, deletePhotoTarget.previewUrl);
+            setDeletePhotoTarget(null);
+          }
+        }}
+        title="Hapus Foto"
+        message="Hapus foto ini?"
+        confirmText="Hapus"
+        thumbnailUrl={deletePhotoTarget?.previewUrl}
+        photoName={deletePhotoTarget?.name}
+      />
     </Dialog>
   );
 }

@@ -1,7 +1,11 @@
 "use client";
 import React, { useState } from "react";
 import Link from "next/link";
-import { deriveTrialSessionStatus, formatDateDDMMYYYY } from "@/lib/trial-report";
+import {
+  deriveTrialSessionStatus,
+  formatDateDDMMYYYY,
+  hasUnpublishedTrialChanges,
+} from "@/lib/trial-report";
 import type { TrialSession } from "@/lib/types";
 import { useAuth } from "@/lib/auth";
 
@@ -79,6 +83,7 @@ export function TrialReportSessionList({
             const isSelected = session.id === selectedId;
             const isPrintSelected = printSelectedIds.includes(session.id);
             const status = deriveTrialSessionStatus(session);
+            const isUnpublished = hasUnpublishedTrialChanges(session);
 
             return (
               <div
@@ -128,6 +133,34 @@ export function TrialReportSessionList({
                   </div>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                  {isController && (
+                    isUnpublished ? (
+                      <span
+                        title="Ada perubahan yang belum di-update"
+                        aria-label="Ada perubahan yang belum di-update"
+                        style={{
+                          width: 7,
+                          height: 7,
+                          borderRadius: "50%",
+                          background: "var(--color-status-in-progress, #d97706)",
+                          display: "inline-block",
+                        }}
+                      />
+                    ) : (
+                      <span
+                        title="Sudah sinkron"
+                        aria-label="Sudah sinkron"
+                        style={{
+                          color: "var(--color-status-done, #0d7c4a)",
+                          fontSize: 11,
+                          fontWeight: 700,
+                          lineHeight: 1,
+                        }}
+                      >
+                        ✓
+                      </span>
+                    )
+                  )}
                   <span
                     className={`trial-status-badge-sm ${
                       status === "Close"

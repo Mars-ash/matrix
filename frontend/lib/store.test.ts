@@ -94,6 +94,24 @@ describe("CREATE_JO", () => {
     expect(jo).toBeDefined();
     expect(jo!.categories).toHaveLength(0);
   });
+
+  it("supports creating a JO with SEMI PROGRESSIVE type", () => {
+    const next = reducer(state, {
+      type: "CREATE_JO",
+      id: "test-jo-semi",
+      projectId,
+      joNumber: "126.202",
+      product: "Semi Dies",
+      joType: "SEMI PROGRESSIVE",
+      categories: [],
+    });
+
+    const jo = next.projects
+      .find((p) => p.id === projectId)!
+      .jos.find((j) => j.joNumber === "126.202");
+    expect(jo).toBeDefined();
+    expect(jo!.type).toBe("SEMI PROGRESSIVE");
+  });
 });
 
 describe("ADD_ITEM", () => {
@@ -1902,5 +1920,36 @@ describe("Trial sessions storage persistence and hydration", () => {
     expect(publishedProb.photos).toHaveLength(1);
     expect(publishedProb.photos[0].id).toBe("ph-uploaded");
     expect(publishedProb.photos[0].name).toBe("my-trial-photo.png");
+  });
+
+  describe("DELETE_PROJECT and DELETE_JO", () => {
+    it("deletes a project by id", () => {
+      const p1 = state.projects[0];
+      const initialCount = state.projects.length;
+
+      const next = reducer(state, {
+        type: "DELETE_PROJECT",
+        projectId: p1.id,
+      });
+
+      expect(next.projects).toHaveLength(initialCount - 1);
+      expect(next.projects.find((p) => p.id === p1.id)).toBeUndefined();
+    });
+
+    it("deletes a JO by id from a project", () => {
+      const p = state.projects[0];
+      const joToDelete = p.jos[0];
+      const initialJoCount = p.jos.length;
+
+      const next = reducer(state, {
+        type: "DELETE_JO",
+        projectId: p.id,
+        joId: joToDelete.id,
+      });
+
+      const updatedProject = next.projects.find((proj) => proj.id === p.id)!;
+      expect(updatedProject.jos).toHaveLength(initialJoCount - 1);
+      expect(updatedProject.jos.find((j) => j.id === joToDelete.id)).toBeUndefined();
+    });
   });
 });

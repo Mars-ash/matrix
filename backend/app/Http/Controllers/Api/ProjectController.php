@@ -42,4 +42,13 @@ class ProjectController extends Controller
             'jos.trialSessions.findings.entries.photos',
         ]));
     }
+
+    public function destroy(Project $project): JsonResponse
+    {
+        $project->delete();
+
+        return response()->json([
+            'message' => 'Project deleted successfully.',
+        ]);
+    }
 }

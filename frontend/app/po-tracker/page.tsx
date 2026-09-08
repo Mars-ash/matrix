@@ -9,7 +9,7 @@ import { EmptyState } from "@/components/empty-state";
 import { StatusSelect } from "@/components/status-select";
 import { useAppDispatch, useAppState } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
-import type { ControlStatus, PoTracking } from "@/lib/types";
+import { PO_SUPPLIERS, type ControlStatus, type PoTracking } from "@/lib/types";
 import {
   collectPoTrackingRows,
   filterPoTrackingRows,
@@ -258,14 +258,28 @@ function PoTrackerContent() {
                         {row.supplier || "—"}
                       </span>
                     ) : (
-                      <input
-                        className="input"
-                        value={row.supplier}
+                      <select
+                        className="select"
+                        style={{
+                          fontSize: 12,
+                          padding: "4px 22px 4px 8px",
+                          minWidth: 120,
+                          width: "100%",
+                        }}
+                        value={row.supplier || ""}
                         onChange={(event) => updateRow(row, { supplier: event.target.value })}
-                        placeholder="-"
-                        style={{ fontSize: 12, padding: "4px 7px", width: "100%" }}
                         aria-label={`Supplier for ${row.item.description}`}
-                      />
+                      >
+                        <option value="">—</option>
+                        {row.supplier && !PO_SUPPLIERS.includes(row.supplier as any) && (
+                          <option value={row.supplier}>{row.supplier}</option>
+                        )}
+                        {PO_SUPPLIERS.map((sup) => (
+                          <option key={sup} value={sup}>
+                            {sup}
+                          </option>
+                        ))}
+                      </select>
                     )}
                   </td>
                   <td>
@@ -562,6 +576,8 @@ function PoTrackerContent() {
       </div>
 
       {renderGroupedContent()}
+
+
 
       {/* Notes dialog */}
       <Dialog

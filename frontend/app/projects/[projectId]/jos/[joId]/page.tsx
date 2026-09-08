@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useCallback, useEffect, use } from "react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, useRouter } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { ControlTable } from "@/components/control-table";
 import { ActivityPanel } from "@/components/activity-panel";
@@ -9,11 +9,12 @@ import { AddDataDialog } from "@/components/add-data-dialog";
 import { CategoryCreateDialog } from "@/components/category-create-dialog";
 import { JoItemSearch } from "@/components/jo-item-search";
 import { Dialog } from "@/components/dialog";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { useAppState, useAppDispatch } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
 import { joProgress, joProblemCount, categoryProgress } from "@/lib/progress";
 import { formatProgress } from "@/lib/format";
-import { SUBCONT_SUPPLIERS, type ControlStatus, type Item } from "@/lib/types";
+import { SUBCONT_SUPPLIERS, PO_SUPPLIERS, type ControlStatus, type Item } from "@/lib/types";
 import { poTrackingLabel } from "@/lib/po-tracking";
 
 interface PageProps {
@@ -32,12 +33,14 @@ const BULK_PROCESS_OPTIONS = [
 
 export default function JoDetailPage({ params }: PageProps) {
   const { projectId, joId } = use(params);
+  const router = useRouter();
   const { projects } = useAppState();
   const dispatch = useAppDispatch();
   const { isController } = useAuth();
   const [addDataCatId, setAddDataCatId] = useState<string | null>(null);
   const [isActivityOpen, setIsActivityOpen] = useState(false);
   const [finishConfirmOpen, setFinishConfirmOpen] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [categoryCreateOpen, setCategoryCreateOpen] = useState(false);
   const [highlightedItemId, setHighlightedItemId] = useState<string | null>(null);
 
@@ -277,6 +280,18 @@ export default function JoDetailPage({ params }: PageProps) {
               <span style={{ fontSize: 12, color: "var(--color-status-in-progress)", fontWeight: 600, padding: "6px 12px", border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", background: "var(--color-bg-wash)" }}>
                 Status: In Progress
               </span>
+            )}
+
+            {isController && (
+              <button
+                type="button"
+                className="btn btn-danger"
+                onClick={() => setDeleteConfirmOpen(true)}
+                style={{ padding: "6px 12px", fontSize: 12 }}
+                title="Hapus Job Order ini"
+              >
+                Hapus JO
+              </button>
             )}
           </div>
         </div>
@@ -672,22 +687,16 @@ export default function JoDetailPage({ params }: PageProps) {
 
           <div>
             <label className="label">Pilih Supplier / Vendor</label>
-            <input
-              type="text"
-              className="input"
-              list="po-supplier-options"
-              placeholder="Pilih atau ketik nama supplier..."
+            <select
+              className="select"
               value={poSupplier}
               onChange={(e) => setPoSupplier(e.target.value)}
-            />
-            <datalist id="po-supplier-options">
-              {SUBCONT_SUPPLIERS.map((sup) => (
+            >
+              <option value="">— Pilih Supplier —</option>
+              {PO_SUPPLIERS.map((sup) => (
                 <option key={sup} value={sup}>{sup}</option>
               ))}
-              <option value="PT Baja Makmur">PT Baja Makmur</option>
-              <option value="MISUMI">MISUMI</option>
-              <option value="FUTABA">FUTABA</option>
-            </datalist>
+            </select>
           </div>
 
           <div>
@@ -947,6 +956,32 @@ export default function JoDetailPage({ params }: PageProps) {
           </div>
         </div>
       </Dialog>
+
+      {/* Delete JO Confirmation Dialog */}
+      <ConfirmDialog
+        open={deleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+        onConfirm={() => {
+          if (jo && project) {
+            dispatch({
+              type: "DELETE_JO",
+              projectId: project.id,
+              joId: jo.id,
+            });
+            setDeleteConfirmOpen(false);
+            router.push("/");
+          }
+        }}
+        title="Hapus Job Order"
+        message={
+          jo ? (
+            <span>
+              Hapus JO <strong>{jo.joNumber}</strong> ({jo.product})?
+            </span>
+          ) : null
+        }
+        confirmText="Hapus"
+      />
     </AppShell>
   );
 }

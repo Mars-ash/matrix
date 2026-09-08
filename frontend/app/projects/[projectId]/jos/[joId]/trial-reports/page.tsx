@@ -192,7 +192,7 @@ export default function TrialReportsPage({ params }: PageProps) {
         </div>
 
         {/* Dedicated Search Bar */}
-        <div style={{ width: "100%", maxWidth: 460, flex: "1 1 240px" }}>
+        <div className="trial-page-search-wrapper">
           <TrialSmartSearch
             sessions={sessions}
             onSelectResult={handleSmartSearchSelect}

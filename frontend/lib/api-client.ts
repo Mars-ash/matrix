@@ -80,6 +80,12 @@ export const api = {
     return request<{ data: Project }>(`/projects/${projectId}`);
   },
 
+  async deleteProject(projectId: string): Promise<{ message: string }> {
+    return request<{ message: string }>(`/projects/${projectId}`, {
+      method: "DELETE",
+    });
+  },
+
   // JOs
   async createJO(
     projectId: string,
@@ -104,6 +110,12 @@ export const api = {
   async finishJO(joId: string): Promise<{ data: JO; message: string }> {
     return request<{ data: JO; message: string }>(`/jos/${joId}/finish`, {
       method: "PATCH",
+    });
+  },
+
+  async deleteJO(joId: string): Promise<{ message: string }> {
+    return request<{ message: string }>(`/jos/${joId}`, {
+      method: "DELETE",
     });
   },
 

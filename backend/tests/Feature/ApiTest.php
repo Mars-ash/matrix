@@ -312,5 +312,74 @@ class ApiTest extends TestCase
             ->assertJsonPath('data.publishedSnapshot.customer', 'PT Astra Honda')
             ->assertJsonPath('data.publishedSnapshot.findings.0.problems.0.photos.0.name', 'burr.jpg');
     }
+
+    public function test_controller_can_delete_project_and_viewer_cannot(): void
+    {
+        $project = Project::create([
+            'name' => 'Project To Delete',
+            'customer' => 'Customer Del',
+            'company' => 'BKP',
+        ]);
+
+        $jo = $project->jos()->create([
+            'jo_number' => 'JO-DEL-001',
+            'product' => 'Product Del',
+            'type' => 'TANDEM',
+        ]);
+
+        // 1. Viewer cannot delete project (403)
+        $viewerResponse = $this->withHeader('Authorization', 'Bearer ' . $this->viewerToken)
+            ->deleteJson("/api/projects/{$project->id}");
+        $viewerResponse->assertStatus(403);
+
+        $this->assertDatabaseHas('projects', ['id' => $project->id]);
+        $this->assertDatabaseHas('jos', ['id' => $jo->id]);
+
+        // 2. Controller can delete project (200)
+        $controllerResponse = $this->withHeader('Authorization', 'Bearer ' . $this->controllerToken)
+            ->deleteJson("/api/projects/{$project->id}");
+        $controllerResponse->assertStatus(200)
+            ->assertJsonPath('message', 'Project deleted successfully.');
+
+        $this->assertDatabaseMissing('projects', ['id' => $project->id]);
+        $this->assertDatabaseMissing('jos', ['id' => $jo->id]);
+    }
+
+    public function test_controller_can_delete_jo_and_viewer_cannot(): void
+    {
+        $project = Project::create([
+            'name' => 'Project Keep',
+            'customer' => 'Customer Keep',
+        ]);
+
+        $jo = $project->jos()->create([
+            'jo_number' => 'JO-DEL-002',
+            'product' => 'Product Jo Del',
+            'type' => 'PROGRESSIVE',
+        ]);
+
+        $category = $jo->categories()->create([
+            'label' => 'Cat 1',
+            'kind' => 'Part',
+        ]);
+
+        // 1. Viewer cannot delete JO (403)
+        $viewerResponse = $this->withHeader('Authorization', 'Bearer ' . $this->viewerToken)
+            ->deleteJson("/api/jos/{$jo->id}");
+        $viewerResponse->assertStatus(403);
+
+        $this->assertDatabaseHas('jos', ['id' => $jo->id]);
+
+        // 2. Controller can delete JO (200)
+        $controllerResponse = $this->withHeader('Authorization', 'Bearer ' . $this->controllerToken)
+            ->deleteJson("/api/jos/{$jo->id}");
+        $controllerResponse->assertStatus(200)
+            ->assertJsonPath('message', 'Job Order deleted successfully.');
+
+        $this->assertDatabaseMissing('jos', ['id' => $jo->id]);
+        $this->assertDatabaseMissing('categories', ['id' => $category->id]);
+        // Parent project should still exist
+        $this->assertDatabaseHas('projects', ['id' => $project->id]);
+    }
 }
 

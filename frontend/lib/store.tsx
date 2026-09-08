@@ -71,6 +71,15 @@ export type AppAction =
       categories: { label: string; kind: CategoryKind; isCustom: boolean }[];
     }
   | {
+      type: "DELETE_PROJECT";
+      projectId: string;
+    }
+  | {
+      type: "DELETE_JO";
+      projectId: string;
+      joId: string;
+    }
+  | {
       type: "ADD_CATEGORY";
       projectId: string;
       joId: string;
@@ -429,6 +438,20 @@ function executeReducer(next: AppState, state: AppState, action: AppAction): App
         jos: [],
       };
       next.projects.push(newProj);
+      return next;
+    }
+
+    case "DELETE_PROJECT": {
+      next.projects = next.projects.filter((p) => p.id !== action.projectId);
+      return next;
+    }
+
+    case "DELETE_JO": {
+      const project =
+        next.projects.find((p) => p.id === action.projectId) ||
+        next.projects.find((p) => p.jos?.some((j) => j.id === action.joId || j.joNumber === action.joId));
+      if (!project) return state;
+      project.jos = (project.jos || []).filter((j) => j.id !== action.joId && j.joNumber !== action.joId);
       return next;
     }
 
@@ -1472,6 +1495,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
       case "DELETE_TRIAL_SESSION":
         api.deleteTrialSession(action.sessionId).catch(() => {});
+        break;
+
+      case "DELETE_PROJECT":
+        api.deleteProject(action.projectId).catch(() => {});
+        break;
+
+      case "DELETE_JO":
+        api.deleteJO(action.joId).catch(() => {});
         break;
 
       case "ADD_TRIAL_FINDING":

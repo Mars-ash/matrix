@@ -249,6 +249,12 @@ export function createTrialSessionSnapshot(
 export function hasUnpublishedTrialChanges(session: TrialSession): boolean {
   if (!session.publishedSnapshot) return true;
 
+  if (session.lastPublishedAt && session.updatedAt) {
+    if (new Date(session.updatedAt).getTime() > new Date(session.lastPublishedAt).getTime()) {
+      return true;
+    }
+  }
+
   const currentPayload = {
     name: session.name,
     trialDate: session.trialDate,

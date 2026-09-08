@@ -8,6 +8,7 @@ import {
   sortTrialFindings,
   deriveTrialSessionStatus,
   formatDateTimeDDMMYYYYHHmm,
+  hasUnpublishedTrialChanges,
 } from "@/lib/trial-report";
 import type { TrialSession, TrialFinding } from "@/lib/types";
 
@@ -28,6 +29,7 @@ export function TrialReportEditor({
   const { isController, isViewer } = useAuth();
   const sortedFindings = sortTrialFindings(session.findings);
   const derivedStatus = deriveTrialSessionStatus(session);
+  const isUnpublished = hasUnpublishedTrialChanges(session);
   const [showToast, setShowToast] = useState(false);
 
   const formatPublishedTimestamp = (iso?: string) => {
@@ -174,16 +176,70 @@ export function TrialReportEditor({
             padding: "8px 14px",
             marginBottom: 16,
             background: "var(--color-bg-surface, #ffffff)",
-            border: "1px solid var(--color-border)",
+            border: isUnpublished
+              ? "1px solid rgba(217, 119, 6, 0.4)"
+              : "1px solid var(--color-border)",
             borderRadius: "var(--radius-md)",
             gap: 12,
+            transition: "border-color .15s ease",
           }}
         >
-          <div style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>
-            Terakhir diperbarui:{" "}
-            <span style={{ color: "var(--color-text)", fontWeight: 600 }}>
-              {formatPublishedTimestamp(session.lastPublishedAt)}
-            </span>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+            <div style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>
+              Terakhir diperbarui:{" "}
+              <span style={{ color: "var(--color-text)", fontWeight: 600 }}>
+                {formatPublishedTimestamp(session.lastPublishedAt)}
+              </span>
+            </div>
+
+            {/* Status indicator: bila ada perubahan "Ada perubahan yang belum di-update", bila sudah sinkron ya pakai tanda aja */}
+            {isUnpublished ? (
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: "var(--color-status-in-progress, #d97706)",
+                  background: "rgba(217, 119, 6, 0.08)",
+                  padding: "2px 8px",
+                  borderRadius: "var(--radius-sm)",
+                  border: "1px solid rgba(217, 119, 6, 0.25)",
+                }}
+              >
+                <span
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: "50%",
+                    background: "var(--color-status-in-progress, #d97706)",
+                    display: "inline-block",
+                  }}
+                />
+                Ada perubahan yang belum di-update
+              </span>
+            ) : (
+              <span
+                title="Sudah sinkron"
+                aria-label="Sudah sinkron"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: 20,
+                  height: 20,
+                  borderRadius: "50%",
+                  background: "var(--color-status-done-bg, rgba(13, 124, 74, 0.1))",
+                  color: "var(--color-status-done, #0d7c4a)",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  border: "1px solid rgba(13, 124, 74, 0.25)",
+                }}
+              >
+                ✓
+              </span>
+            )}
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>

@@ -87,4 +87,13 @@ class JOController extends Controller
             'message' => 'Job Order finished successfully.',
         ]);
     }
+
+    public function destroy(JO $jo): JsonResponse
+    {
+        $jo->delete();
+
+        return response()->json([
+            'message' => 'Job Order deleted successfully.',
+        ]);
+    }
 }

@@ -1,8 +1,9 @@
 "use client";
-import React, { useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback } from "react";
 import { uid } from "@/lib/format";
 import type { TrialEntryPhoto } from "@/lib/types";
 import { useAuth } from "@/lib/auth";
+import { ConfirmDialog } from "./confirm-dialog";
 
 interface TrialPhotoUploaderProps {
   photos: TrialEntryPhoto[];
@@ -62,6 +63,7 @@ export function TrialPhotoUploader({
 }: TrialPhotoUploaderProps) {
   const { isController } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [deletePhotoTarget, setDeletePhotoTarget] = useState<TrialEntryPhoto | null>(null);
 
   const handleFileAdd = useCallback(
     async (files: FileList | null) => {
@@ -83,14 +85,6 @@ export function TrialPhotoUploader({
       if (fileInputRef.current) fileInputRef.current.value = "";
     },
     [onAddPhoto]
-  );
-
-  const handleRemove = useCallback(
-    (photoId: string, previewUrl: string) => {
-      if (!confirm("Hapus foto ini?")) return;
-      onRemovePhoto(photoId, previewUrl);
-    },
-    [onRemovePhoto]
   );
 
   return (
@@ -126,7 +120,7 @@ export function TrialPhotoUploader({
               {isController && (
                 <button
                   type="button"
-                  onClick={() => handleRemove(photo.id, photo.previewUrl)}
+                  onClick={() => setDeletePhotoTarget(photo)}
                   className="trial-photo-remove-btn"
                   aria-label={`Hapus foto`}
                   title="Hapus foto"
@@ -138,6 +132,23 @@ export function TrialPhotoUploader({
           ))}
         </div>
       )}
+
+      {/* Custom non-native Photo Delete Confirmation */}
+      <ConfirmDialog
+        open={!!deletePhotoTarget}
+        onClose={() => setDeletePhotoTarget(null)}
+        onConfirm={() => {
+          if (deletePhotoTarget) {
+            onRemovePhoto(deletePhotoTarget.id, deletePhotoTarget.previewUrl);
+            setDeletePhotoTarget(null);
+          }
+        }}
+        title="Hapus Foto"
+        message="Hapus foto ini?"
+        confirmText="Hapus"
+        thumbnailUrl={deletePhotoTarget?.previewUrl}
+        photoName={deletePhotoTarget?.name}
+      />
     </div>
   );
 }
