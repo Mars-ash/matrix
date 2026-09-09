@@ -3,7 +3,8 @@ import React, { useState, useCallback } from "react";
 import { Dialog } from "./dialog";
 import { useAppDispatch } from "@/lib/store";
 import { uid } from "@/lib/format";
-import { COMPANIES, type CompanyEntity } from "@/lib/types";
+import { COMPANIES, DEFAULT_CUSTOMERS, type CompanyEntity } from "@/lib/types";
+import { CustomerCombobox } from "./customer-combobox";
 
 interface ProjectCreateDialogProps {
   open: boolean;
@@ -30,7 +31,11 @@ export function ProjectCreateDialog({ open, onClose, onCreated }: ProjectCreateD
     const errs: Record<string, string> = {};
     if (!name.trim()) errs.name = "Project name is required.";
     if (!company) errs.company = "Company (BMI / BKP) is required.";
-    if (!customer.trim()) errs.customer = "Customer name is required.";
+    if (!customer.trim()) {
+      errs.customer = "Customer name is required.";
+    } else if (!DEFAULT_CUSTOMERS.includes(customer.trim() as (typeof DEFAULT_CUSTOMERS)[number])) {
+      errs.customer = "Pilih customer yang valid dari daftar dropdown.";
+    }
 
     if (Object.keys(errs).length > 0) {
       setErrors(errs);
@@ -83,8 +88,9 @@ export function ProjectCreateDialog({ open, onClose, onCreated }: ProjectCreateD
         }}
       >
         <div>
-          <label className="label">Project Name *</label>
+          <label className="label" htmlFor="project-name-input">Project Name *</label>
           <input
+            id="project-name-input"
             className="input"
             value={name}
             onChange={(e) => {
@@ -97,10 +103,11 @@ export function ProjectCreateDialog({ open, onClose, onCreated }: ProjectCreateD
         </div>
 
         <div>
-          <label className="label">
-            Project  <span style={{ fontWeight: 400, color: "var(--color-text-muted)" }}>(BMI / BKP)</span>
+          <label className="label" htmlFor="project-company-select">
+            Project <span style={{ fontWeight: 400, color: "var(--color-text-muted)" }}>(BMI / BKP)</span>
           </label>
           <select
+            id="project-company-select"
             className="select"
             value={company}
             onChange={(e) => {
@@ -118,16 +125,16 @@ export function ProjectCreateDialog({ open, onClose, onCreated }: ProjectCreateD
         </div>
 
         <div>
-          <label className="label">Customer *</label>
-          <input
-            className="input"
+          <label className="label" htmlFor="project-customer-combobox">Customer *</label>
+          <CustomerCombobox
+            id="project-customer-combobox"
             value={customer}
-            onChange={(e) => {
-              setCustomer(e.target.value);
+            onChange={(val) => {
+              setCustomer(val);
               setErrors((p) => ({ ...p, customer: "" }));
             }}
+            error={errors.customer}
           />
-          {errors.customer && <p className="error-text">{errors.customer}</p>}
         </div>
       </div>
     </Dialog>
