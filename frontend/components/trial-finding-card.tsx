@@ -4,7 +4,7 @@ import { TrialPhotoUploader } from "./trial-photo-uploader";
 import { useAppDispatch } from "@/lib/store";
 import { uid } from "@/lib/format";
 import {
-  formatFindingLetter,
+  formatFindingNumber,
   sortTrialEntries,
   deriveTrialFindingStatus,
 } from "@/lib/trial-report";
@@ -129,7 +129,7 @@ export function TrialFindingCard({
 }: TrialFindingCardProps) {
   const dispatch = useAppDispatch();
   const { isController, isViewer } = useAuth();
-  const findingLetter = formatFindingLetter(displayOrder);
+  const findingNumber = formatFindingNumber(displayOrder);
 
   const [internalOpen, setInternalOpen] = useState(false);
   const open = isOpen !== undefined ? isOpen : internalOpen;
@@ -160,7 +160,7 @@ export function TrialFindingCard({
 
   // Finding-level operations
   const handleDeleteFinding = () => {
-    if (!confirm(`Hapus Temuan ${findingLetter}?`)) return;
+    if (!confirm(`Hapus Temuan ${findingNumber}?`)) return;
     dispatch({
       type: "DELETE_TRIAL_FINDING",
       projectId,
@@ -382,7 +382,7 @@ export function TrialFindingCard({
             </svg>
           </button>
 
-          <span className="trial-finding-number">Temuan {findingLetter}</span>
+          <span className="trial-finding-number">Temuan {findingNumber}</span>
 
           <span
             className={`trial-status-badge-sm ${

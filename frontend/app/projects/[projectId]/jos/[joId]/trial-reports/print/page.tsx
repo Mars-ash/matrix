@@ -1,11 +1,11 @@
 "use client";
-import React, { use } from "react";
-import { notFound } from "next/navigation";
-import { useSearchParams } from "next/navigation";
+import React, { use, useEffect } from "react";
+import { notFound, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { TrialReportPrintView } from "@/components/trial-report-print-view";
 import { useAppState } from "@/lib/store";
+import { useAuth } from "@/lib/auth";
 
 interface PageProps {
   params: Promise<{ projectId: string; joId: string }>;
@@ -14,7 +14,15 @@ interface PageProps {
 export default function TrialReportPrintPage({ params }: PageProps) {
   const { projectId, joId } = use(params);
   const searchParams = useSearchParams();
+  const router = useRouter();
   const { projects } = useAppState();
+  const { isViewer } = useAuth();
+
+  useEffect(() => {
+    if (isViewer) {
+      router.replace(`/projects/${projectId}/jos/${joId}/trial-reports`);
+    }
+  }, [isViewer, projectId, joId, router]);
 
   const project = projects.find((p) => p.id === projectId)
     || projects.find((p) => p.jos.some((j) => j.id === joId || j.joNumber === joId))
@@ -24,6 +32,43 @@ export default function TrialReportPrintPage({ params }: PageProps) {
 
   if (!project || !jo) {
     notFound();
+  }
+
+  if (isViewer) {
+    return (
+      <AppShell
+        breadcrumbs={[
+          { label: "Dashboard", href: "/" },
+          { label: project.name, href: "/" },
+          {
+            label: `JO ${jo.joNumber}`,
+            href: `/projects/${projectId}/jos/${joId}`,
+          },
+          {
+            label: "Trial Reports",
+            href: `/projects/${projectId}/jos/${joId}/trial-reports`,
+          },
+          { label: "Akses Ditolak" },
+        ]}
+      >
+        <div style={{ textAlign: "center", padding: "64px 24px" }}>
+          <p style={{ fontSize: 16, fontWeight: 600, color: "var(--color-status-problem)" }}>
+            Akses Ditolak
+          </p>
+          <p style={{ fontSize: 13, color: "var(--color-text-muted)", marginTop: 8 }}>
+            Viewer tidak memiliki akses untuk mencetak Trial Report.
+          </p>
+          <div style={{ marginTop: 20 }}>
+            <Link
+              href={`/projects/${projectId}/jos/${joId}/trial-reports`}
+              className="btn btn-secondary"
+            >
+              ← Kembali ke Trial Reports
+            </Link>
+          </div>
+        </div>
+      </AppShell>
+    );
   }
 
   const sessionIds = searchParams.getAll("sessions");

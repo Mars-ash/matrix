@@ -7,6 +7,7 @@ import {
   deriveTrialFindingStatus,
   sortTrialFindings,
   sortTrialEntries,
+  formatFindingNumber,
   formatFindingLetter,
   cloneTrialSessionWithoutPhotos,
   createTrialSessionSnapshot,
@@ -165,6 +166,24 @@ describe("buildTrialSessionName", () => {
 
   it("returns empty string when both are empty", () => {
     expect(buildTrialSessionName("", "")).toBe("");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// formatFindingNumber
+// ---------------------------------------------------------------------------
+describe("formatFindingNumber", () => {
+  it("formats 1-based order to numeric string 1, 2, 3...", () => {
+    expect(formatFindingNumber(1)).toBe("1");
+    expect(formatFindingNumber(2)).toBe("2");
+    expect(formatFindingNumber(3)).toBe("3");
+    expect(formatFindingNumber(26)).toBe("26");
+    expect(formatFindingNumber(27)).toBe("27");
+  });
+
+  it("handles non-positive numbers safely", () => {
+    expect(formatFindingNumber(0)).toBe("1");
+    expect(formatFindingNumber(-1)).toBe("1");
   });
 });
 

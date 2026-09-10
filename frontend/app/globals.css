@@ -326,6 +326,129 @@ tr.row-highlight .td-sticky-no {
   background: #2563eb1f;
 }
 
+/* Sticky Description column in JO Control Table */
+.th-sticky-desc,
+.td-sticky-desc {
+  position: sticky;
+  left: 64px;
+  z-index: 6;
+  border-right: 1px solid var(--color-border) !important;
+  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.04);
+}
+
+.table-viewer .th-sticky-desc,
+.table-viewer .td-sticky-desc {
+  left: 40px !important;
+}
+
+.th-sticky-desc {
+  background: var(--color-bg-wash);
+  z-index: 12;
+}
+
+.td-sticky-desc {
+  background: var(--color-bg-raised);
+}
+
+tr:hover .td-sticky-desc {
+  background: var(--color-bg-wash);
+}
+
+tr.row-selected .td-sticky-desc {
+  background: color-mix(in srgb, var(--color-accent) 8%, var(--color-bg-raised));
+}
+
+tr.row-highlight .td-sticky-desc {
+  background: #2563eb1f;
+}
+
+/* Sticky columns for Tracker tables (SC Tracker & PO Tracker) */
+.th-tracker-checkbox,
+.td-tracker-checkbox {
+  position: sticky;
+  left: 0;
+  z-index: 7;
+  width: 36px;
+  min-width: 36px;
+  max-width: 36px;
+  text-align: center;
+}
+
+.th-tracker-checkbox {
+  background: var(--color-bg-wash);
+  z-index: 13;
+}
+
+.td-tracker-checkbox {
+  background: var(--color-bg-raised);
+}
+
+.th-tracker-jo,
+.td-tracker-jo {
+  position: sticky;
+  left: 36px;
+  z-index: 7;
+  width: 80px;
+  min-width: 80px;
+  max-width: 80px;
+}
+
+.table-viewer .th-tracker-jo,
+.table-viewer .td-tracker-jo {
+  left: 0 !important;
+}
+
+.th-tracker-jo {
+  background: var(--color-bg-wash);
+  z-index: 13;
+}
+
+.td-tracker-jo {
+  background: var(--color-bg-raised);
+}
+
+.th-tracker-item,
+.td-tracker-item {
+  position: sticky;
+  left: 116px;
+  z-index: 6;
+  min-width: 170px;
+  border-right: 1px solid var(--color-border) !important;
+  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.04);
+}
+
+.table-viewer .th-tracker-item,
+.table-viewer .td-tracker-item {
+  left: 80px !important;
+}
+
+.th-tracker-item {
+  background: var(--color-bg-wash);
+  z-index: 12;
+}
+
+.td-tracker-item {
+  background: var(--color-bg-raised);
+}
+
+tr:hover .td-tracker-checkbox,
+tr:hover .td-tracker-jo,
+tr:hover .td-tracker-item {
+  background: var(--color-bg-wash);
+}
+
+tr.row-selected .td-tracker-checkbox,
+tr.row-selected .td-tracker-jo,
+tr.row-selected .td-tracker-item {
+  background: color-mix(in srgb, var(--color-accent) 8%, var(--color-bg-raised));
+}
+
+tr.row-highlight .td-tracker-checkbox,
+tr.row-highlight .td-tracker-jo,
+tr.row-highlight .td-tracker-item {
+  background: #2563eb1f;
+}
+
 .table-scroll {
   -webkit-overflow-scrolling: touch;
   border: 1px solid var(--color-border);

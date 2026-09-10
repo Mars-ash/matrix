@@ -76,7 +76,9 @@ export function ControlTable({
               <th
                 className="th-sticky-no"
                 style={{
+                  width: isController ? 64 : 40,
                   minWidth: isController ? 64 : 40,
+                  maxWidth: isController ? 64 : 40,
                   textAlign: "center",
                   padding: "6px 8px",
                   cursor: isController ? "pointer" : "default",
@@ -104,7 +106,7 @@ export function ControlTable({
                   "No"
                 )}
               </th>
-              <th style={{ minWidth: 140 }}>Description</th>
+              <th className="th-sticky-desc" style={{ minWidth: 160 }}>Description</th>
               <th style={{ minWidth: 90 }}>Dimension</th>
               <th style={{ minWidth: 70 }}>Material</th>
               <th style={{ minWidth: 36, textAlign: "center" }}>Qty</th>
@@ -138,6 +140,9 @@ export function ControlTable({
                   <td
                     className="td-sticky-no"
                     style={{
+                      width: isController ? 64 : 40,
+                      minWidth: isController ? 64 : 40,
+                      maxWidth: isController ? 64 : 40,
                       fontWeight: 500,
                       color: isSelected ? "var(--color-accent)" : "var(--color-text-secondary)",
                       cursor: isController ? "pointer" : "default",
@@ -165,7 +170,7 @@ export function ControlTable({
                       item.no
                     )}
                   </td>
-                  <td style={{ fontWeight: 500 }}>{item.description}</td>
+                  <td className="td-sticky-desc" style={{ fontWeight: 500 }}>{item.description}</td>
                   <td style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>{item.dimension}</td>
                   <td style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>{item.material}</td>
                   <td style={{ textAlign: "center" }}>{item.qty}</td>

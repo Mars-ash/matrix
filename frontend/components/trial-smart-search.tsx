@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useMemo, useRef, useEffect } from "react";
-import { formatFindingLetter, formatDateDDMMYYYY, deriveTrialSessionStatus } from "@/lib/trial-report";
+import { formatFindingNumber, formatDateDDMMYYYY, deriveTrialSessionStatus } from "@/lib/trial-report";
 import type { TrialSession } from "@/lib/types";
 
 export interface SmartSearchResult {
@@ -9,6 +9,7 @@ export interface SmartSearchResult {
   sessionId: string;
   sessionName: string;
   findingId?: string;
+  findingNumber?: string;
   findingLetter?: string;
   title: string;
   snippet: string;
@@ -49,11 +50,10 @@ export function TrialSmartSearch({
     const matches: SmartSearchResult[] = [];
     const seen = new Set<string>();
 
-    const addMatch = (res: SmartSearchResult) => {
-      const key = `${res.sessionId}-${res.findingId ?? ""}-${res.category}-${res.snippet}`;
-      if (!seen.has(key)) {
-        seen.add(key);
-        matches.push(res);
+    const addMatch = (match: SmartSearchResult) => {
+      if (!seen.has(match.id)) {
+        seen.add(match.id);
+        matches.push(match);
       }
     };
 
@@ -87,20 +87,20 @@ export function TrialSmartSearch({
 
       // 2. Match inside Findings
       for (const finding of session.findings ?? []) {
-        const letter = formatFindingLetter(finding.order);
-        const letterLower = letter.toLowerCase();
-        const findingLabel = `Temuan ${letter}`;
+        const findingNum = formatFindingNumber(finding.order);
+        const findingLabel = `Temuan ${findingNum}`;
 
-        // Finding letter match (e.g. "temuan a" or just "a")
-        if (q === letterLower || q === findingLabel.toLowerCase()) {
+        // Finding number match (e.g. "temuan 1" or just "1")
+        if (q === findingNum || q === findingLabel.toLowerCase()) {
           addMatch({
             id: `finding-${finding.id}`,
             category: "Session",
             sessionId: session.id,
             sessionName: session.name,
             findingId: finding.id,
-            findingLetter: letter,
-            title: `${session.name} · Temuan ${letter}`,
+            findingNumber: findingNum,
+            findingLetter: findingNum,
+            title: `${session.name} · Temuan ${findingNum}`,
             snippet: `${finding.problems?.length ?? 0} masalah · ${finding.correctiveActions?.length ?? 0} tindakan perbaikan`,
           });
         }
@@ -114,8 +114,9 @@ export function TrialSmartSearch({
               sessionId: session.id,
               sessionName: session.name,
               findingId: finding.id,
-              findingLetter: letter,
-              title: `${session.name} · Temuan ${letter} (Masalah #${prob.order})`,
+              findingNumber: findingNum,
+              findingLetter: findingNum,
+              title: `${session.name} · Temuan ${findingNum} (Masalah #${prob.order})`,
               snippet: prob.text,
             });
           }
@@ -130,8 +131,9 @@ export function TrialSmartSearch({
               sessionId: session.id,
               sessionName: session.name,
               findingId: finding.id,
-              findingLetter: letter,
-              title: `${session.name} · Temuan ${letter} (Penyebab #${cause.order})`,
+              findingNumber: findingNum,
+              findingLetter: findingNum,
+              title: `${session.name} · Temuan ${findingNum} (Penyebab #${cause.order})`,
               snippet: cause.text,
             });
           }
@@ -153,8 +155,9 @@ export function TrialSmartSearch({
               sessionId: session.id,
               sessionName: session.name,
               findingId: finding.id,
-              findingLetter: letter,
-              title: `${session.name} · Temuan ${letter} (Perbaikan #${act.order})`,
+              findingNumber: findingNum,
+              findingLetter: findingNum,
+              title: `${session.name} · Temuan ${findingNum} (Perbaikan #${act.order})`,
               snippet: act.text,
               meta: act.pic ? `PIC: ${act.pic}` : undefined,
               status: act.status,
@@ -169,8 +172,9 @@ export function TrialSmartSearch({
               sessionId: session.id,
               sessionName: session.name,
               findingId: finding.id,
-              findingLetter: letter,
-              title: `PIC: ${act.pic} (${session.name} · Temuan ${letter})`,
+              findingNumber: findingNum,
+              findingLetter: findingNum,
+              title: `PIC: ${act.pic} (${session.name} · Temuan ${findingNum})`,
               snippet: act.text || "Langkah perbaikan",
               status: act.status,
             });
@@ -184,8 +188,9 @@ export function TrialSmartSearch({
               sessionId: session.id,
               sessionName: session.name,
               findingId: finding.id,
-              findingLetter: letter,
-              title: `Target: ${formatDateDDMMYYYY(act.targetDate)} (${session.name} · Temuan ${letter})`,
+              findingNumber: findingNum,
+              findingLetter: findingNum,
+              title: `Target: ${formatDateDDMMYYYY(act.targetDate)} (${session.name} · Temuan ${findingNum})`,
               snippet: act.text || "Langkah perbaikan",
               status: act.status,
             });
@@ -199,8 +204,9 @@ export function TrialSmartSearch({
               sessionId: session.id,
               sessionName: session.name,
               findingId: finding.id,
-              findingLetter: letter,
-              title: `Status: ${act.status} (${session.name} · Temuan ${letter})`,
+              findingNumber: findingNum,
+              findingLetter: findingNum,
+              title: `Status: ${act.status} (${session.name} · Temuan ${findingNum})`,
               snippet: act.text || "Langkah perbaikan",
               status: act.status,
             });

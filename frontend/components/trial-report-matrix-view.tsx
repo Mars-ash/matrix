@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import {
   sortTrialFindings,
   sortTrialEntries,
-  formatFindingLetter,
+  formatFindingNumber,
   formatDateDDMMYYYY,
   formatDateTimeDDMMYYYYHHmm,
   deriveTrialSessionStatus,
@@ -521,7 +521,7 @@ export function TrialReportMatrixView({
                 </tr>
               ) : (
                 filteredFindings.map((finding, fIdx) => {
-                  const letter = formatFindingLetter(finding.order || fIdx + 1);
+                  const findingNum = formatFindingNumber(finding.order || fIdx + 1);
                   const problems = sortTrialEntries(finding.problems ?? []);
                   const causes = sortTrialEntries(finding.causes ?? []);
                   const actions = sortTrialEntries(finding.correctiveActions ?? []);
@@ -549,7 +549,7 @@ export function TrialReportMatrixView({
                             borderRight: "1px solid var(--color-border)",
                           }}
                         >
-                          {letter}
+                          {findingNum}
                         </td>
                         <td
                           style={{
@@ -638,7 +638,7 @@ export function TrialReportMatrixView({
                         background: "var(--color-bg-raised)",
                       }}
                     >
-                      {/* Col 1: Letter / No */}
+                      {/* Col 1: Finding No */}
                       {aIdx === 0 && (
                         <td
                           rowSpan={totalRows}
@@ -653,7 +653,7 @@ export function TrialReportMatrixView({
                             borderRight: "1px solid var(--color-border)",
                           }}
                         >
-                          {letter}
+                          {findingNum}
                         </td>
                       )}
 

@@ -86,6 +86,14 @@ export function buildTrialSessionName(
 }
 
 /**
+ * Format a 1-based finding order/number as a numeric string: "1", "2", "3"...
+ */
+export function formatFindingNumber(order: number): string {
+  const n = Math.max(1, Math.floor(order || 1));
+  return String(n);
+}
+
+/**
  * Convert a 1-based finding order/number to letters: A, B, C... Z, AA, AB...
  */
 export function formatFindingLetter(order: number): string {

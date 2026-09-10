@@ -34,7 +34,7 @@ export function TrialReportSessionList({
   onDuplicate,
   onDeleteSession,
 }: TrialReportSessionListProps) {
-  const { isController } = useAuth();
+  const { isController, isViewer } = useAuth();
   const printQuery = printSelectedIds
     .map((id) => `sessions=${encodeURIComponent(id)}`)
     .join("&");
@@ -94,17 +94,19 @@ export function TrialReportSessionList({
                 onClick={() => onSelectSession(session.id)}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0 }}>
-                  <input
-                    type="checkbox"
-                    checked={isPrintSelected}
-                    style={{ flexShrink: 0, cursor: "pointer" }}
-                    onChange={(e) => {
-                      e.stopPropagation();
-                      onTogglePrintSelect(session.id);
-                    }}
-                    onClick={(e) => e.stopPropagation()}
-                    title="Pilih untuk print"
-                  />
+                  {!isViewer && (
+                    <input
+                      type="checkbox"
+                      checked={isPrintSelected}
+                      style={{ flexShrink: 0, cursor: "pointer" }}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        onTogglePrintSelect(session.id);
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                      title="Pilih untuk print"
+                    />
+                  )}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div
                       style={{
@@ -189,8 +191,8 @@ export function TrialReportSessionList({
         </div>
       )}
 
-      {/* Print action */}
-      {sessions.length > 0 && (
+      {/* Print action — hidden for viewer */}
+      {sessions.length > 0 && !isViewer && (
         <div className="trial-session-list-footer">
           {printSelectedIds.length > 0 ? (
             <Link

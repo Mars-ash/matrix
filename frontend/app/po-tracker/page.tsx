@@ -172,7 +172,7 @@ function PoTrackerContent() {
           <thead>
             <tr>
               {isController && (
-                <th style={{ width: 36, textAlign: "center" }}>
+                <th className="th-tracker-checkbox">
                   <input
                     type="checkbox"
                     checked={isAllSelected}
@@ -182,8 +182,8 @@ function PoTrackerContent() {
                   />
                 </th>
               )}
-              <th style={{ minWidth: 80 }}>JO</th>
-              <th style={{ minWidth: 170 }}>Item</th>
+              <th className="th-tracker-jo">JO</th>
+              <th className="th-tracker-item">Item</th>
               <th style={{ minWidth: 60, textAlign: "center" }}>Qty</th>
               <th style={{ minWidth: 130 }}>Supplier</th>
               <th style={{ minWidth: 125 }}>No. PO</th>
@@ -206,7 +206,7 @@ function PoTrackerContent() {
                   className={`${targetItemId === row.item.id ? "row-highlight" : ""} ${isSelected ? "row-selected" : ""}`.trim() || undefined}
                 >
                   {isController && (
-                    <td style={{ textAlign: "center" }}>
+                    <td className="td-tracker-checkbox">
                       <input
                         type="checkbox"
                         checked={isSelected}
@@ -216,7 +216,7 @@ function PoTrackerContent() {
                       />
                     </td>
                   )}
-                  <td>
+                  <td className="td-tracker-jo">
                     <Link
                       href={`/projects/${row.project.id}/jos/${row.jo.id}?item=${row.item.id}#item-${row.item.id}`}
                       style={{ color: "var(--color-accent)", textDecoration: "none", fontWeight: 600, fontSize: 13 }}
@@ -224,7 +224,7 @@ function PoTrackerContent() {
                       {row.jo.joNumber}
                     </Link>
                   </td>
-                  <td>
+                  <td className="td-tracker-item">
                     <div style={{ display: "flex", flexDirection: "column" }}>
                       <span style={{ fontWeight: 600, fontSize: 13 }}>{row.item.description}</span>
                       <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>

@@ -88,4 +88,43 @@ describe("TrialReportEditor synchronization indicator", () => {
       sessionId: "ts-1",
     });
   });
+
+  it("renders finding headers with numbers instead of letters (e.g. Temuan 1, Temuan 2)", () => {
+    const sessionWithFindings: TrialSession = {
+      ...sampleSession,
+      findings: [
+        {
+          id: "f-1",
+          order: 1,
+          problems: [],
+          causes: [],
+          correctiveActions: [],
+          createdAt: "2026-09-08T10:00:00.000Z",
+          updatedAt: "2026-09-08T10:00:00.000Z",
+        },
+        {
+          id: "f-2",
+          order: 2,
+          problems: [],
+          causes: [],
+          correctiveActions: [],
+          createdAt: "2026-09-08T10:00:00.000Z",
+          updatedAt: "2026-09-08T10:00:00.000Z",
+        },
+      ],
+    };
+
+    render(
+      <TrialReportEditor
+        projectId="p-1"
+        joId="jo-1"
+        session={sessionWithFindings}
+      />
+    );
+
+    expect(screen.getByText("Temuan 1")).toBeDefined();
+    expect(screen.getByText("Temuan 2")).toBeDefined();
+    expect(screen.queryByText("Temuan A")).toBeNull();
+    expect(screen.queryByText("Temuan B")).toBeNull();
+  });
 });

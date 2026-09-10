@@ -239,7 +239,7 @@ function SubcontTrackingContent() {
           <thead>
             <tr>
               {isController && (
-                <th style={{ width: 36, textAlign: "center" }}>
+                <th className="th-tracker-checkbox">
                   <input
                     type="checkbox"
                     checked={isAllSelected}
@@ -249,8 +249,8 @@ function SubcontTrackingContent() {
                   />
                 </th>
               )}
-              <th style={{ minWidth: 80 }}>JO</th>
-              <th style={{ minWidth: 160 }}>Item</th>
+              <th className="th-tracker-jo">JO</th>
+              <th className="th-tracker-item">Item</th>
               <th style={{ minWidth: 60, textAlign: "center" }}>Qty</th>
               <th style={{ minWidth: 120 }}>Supplier</th>
               <th style={{ minWidth: 90, textAlign: "center" }}>Proses</th>
@@ -274,7 +274,7 @@ function SubcontTrackingContent() {
                   style={{ opacity: isDone ? 0.75 : 1 }}
                 >
                   {isController && (
-                    <td style={{ textAlign: "center" }}>
+                    <td className="td-tracker-checkbox">
                       <input
                         type="checkbox"
                         checked={isSelected}
@@ -285,7 +285,7 @@ function SubcontTrackingContent() {
                     </td>
                   )}
                   {/* JO */}
-                  <td>
+                  <td className="td-tracker-jo">
                     <Link
                       href={`/projects/${row.project.id}/jos/${row.jo.id}`}
                       style={{ color: "var(--color-accent)", textDecoration: "none", fontWeight: 600, fontSize: 13 }}
@@ -295,7 +295,7 @@ function SubcontTrackingContent() {
                   </td>
 
                   {/* Item */}
-                  <td>
+                  <td className="td-tracker-item">
                     <div style={{ fontWeight: 600, fontSize: 13 }}>{row.item.description}</div>
                     <div style={{ fontSize: 11, color: "var(--color-text-muted)" }}>No. {row.item.no}</div>
                   </td>

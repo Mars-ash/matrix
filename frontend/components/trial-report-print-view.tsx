@@ -3,7 +3,7 @@ import React from "react";
 import {
   sortTrialFindings,
   sortTrialEntries,
-  formatFindingLetter,
+  formatFindingNumber,
   formatDateDDMMYYYY,
 } from "@/lib/trial-report";
 import type { TrialSession, TrialTextEntry, JO } from "@/lib/types";
@@ -139,7 +139,7 @@ export function TrialReportPrintView({
               </thead>
               <tbody>
                 {sortedFindings.map((finding, idx) => {
-                  const letter = formatFindingLetter(finding.order || idx + 1);
+                  const findingNum = formatFindingNumber(finding.order || idx + 1);
                   const problems = sortTrialEntries(finding.problems ?? []);
                   const causes = sortTrialEntries(finding.causes ?? []);
                   const actions = sortTrialEntries(finding.correctiveActions ?? []);
@@ -150,7 +150,7 @@ export function TrialReportPrintView({
                       <tr key={finding.id} className="trial-print-finding-row">
                         <td className="trial-print-finding-letter-cell">
                           <span className="trial-print-finding-letter">
-                            {letter}
+                            {findingNum}
                           </span>
                         </td>
                         <td className="trial-print-entries-cell">
@@ -184,7 +184,7 @@ export function TrialReportPrintView({
                             className="trial-print-finding-letter-cell"
                           >
                             <span className="trial-print-finding-letter">
-                              {letter}
+                              {findingNum}
                             </span>
                           </td>
                           <td

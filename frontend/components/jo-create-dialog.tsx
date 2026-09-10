@@ -103,11 +103,11 @@ export function JoCreateDialog({ open, onClose, projectId, onCreated }: JoCreate
       if (a.kind !== b.kind) {
         return a.kind === "Part" ? -1 : 1;
       }
-      
+
       if (a.isCustom && !b.isCustom) return 1;
       if (!a.isCustom && b.isCustom) return -1;
       if (a.isCustom && b.isCustom) return 0;
-      
+
       const list = (a.kind === "Part" ? PART_CATEGORIES : COMPONENT_CATEGORIES) as readonly string[];
       const aIndex = list.indexOf(a.label);
       const bIndex = list.indexOf(b.label);
@@ -129,7 +129,7 @@ export function JoCreateDialog({ open, onClose, projectId, onCreated }: JoCreate
 
     reset();
     onClose();
-    
+
     // Redirect to the newly created JO details page
     router.push(`/projects/${targetProjectId}/jos/${newJoId}`);
 
@@ -147,7 +147,7 @@ export function JoCreateDialog({ open, onClose, projectId, onCreated }: JoCreate
         </>
       }
     >
-      <div 
+      <div
         style={{ display: "flex", flexDirection: "column", gap: 16 }}
         onKeyDown={(e) => {
           if (e.key === "Enter") handleSubmit();
