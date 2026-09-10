@@ -1337,6 +1337,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         api.createProject(action.name, action.customer, action.company).catch(() => {});
         break;
 
+      case "DELETE_PROJECT":
+        api.deleteProject(action.projectId).catch(() => {});
+        break;
+
       case "CREATE_JO":
         api
           .createJO(action.projectId, {
@@ -1347,6 +1351,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             categories: action.categories,
           })
           .catch(() => {});
+        break;
+
+      case "DELETE_JO":
+        api.deleteJO(action.joId).catch(() => {});
         break;
 
       case "ADD_CATEGORY":

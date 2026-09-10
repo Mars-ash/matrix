@@ -207,6 +207,12 @@ if ($createdProjId) {
     ])->delete("{$baseUrl}/projects/{$createdProjId}");
 }
 
+// Cleanup targetProj and XSS projects
+if (isset($targetProj)) {
+    $targetProj->delete();
+}
+Project::where('name', 'LIKE', 'XSS Test%')->delete();
+
 echo "\n====================================================\n";
 echo "SECURITY AUDIT SUMMARY: {$results['passed']} Passed | {$results['failed']} Failed\n";
 echo "Pass Rate: " . round(($results['passed'] / max(1, $results['passed'] + $results['failed'])) * 100, 1) . "%\n";

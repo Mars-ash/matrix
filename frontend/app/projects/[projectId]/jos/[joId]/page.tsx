@@ -22,8 +22,6 @@ interface PageProps {
 }
 
 const BULK_PROCESS_OPTIONS = [
-  { value: "Material", label: "PO Mtl" },
-  { value: "Arrival", label: "Arrival" },
   { value: "Machining", label: "Machining" },
   { value: "Hardening", label: "Hardening" },
   { value: "Grinding", label: "Grinding" },
