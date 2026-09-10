@@ -20,7 +20,7 @@ interface SubcontRow {
 }
 
 type GroupMode = "none" | "jo" | "supplier";
-type SortMode = "newest" | "deadline" | "jo" | "supplier" | "qty";
+type SortMode = "newest" | "oldest" | "deadline" | "jo" | "supplier" | "qty";
 
 const SUBCONT_STATUSES: ("In Progress" | "Done")[] = ["In Progress", "Done"];
 const FIVE_MINUTES_MS = 5 * 60 * 1000;
@@ -211,6 +211,16 @@ function SubcontTrackingContent() {
       const dateB = b.item.subcontDispatchDate ? new Date(b.item.subcontDispatchDate).getTime() : 0;
       if (dateB !== dateA) return dateB - dateA;
       return b.originalIndex - a.originalIndex;
+    }
+    if (sortMode === "oldest") {
+      const dateA = a.item.subcontDispatchDate ? new Date(a.item.subcontDispatchDate).getTime() : 0;
+      const dateB = b.item.subcontDispatchDate ? new Date(b.item.subcontDispatchDate).getTime() : 0;
+      if (dateA !== dateB) {
+        if (!dateA) return 1;
+        if (!dateB) return -1;
+        return dateA - dateB;
+      }
+      return a.originalIndex - b.originalIndex;
     }
     if (sortMode === "deadline") {
       const timeA = a.item.arrivalTargetDate ? new Date(a.item.arrivalTargetDate).getTime() : Infinity;
@@ -773,10 +783,8 @@ function SubcontTrackingContent() {
               onChange={(e) => setSortMode(e.target.value as SortMode)}
             >
               <option value="newest">Terbaru Diinput</option>
+              <option value="oldest">Terlama Diinput</option>
               <option value="deadline">Target Arrival Terdekat</option>
-              <option value="jo">Nomor JO</option>
-              <option value="supplier">Nama Supplier</option>
-              <option value="qty">Jumlah Qty (Terbanyak)</option>
             </select>
           </div>
 

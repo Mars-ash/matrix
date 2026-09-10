@@ -157,6 +157,10 @@ describe("PO tracking helpers", () => {
       "part-1",
       "component-1",
     ]);
+    expect(sortPoTrackingRows(rows, "oldest").map((row) => row.item.id)).toEqual([
+      "component-1",
+      "part-1",
+    ]);
     expect(sortPoTrackingRows(rows, "deadline").map((row) => row.item.id)).toEqual([
       "component-1",
       "part-1",

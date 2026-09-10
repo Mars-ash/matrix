@@ -14,8 +14,12 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const isSubmitting = React.useRef(false);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting.current || loading) return;
+    isSubmitting.current = true;
     setError("");
     setLoading(true);
 
@@ -30,6 +34,7 @@ export default function LoginPage() {
       setError("Terjadi kendala saat proses sign in. Silakan coba lagi.");
     } finally {
       setLoading(false);
+      isSubmitting.current = false;
     }
   };
 

@@ -556,11 +556,9 @@ function PoTrackerContent() {
               onChange={(event) => setSortMode(event.target.value as PoTrackingSortMode)}
               aria-label="Sort PO rows"
             >
-              <option value="newest">PO Date Terbaru</option>
+              <option value="newest">Terbaru Diinput</option>
+              <option value="oldest">Terlama Diinput</option>
               <option value="deadline">Target Arrival Terdekat</option>
-              <option value="jo">Nomor JO</option>
-              <option value="supplier">Nama Supplier</option>
-              <option value="qty">Jumlah Qty Terbanyak</option>
             </select>
           </div>
 

@@ -47,16 +47,6 @@ class AuthenticateTokenOrDemo
             return $next($request);
         }
 
-        // In local/testing environment, fallback to demo controller if token was missing or expired
-        if (app()->environment('local', 'testing')) {
-            $user = User::where('role', 'controller')->first();
-            if ($user) {
-                Auth::setUser($user);
-                $request->setUserResolver(fn () => $user);
-                return $next($request);
-            }
-        }
-
         return response()->json(['message' => 'Unauthenticated.'], 401);
     }
 }

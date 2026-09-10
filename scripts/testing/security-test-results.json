@@ -1,0 +1,146 @@
+{
+    "passed": 28,
+    "failed": 0,
+    "details": [
+        {
+            "status": "PASS",
+            "check": "Unauthenticated GET \/projects",
+            "detail": "Status: 401 (Expected: 401)"
+        },
+        {
+            "status": "PASS",
+            "check": "Unauthenticated POST \/projects",
+            "detail": "Status: 401 (Expected: 401)"
+        },
+        {
+            "status": "PASS",
+            "check": "Unauthenticated GET \/trackers\/subcont",
+            "detail": "Status: 401 (Expected: 401)"
+        },
+        {
+            "status": "PASS",
+            "check": "Unauthenticated GET \/trackers\/po",
+            "detail": "Status: 401 (Expected: 401)"
+        },
+        {
+            "status": "PASS",
+            "check": "RBAC Viewer Blocked: POST \/projects",
+            "detail": "Status: 403 (Expected: 403)"
+        },
+        {
+            "status": "PASS",
+            "check": "RBAC Viewer Blocked: POST \/projects\/01a0891a-820e-73da-a347-e201db7d77e0\/jos",
+            "detail": "Status: 403 (Expected: 403)"
+        },
+        {
+            "status": "PASS",
+            "check": "RBAC Viewer Blocked: POST \/jos\/01a0891a-8217-7103-b2a5-094f99bf3042\/categories",
+            "detail": "Status: 403 (Expected: 403)"
+        },
+        {
+            "status": "PASS",
+            "check": "RBAC Viewer Blocked: PATCH \/controls\/01a0891a-8234-72c0-ae8a-3b0cbc7ccfd8\/status",
+            "detail": "Status: 403 (Expected: 403)"
+        },
+        {
+            "status": "PASS",
+            "check": "RBAC Viewer Blocked: PATCH \/controls\/01a0891a-8234-72c0-ae8a-3b0cbc7ccfd8\/target-date",
+            "detail": "Status: 403 (Expected: 403)"
+        },
+        {
+            "status": "PASS",
+            "check": "RBAC Viewer Blocked: POST \/jos\/01a0891a-8217-7103-b2a5-094f99bf3042\/bulk\/send-po",
+            "detail": "Status: 403 (Expected: 403)"
+        },
+        {
+            "status": "PASS",
+            "check": "RBAC Viewer Blocked: POST \/jos\/01a0891a-8217-7103-b2a5-094f99bf3042\/bulk\/update-status",
+            "detail": "Status: 403 (Expected: 403)"
+        },
+        {
+            "status": "PASS",
+            "check": "RBAC Viewer Blocked: POST \/jos\/01a0891a-8217-7103-b2a5-094f99bf3042\/bulk\/send-subcont",
+            "detail": "Status: 403 (Expected: 403)"
+        },
+        {
+            "status": "PASS",
+            "check": "RBAC Viewer Blocked: POST \/jos\/01a0891a-8217-7103-b2a5-094f99bf3042\/bulk\/target-arrival",
+            "detail": "Status: 403 (Expected: 403)"
+        },
+        {
+            "status": "PASS",
+            "check": "RBAC Viewer Blocked: POST \/jos\/01a0891a-8217-7103-b2a5-094f99bf3042\/trial-sessions",
+            "detail": "Status: 403 (Expected: 403)"
+        },
+        {
+            "status": "PASS",
+            "check": "RBAC Viewer Blocked: DELETE \/projects\/01a0891a-820e-73da-a347-e201db7d77e0",
+            "detail": "Status: 403 (Expected: 403)"
+        },
+        {
+            "status": "PASS",
+            "check": "Controller Allowed: POST \/projects",
+            "detail": "Status: 201"
+        },
+        {
+            "status": "PASS",
+            "check": "SQLi Invariant: '' OR '1'='1'",
+            "detail": "Status: 200, No DB leak"
+        },
+        {
+            "status": "PASS",
+            "check": "SQLi Invariant: ''; DROP TABLE users; --'",
+            "detail": "Status: 200, No DB leak"
+        },
+        {
+            "status": "PASS",
+            "check": "SQLi Invariant: '1' UNION SELECT null, username, password FROM users --'",
+            "detail": "Status: 200, No DB leak"
+        },
+        {
+            "status": "PASS",
+            "check": "SQLi Invariant: 'admin' --'",
+            "detail": "Status: 200, No DB leak"
+        },
+        {
+            "status": "PASS",
+            "check": "SQLi Invariant: '' OR 1=1 #'",
+            "detail": "Status: 200, No DB leak"
+        },
+        {
+            "status": "PASS",
+            "check": "XSS Output Escaping #0",
+            "detail": "Payload safely contained"
+        },
+        {
+            "status": "PASS",
+            "check": "XSS Output Escaping #1",
+            "detail": "Payload safely contained"
+        },
+        {
+            "status": "PASS",
+            "check": "XSS Output Escaping #2",
+            "detail": "Payload safely contained"
+        },
+        {
+            "status": "PASS",
+            "check": "XSS Output Escaping #3",
+            "detail": "Payload safely contained"
+        },
+        {
+            "status": "PASS",
+            "check": "Reject Executable File Upload (.php)",
+            "detail": "Status: 404 (Rejected malicious upload)"
+        },
+        {
+            "status": "PASS",
+            "check": "Direct .env Access Blocked",
+            "detail": "Status: 404 (Should be 404\/403)"
+        },
+        {
+            "status": "PASS",
+            "check": "No Secrets in \/health Endpoint",
+            "detail": "Healthy response contains no env secrets"
+        }
+    ]
+}

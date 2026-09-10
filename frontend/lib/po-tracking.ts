@@ -19,7 +19,7 @@ export interface PoTrackingRow {
   originalIndex: number;
 }
 
-export type PoTrackingSortMode = "newest" | "deadline" | "jo" | "supplier" | "qty";
+export type PoTrackingSortMode = "newest" | "oldest" | "deadline" | "jo" | "supplier" | "qty";
 export type PoTrackingProcess = "Material" | "PO";
 
 export function isPoTrackingProcess(process: string): process is PoTrackingProcess {
@@ -104,6 +104,16 @@ export function sortPoTrackingRows(rows: PoTrackingRow[], sortMode: PoTrackingSo
       const dateB = b.poDate ? new Date(b.poDate).getTime() : 0;
       if (dateB !== dateA) return dateB - dateA;
       return b.originalIndex - a.originalIndex;
+    }
+    if (sortMode === "oldest") {
+      const dateA = a.poDate ? new Date(a.poDate).getTime() : 0;
+      const dateB = b.poDate ? new Date(b.poDate).getTime() : 0;
+      if (dateA !== dateB) {
+        if (!dateA) return 1;
+        if (!dateB) return -1;
+        return dateA - dateB;
+      }
+      return a.originalIndex - b.originalIndex;
     }
     if (sortMode === "deadline") {
       const timeA = a.targetArrival ? new Date(a.targetArrival).getTime() : Infinity;

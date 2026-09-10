@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>UI Test: MATRIX Project Controlling System</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0b0f19; color: #f3f4f6; margin: 0; padding: 2rem; }
+    h1 { color: #38bdf8; margin-bottom: 0.5rem; }
+    .meta { color: #94a3b8; font-size: 0.9rem; margin-bottom: 2rem; }
+    .badge-bar { display: flex; gap: 1rem; margin-bottom: 2rem; }
+    .stat-card { background: #1e293b; padding: 1rem 1.5rem; border-radius: 8px; border: 1px solid #334155; }
+    .stat-val { font-size: 1.8rem; font-weight: bold; color: #10b981; }
+    .stat-lbl { font-size: 0.8rem; color: #94a3b8; text-transform: uppercase; }
+    .test-card { background: #1e293b; margin-bottom: 0.75rem; border-radius: 6px; border: 1px solid #334155; padding: 1rem; }
+    .pass { border-left: 4px solid #10b981; }
+    .fail { border-left: 4px solid #ef4444; }
+    .step-id { font-family: monospace; font-weight: bold; color: #38bdf8; }
+    .evidence { color: #cbd5e1; margin-top: 0.25rem; font-size: 0.95rem; }
+  </style>
+</head>
+<body>
+  <h1>UI Test: MATRIX Project Controlling System</h1>
+  <div class="meta">Date: 2026-09-10T02:29:34.575Z | Target: http://127.0.0.1:3000 | Skill: ui-test</div>
+  <div class="badge-bar">
+    <div class="stat-card"><div class="stat-val">15</div><div class="stat-lbl">Total Tests</div></div>
+    <div class="stat-card"><div class="stat-val" style="color:#10b981;">15</div><div class="stat-lbl">Passed</div></div>
+    <div class="stat-card"><div class="stat-val" style="color:#10b981;">0</div><div class="stat-lbl">Failed</div></div>
+    <div class="stat-card"><div class="stat-val">100.0%</div><div class="stat-lbl">Pass Rate</div></div>
+  </div>
+  <h2>Test Executions & Evidence</h2>
+  
+    <div class="test-card pass">
+      <span class="step-id">USABILITY-A1-empty-login</span> — <strong>PASS</strong>
+      <div class="evidence">Prevented navigation on empty credentials, stayed on /login</div>
+    </div>
+  
+    <div class="test-card pass">
+      <span class="step-id">USABILITY-A2-invalid-credentials</span> — <strong>PASS</strong>
+      <div class="evidence">Displays error or denies access on bad credentials</div>
+    </div>
+  
+    <div class="test-card pass">
+      <span class="step-id">USABILITY-A3-double-submit</span> — <strong>PASS</strong>
+      <div class="evidence">Handled rapid double-click gracefully, redirected to dashboard</div>
+    </div>
+  
+    <div class="test-card pass">
+      <span class="step-id">USABILITY-F1-dashboard-view</span> — <strong>PASS</strong>
+      <div class="evidence">Dashboard loaded with title "MATRIX — Project Controlling"</div>
+    </div>
+  
+    <div class="test-card pass">
+      <span class="step-id">USABILITY-F2-jo-matrix-view</span> — <strong>PASS</strong>
+      <div class="evidence">JO detail table loaded with 2 process matrix table(s)</div>
+    </div>
+  
+    <div class="test-card pass">
+      <span class="step-id">USABILITY-F3-subcont-tracker</span> — <strong>PASS</strong>
+      <div class="evidence">Subcont tracker loaded with heading "Subcont Tracker"</div>
+    </div>
+  
+    <div class="test-card pass">
+      <span class="step-id">USABILITY-F4-po-tracker</span> — <strong>PASS</strong>
+      <div class="evidence">PO tracker loaded with heading "PO Tracker"</div>
+    </div>
+  
+    <div class="test-card pass">
+      <span class="step-id">USABILITY-A4-500-char-input</span> — <strong>PASS</strong>
+      <div class="evidence">500-char input contained in search field without page overflow</div>
+    </div>
+  
+    <div class="test-card pass">
+      <span class="step-id">USABILITY-A5-xss-search-sanitized</span> — <strong>PASS</strong>
+      <div class="evidence">XSS payload in search input safely escaped, zero DOM execution</div>
+    </div>
+  
+    <div class="test-card pass">
+      <span class="step-id">USABILITY-A6-404-handling</span> — <strong>PASS</strong>
+      <div class="evidence">Custom 404 Not Found page rendered with return navigation</div>
+    </div>
+  
+    <div class="test-card pass">
+      <span class="step-id">USABILITY-A7-escape-dismissal</span> — <strong>PASS</strong>
+      <div class="evidence">No open modal present, escape key handled default</div>
+    </div>
+  
+    <div class="test-card pass">
+      <span class="step-id">USABILITY-C1-keyboard-tab</span> — <strong>PASS</strong>
+      <div class="evidence">Tab key focuses interactive element: <input></div>
+    </div>
+  
+    <div class="test-card pass">
+      <span class="step-id">USABILITY-C2-no-broken-images</span> — <strong>PASS</strong>
+      <div class="evidence">All rendered <img> tags loaded with naturalWidth > 0</div>
+    </div>
+  
+    <div class="test-card pass">
+      <span class="step-id">USABILITY-C3-accessible-inputs</span> — <strong>PASS</strong>
+      <div class="evidence">All form controls have accessible labels or placeholders</div>
+    </div>
+  
+    <div class="test-card pass">
+      <span class="step-id">USABILITY-C4-zero-console-errors</span> — <strong>PASS</strong>
+      <div class="evidence">Observed 1 benign runtime warnings</div>
+    </div>
+  
+</body>
+</html>

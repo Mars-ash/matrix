@@ -1,0 +1,200 @@
+[
+  {
+    "viewport": "Desktop Full HD",
+    "dimensions": "1920x1080",
+    "checks": [
+      {
+        "view": "Dashboard",
+        "test": "Header Rendered",
+        "passed": true,
+        "evidence": "Title: \"MATRIX — Project Controlling\", Header visible: true"
+      },
+      {
+        "view": "Dashboard",
+        "test": "No Horizontal Body Overflow",
+        "passed": true,
+        "evidence": "Body fits viewport"
+      },
+      {
+        "view": "JO Detail",
+        "test": "Process Control Table Exists",
+        "passed": true,
+        "evidence": "Table count: 2"
+      },
+      {
+        "view": "Subcont Tracker",
+        "test": "Page Rendered on Viewport",
+        "passed": true,
+        "evidence": "Heading: \"Subcont Tracker\""
+      },
+      {
+        "view": "PO Tracker",
+        "test": "Page Rendered on Viewport",
+        "passed": true,
+        "evidence": "Heading: \"PO Tracker\""
+      }
+    ]
+  },
+  {
+    "viewport": "Standard Laptop",
+    "dimensions": "1366x768",
+    "checks": [
+      {
+        "view": "Dashboard",
+        "test": "Header Rendered",
+        "passed": true,
+        "evidence": "Title: \"MATRIX — Project Controlling\", Header visible: true"
+      },
+      {
+        "view": "Dashboard",
+        "test": "No Horizontal Body Overflow",
+        "passed": true,
+        "evidence": "Body fits viewport"
+      },
+      {
+        "view": "JO Detail",
+        "test": "Process Control Table Exists",
+        "passed": true,
+        "evidence": "Table count: 2"
+      },
+      {
+        "view": "Subcont Tracker",
+        "test": "Page Rendered on Viewport",
+        "passed": true,
+        "evidence": "Heading: \"Subcont Tracker\""
+      },
+      {
+        "view": "PO Tracker",
+        "test": "Page Rendered on Viewport",
+        "passed": true,
+        "evidence": "Heading: \"PO Tracker\""
+      }
+    ]
+  },
+  {
+    "viewport": "iPad / Tablet Portrait",
+    "dimensions": "768x1024",
+    "checks": [
+      {
+        "view": "Dashboard",
+        "test": "Header Rendered",
+        "passed": true,
+        "evidence": "Title: \"MATRIX — Project Controlling\", Header visible: true"
+      },
+      {
+        "view": "Dashboard",
+        "test": "No Horizontal Body Overflow",
+        "passed": true,
+        "evidence": "Body fits viewport"
+      },
+      {
+        "view": "JO Detail",
+        "test": "Process Control Table Exists",
+        "passed": true,
+        "evidence": "Table count: 2"
+      },
+      {
+        "view": "JO Detail",
+        "test": "Table Scrollable on Mobile",
+        "passed": true,
+        "evidence": "Table has horizontal scroll container"
+      },
+      {
+        "view": "Subcont Tracker",
+        "test": "Page Rendered on Viewport",
+        "passed": true,
+        "evidence": "Heading: \"Subcont Tracker\""
+      },
+      {
+        "view": "PO Tracker",
+        "test": "Page Rendered on Viewport",
+        "passed": true,
+        "evidence": "Heading: \"PO Tracker\""
+      }
+    ]
+  },
+  {
+    "viewport": "iPhone SE (Compact Mobile)",
+    "dimensions": "375x667",
+    "checks": [
+      {
+        "view": "Dashboard",
+        "test": "Header Rendered",
+        "passed": true,
+        "evidence": "Title: \"MATRIX — Project Controlling\", Header visible: true"
+      },
+      {
+        "view": "Dashboard",
+        "test": "No Horizontal Body Overflow",
+        "passed": true,
+        "evidence": "Body fits viewport"
+      },
+      {
+        "view": "JO Detail",
+        "test": "Process Control Table Exists",
+        "passed": true,
+        "evidence": "Table count: 2"
+      },
+      {
+        "view": "JO Detail",
+        "test": "Table Scrollable on Mobile",
+        "passed": true,
+        "evidence": "Table has horizontal scroll container"
+      },
+      {
+        "view": "Subcont Tracker",
+        "test": "Page Rendered on Viewport",
+        "passed": true,
+        "evidence": "Heading: \"Subcont Tracker\""
+      },
+      {
+        "view": "PO Tracker",
+        "test": "Page Rendered on Viewport",
+        "passed": true,
+        "evidence": "Heading: \"PO Tracker\""
+      }
+    ]
+  },
+  {
+    "viewport": "iPhone 14/15 (Standard Mobile)",
+    "dimensions": "390x844",
+    "checks": [
+      {
+        "view": "Dashboard",
+        "test": "Header Rendered",
+        "passed": true,
+        "evidence": "Title: \"MATRIX — Project Controlling\", Header visible: true"
+      },
+      {
+        "view": "Dashboard",
+        "test": "No Horizontal Body Overflow",
+        "passed": true,
+        "evidence": "Body fits viewport"
+      },
+      {
+        "view": "JO Detail",
+        "test": "Process Control Table Exists",
+        "passed": true,
+        "evidence": "Table count: 2"
+      },
+      {
+        "view": "JO Detail",
+        "test": "Table Scrollable on Mobile",
+        "passed": true,
+        "evidence": "Table has horizontal scroll container"
+      },
+      {
+        "view": "Subcont Tracker",
+        "test": "Page Rendered on Viewport",
+        "passed": true,
+        "evidence": "Heading: \"Subcont Tracker\""
+      },
+      {
+        "view": "PO Tracker",
+        "test": "Page Rendered on Viewport",
+        "passed": true,
+        "evidence": "Heading: \"PO Tracker\""
+      }
+    ]
+  }
+]
