@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { Dialog } from "./dialog";
 import {
   JO_TYPES,
@@ -30,7 +30,7 @@ export function JoCreateDialog({ open, onClose, projectId, onCreated }: JoCreate
   const { projects } = useAppState();
   const router = useRouter();
 
-  const [selectedProjectId, setSelectedProjectId] = useState(projectId || projects[0]?.id || "");
+  const [selectedProjectId, setSelectedProjectId] = useState(projectId || "");
   const [joNumber, setJoNumber] = useState("");
   const [product, setProduct] = useState("");
   const [joType, setJoType] = useState<JoType | "">("");
@@ -41,9 +41,14 @@ export function JoCreateDialog({ open, onClose, projectId, onCreated }: JoCreate
   const [customKind, setCustomKind] = useState<CategoryKind>("Part");
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const targetProjectId = projectId || selectedProjectId || projects[0]?.id || "";
+  const targetProjectId = projectId || selectedProjectId;
+
+  useEffect(() => {
+    setSelectedProjectId(projectId || "");
+  }, [projectId, open]);
 
   const reset = useCallback(() => {
+    setSelectedProjectId(projectId || "");
     setJoNumber("");
     setProduct("");
     setJoType("");
@@ -53,7 +58,7 @@ export function JoCreateDialog({ open, onClose, projectId, onCreated }: JoCreate
     setCustomName("");
     setCustomKind("Part");
     setErrors({});
-  }, []);
+  }, [projectId]);
 
   const toggleCategory = useCallback((key: string) => {
     setSelectedKeys((prev) => {
@@ -62,6 +67,7 @@ export function JoCreateDialog({ open, onClose, projectId, onCreated }: JoCreate
       else next.add(key);
       return next;
     });
+    setErrors((p) => ({ ...p, categories: "" }));
   }, []);
 
   const handleSubmit = useCallback(() => {
@@ -70,6 +76,13 @@ export function JoCreateDialog({ open, onClose, projectId, onCreated }: JoCreate
     if (!joNumber.trim()) errs.joNumber = "JO number is required.";
     if (!product.trim()) errs.product = "Product name is required.";
     if (!joType) errs.joType = "Type is required.";
+    if (!targetDate.trim()) errs.targetDate = "Target date is required.";
+
+    const hasCategories = selectedKeys.size > 0 || (customEnabled && customName.trim().length > 0);
+    if (!hasCategories) {
+      errs.categories = "Minimal 1 kategori (Part/Component) wajib dipilih.";
+    }
+
     if (customEnabled && !customName.trim()) errs.customName = "Custom category name is required.";
 
     if (Object.keys(errs).length > 0) {
@@ -150,7 +163,7 @@ export function JoCreateDialog({ open, onClose, projectId, onCreated }: JoCreate
       <div
         style={{ display: "flex", flexDirection: "column", gap: 16 }}
         onKeyDown={(e) => {
-          if (e.key === "Enter") handleSubmit();
+          if (e.key === "Enter" && (e.target as HTMLElement).tagName === "INPUT" && (e.target as HTMLInputElement).type !== "checkbox") handleSubmit();
         }}
       >
         {/* Project Selector (if not fixed by props) */}
@@ -160,14 +173,19 @@ export function JoCreateDialog({ open, onClose, projectId, onCreated }: JoCreate
             <select
               className="select"
               value={targetProjectId}
-              onChange={(e) => setSelectedProjectId(e.target.value)}
+              onChange={(e) => {
+                setSelectedProjectId(e.target.value);
+                setErrors((p) => ({ ...p, project: "" }));
+              }}
             >
+              <option value="">Select project...</option>
               {projects.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name} {p.company ? `[${p.company}]` : ""} ({p.customer})
                 </option>
               ))}
             </select>
+            {errors.project && <p className="error-text">{errors.project}</p>}
           </div>
         )}
 
@@ -211,17 +229,29 @@ export function JoCreateDialog({ open, onClose, projectId, onCreated }: JoCreate
 
         {/* Target Date */}
         <div>
-          <label className="label">Target Date</label>
+          <label className="label">Target Date *</label>
           <input
             type="date"
             className="input"
             value={targetDate}
-            onChange={(e) => setTargetDate(e.target.value)}
+            onChange={(e) => {
+              setTargetDate(e.target.value);
+              setErrors((p) => ({ ...p, targetDate: "" }));
+            }}
           />
+          {errors.targetDate && <p className="error-text">{errors.targetDate}</p>}
         </div>
 
         {/* Categories */}
         <div>
+          <label className="label" style={{ display: "block", marginBottom: 6 }}>
+            Categories *
+          </label>
+          {errors.categories && (
+            <p className="error-text" style={{ marginBottom: 8 }}>
+              {errors.categories}
+            </p>
+          )}
 
           <p style={{ fontSize: 11, color: "var(--color-text-muted)", marginBottom: 8 }}>Part</p>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
@@ -289,7 +319,10 @@ export function JoCreateDialog({ open, onClose, projectId, onCreated }: JoCreate
                     className="input"
                     placeholder="Category name"
                     value={customName}
-                    onChange={(e) => { setCustomName(e.target.value); setErrors((p) => ({ ...p, customName: "" })); }}
+                    onChange={(e) => {
+                      setCustomName(e.target.value);
+                      setErrors((p) => ({ ...p, customName: "", categories: "" }));
+                    }}
                   />
                   {errors.customName && <p className="error-text">{errors.customName}</p>}
                 </div>

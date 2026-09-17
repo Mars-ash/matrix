@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "matrix-bom-ocr-lab"
+version = "0.1.0"
+description = "Local, review-only ruled BOM image extraction and benchmarking"
+readme = "README.md"
+requires-python = ">=3.11,<3.14"
+dependencies = [
+    "numpy==2.3.5",
+    "opencv-contrib-python==4.10.0.84",
+    "Pillow==12.3.0",
+    "paddleocr==3.7.0",
+    "paddlex[ocr-core]==3.7.2",
+    "paddlepaddle==3.3.1",
+    "psutil==7.2.2",
+]
+
+[project.optional-dependencies]
+dev = ["pytest==9.1.1", "ruff==0.16.7"]
+
+[project.scripts]
+bom-ocr = "bom_ocr.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src", "."]
+markers = [
+    "model: explicitly selected local CPU model smoke tests",
+    "private_corpus: requires private images and human-checked truth",
+]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]

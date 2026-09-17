@@ -14,11 +14,13 @@ class StoreJORequest extends FormRequest
     public function rules(): array
     {
         return [
+            'id' => ['nullable', 'uuid'],
             'joNumber' => ['required', 'string', 'max:255', 'unique:jos,jo_number'],
             'product' => ['required', 'string', 'max:255'],
             'type' => ['required', 'string'],
-            'targetDate' => ['nullable', 'date'],
-            'categories' => ['nullable', 'array'],
+            'targetDate' => ['required', 'date'],
+            'categories' => ['required', 'array', 'min:1'],
+            'categories.*.id' => ['nullable', 'uuid'],
             'categories.*.label' => ['required_with:categories', 'string', 'max:255'],
             'categories.*.kind' => ['required_with:categories', 'in:Part,Component'],
             'categories.*.isCustom' => ['nullable', 'boolean'],

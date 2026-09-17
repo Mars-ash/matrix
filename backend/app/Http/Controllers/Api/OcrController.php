@@ -20,7 +20,7 @@ class OcrController extends Controller
     public function upload(Request $request, string $category): JsonResponse
     {
         $request->validate([
-            'image' => ['required', 'file', 'max:10240'], // 10MB
+            'image' => ['required', 'file', 'max:30720'], // 30MB
             'kind' => ['nullable', 'string', 'in:Part,Component'],
         ]);
 
@@ -49,7 +49,7 @@ class OcrController extends Controller
     public function extract(Request $request): JsonResponse
     {
         $request->validate([
-            'image' => ['required', 'file', 'max:10240'],
+            'image' => ['required', 'file', 'max:30720'],
             'kind' => ['nullable', 'string', 'in:Part,Component'],
         ]);
 

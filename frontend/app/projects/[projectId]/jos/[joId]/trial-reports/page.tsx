@@ -26,16 +26,12 @@ export default function TrialReportsPage({ params }: PageProps) {
   const { isController, isViewer } = useAuth();
 
   const project = projects.find((p) => p.id === projectId)
-    || projects.find((p) => p.jos.some((j) => j.id === joId || j.joNumber === joId))
-    || projects[0];
-  const jo = project?.jos.find((j) => j.id === joId || j.joNumber === joId)
-    || project?.jos[0];
+    || projects.find((p) => p.jos.some((j) => j.id === joId || j.joNumber === joId));
+  const jo = project?.jos.find((j) => j.id === joId || j.joNumber === joId);
 
   const sessions = useMemo(() => jo?.trialSessions ?? [], [jo?.trialSessions]);
 
-  const [selectedId, setSelectedId] = useState<string | null>(
-    sessions.length > 0 ? sessions[0].id : null
-  );
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [highlightedFindingId, setHighlightedFindingId] = useState<string | null>(null);
   const [printSelectedIds, setPrintSelectedIds] = useState<string[]>([]);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);

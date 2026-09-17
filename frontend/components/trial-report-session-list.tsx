@@ -130,7 +130,7 @@ export function TrialReportSessionList({
                         whiteSpace: "nowrap",
                       }}
                     >
-                      {formatDateDDMMYYYY(session.trialDate)} · {session.findings.length} temuan
+                      {formatDateDDMMYYYY(session.trialDate)} · {(session.findings ?? []).length} temuan
                     </div>
                   </div>
                 </div>

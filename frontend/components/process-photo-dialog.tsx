@@ -18,6 +18,51 @@ interface ProcessPhotoDialogProps {
   itemId: string;
 }
 
+/**
+ * Compress image file to base64 data URL for persistence across tabs and sessions.
+ */
+function compressImageFile(file: File, maxWidth = 1200, maxHeight = 1200, quality = 0.82): Promise<string> {
+  return new Promise((resolve) => {
+    if (file.type === "image/svg+xml") {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve((e.target?.result as string) || "");
+      reader.onerror = () => resolve("");
+      reader.readAsDataURL(file);
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxWidth || height > maxHeight) {
+          if (width > height) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          } else {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL("image/jpeg", quality));
+        } else {
+          resolve((e.target?.result as string) || "");
+        }
+      };
+      img.onerror = () => resolve((e.target?.result as string) || "");
+      img.src = (e.target?.result as string) || "";
+    };
+    reader.onerror = () => resolve("");
+    reader.readAsDataURL(file);
+  });
+}
+
 export function ProcessPhotoDialog({
   open,
   onClose,
@@ -34,11 +79,12 @@ export function ProcessPhotoDialog({
   const [deletePhotoTarget, setDeletePhotoTarget] = useState<ProcessPhoto | null>(null);
 
   const handleFileAdd = useCallback(
-    (files: FileList | null) => {
+    async (files: FileList | null) => {
       if (!files) return;
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        const previewUrl = URL.createObjectURL(file);
+        const previewUrl = await compressImageFile(file);
+        if (!previewUrl) continue;
         dispatch({
           type: "ADD_PROCESS_PHOTO",
           projectId,
@@ -51,6 +97,7 @@ export function ProcessPhotoDialog({
             name: file.name,
             previewUrl,
           },
+          file,
         });
       }
       // Reset input
@@ -60,8 +107,10 @@ export function ProcessPhotoDialog({
   );
 
   const handleRemove = useCallback(
-    (photoId: string, previewUrl: string) => {
-      URL.revokeObjectURL(previewUrl);
+    (photoId: string, previewUrl?: string) => {
+      if (previewUrl && previewUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(previewUrl);
+      }
       dispatch({
         type: "REMOVE_PROCESS_PHOTO",
         projectId,

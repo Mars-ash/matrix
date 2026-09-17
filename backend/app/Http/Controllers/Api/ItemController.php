@@ -43,6 +43,7 @@ class ItemController extends Controller
         }
 
         $validated = $request->validate([
+            'id' => ['nullable', 'uuid'],
             'no' => ['nullable', 'string', 'max:50'],
             'description' => ['required', 'string', 'max:255'],
             'dimension' => ['nullable', 'string', 'max:100'],
@@ -54,7 +55,7 @@ class ItemController extends Controller
         $item = DB::transaction(function () use ($validated, $category) {
             $maxOrder = $category->items()->max('sort_order') ?? 0;
 
-            $item = $category->items()->create([
+            $itemData = [
                 'no' => $validated['no'] ?? '-',
                 'description' => $validated['description'],
                 'dimension' => $validated['dimension'] ?? '',
@@ -62,7 +63,12 @@ class ItemController extends Controller
                 'qty' => $validated['qty'] ?? 1,
                 'hrc' => $validated['hrc'] ?? '',
                 'sort_order' => $maxOrder + 1,
-            ]);
+            ];
+            if (!empty($validated['id'])) {
+                $itemData['id'] = $validated['id'];
+            }
+
+            $item = $category->items()->create($itemData);
 
             $this->initControlsForItem($item, $category->kind);
 
@@ -88,6 +94,7 @@ class ItemController extends Controller
 
         $validated = $request->validate([
             'items' => ['required', 'array', 'min:1'],
+            'items.*.id' => ['nullable', 'uuid'],
             'items.*.no' => ['nullable', 'string', 'max:50'],
             'items.*.description' => ['required', 'string', 'max:255'],
             'items.*.dimension' => ['nullable', 'string', 'max:100'],
@@ -101,7 +108,7 @@ class ItemController extends Controller
             $result = [];
 
             foreach ($validated['items'] as $idx => $itemData) {
-                $item = $category->items()->create([
+                $itemAttributes = [
                     'no' => $itemData['no'] ?? (string) ($maxOrder + $idx + 1),
                     'description' => $itemData['description'],
                     'dimension' => $itemData['dimension'] ?? '',
@@ -109,7 +116,11 @@ class ItemController extends Controller
                     'qty' => $itemData['qty'] ?? 1,
                     'hrc' => $itemData['hrc'] ?? '',
                     'sort_order' => $maxOrder + $idx + 1,
-                ]);
+                ];
+                if (!empty($itemData['id'])) {
+                    $itemAttributes['id'] = $itemData['id'];
+                }
+                $item = $category->items()->create($itemAttributes);
 
                 $this->initControlsForItem($item, $category->kind);
                 $result[] = $item;
@@ -144,7 +155,7 @@ class ItemController extends Controller
             'isSubcont' => ['required', 'boolean'],
             'subcontNotes' => ['nullable', 'string'],
             'subcontSupplier' => ['nullable', 'string', 'max:255'],
-            'subcontStatus' => ['nullable', 'in:In Progress,Done'],
+            'subcontStatus' => ['nullable', 'in:In Progress,Done,Problem'],
             'subcontProcess' => ['nullable', 'string', 'max:100'],
             'qty' => ['nullable', 'integer', 'min:1'],
             'arrivalTargetDate' => ['nullable', 'date'],
@@ -177,14 +188,16 @@ class ItemController extends Controller
 
             $item->update($updateData);
 
-            // If subcontProcess is set, update that control status to In Progress SC (or Done)
+            // If subcontProcess is set, update that control status to In Progress SC, Done, or Problem
             if ($isSubcont && !empty($validated['subcontProcess'])) {
                 $ctrl = $item->controls()->where('process', $validated['subcontProcess'])->first();
                 if ($ctrl) {
-                    $ctrlStatus = ($validated['subcontStatus'] ?? '') === 'Done' ? 'Done' : 'In Progress SC';
+                    $subStatus = $validated['subcontStatus'] ?? '';
+                    $ctrlStatus = $subStatus === 'Done' ? 'Done' : ($subStatus === 'Problem' ? 'Problem' : 'In Progress SC');
                     $ctrl->update([
                         'status' => $ctrlStatus,
-                        'in_progress_at' => $ctrl->in_progress_at ?? $now,
+                        'notes' => $subStatus === 'Problem' ? ($validated['subcontNotes'] ?? $ctrl->notes) : $ctrl->notes,
+                        'in_progress_at' => in_array($ctrlStatus, ['In Progress', 'In Progress SC']) ? ($ctrl->in_progress_at ?? $now) : $ctrl->in_progress_at,
                     ]);
                 }
             }
@@ -204,6 +217,102 @@ class ItemController extends Controller
         return response()->json([
             'data' => new ItemResource($item->load('controls.poTracking')),
             'message' => 'Subcont status updated successfully.',
+        ]);
+    }
+
+    public function update(Request $request, Item $item): JsonResponse
+    {
+        if (!$request->user()?->isController()) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
+        $validated = $request->validate([
+            'no' => ['nullable', 'string', 'max:50'],
+            'description' => ['required', 'string', 'max:255'],
+            'dimension' => ['nullable', 'string', 'max:100'],
+            'material' => ['nullable', 'string', 'max:100'],
+            'qty' => ['nullable', 'integer', 'min:1'],
+            'hrc' => ['nullable', 'string', 'max:50'],
+        ]);
+
+        $item->update([
+            'no' => $validated['no'] ?? $item->no,
+            'description' => $validated['description'],
+            'dimension' => $validated['dimension'] ?? '',
+            'material' => $validated['material'] ?? '',
+            'qty' => $validated['qty'] ?? 1,
+            'hrc' => $validated['hrc'] ?? '',
+        ]);
+
+        Activity::create([
+            'jo_id' => $item->category->jo_id,
+            'message' => "Item \"{$item->description}\" updated.",
+        ]);
+
+        return response()->json([
+            'data' => new ItemResource($item->load('controls.poTracking')),
+            'message' => 'Item updated successfully.',
+        ]);
+    }
+
+    public function destroy(Request $request, Item $item): JsonResponse
+    {
+        if (!$request->user()?->isController()) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
+        $joId = $item->category->jo_id;
+        $desc = $item->description;
+
+        DB::transaction(function () use ($item, $joId, $desc) {
+            $item->delete();
+
+            Activity::create([
+                'jo_id' => $joId,
+                'message' => "Item \"{$desc}\" deleted.",
+            ]);
+        });
+
+        return response()->json([
+            'message' => 'Item deleted successfully.',
+        ]);
+    }
+
+    public function batchDestroy(Request $request): JsonResponse
+    {
+        if (!$request->user()?->isController()) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
+        $validated = $request->validate([
+            'itemIds' => ['required', 'array', 'min:1'],
+            'itemIds.*' => ['required', 'uuid'],
+        ]);
+
+        $deletedCount = DB::transaction(function () use ($validated) {
+            $items = Item::with('category')->whereIn('id', $validated['itemIds'])->get();
+            if ($items->isEmpty()) {
+                return 0;
+            }
+
+            $count = $items->count();
+            $joIds = $items->pluck('category.jo_id')->unique()->filter();
+
+            Item::whereIn('id', $items->pluck('id'))->delete();
+
+            foreach ($joIds as $joId) {
+                Activity::create([
+                    'jo_id' => $joId,
+                    'message' => "Batch: {$count} items deleted.",
+                ]);
+            }
+
+            return $count;
+        });
+
+        return response()->json([
+            'deletedCount' => $deletedCount,
+            'message' => "{$deletedCount} items deleted successfully.",
         ]);
     }
 }

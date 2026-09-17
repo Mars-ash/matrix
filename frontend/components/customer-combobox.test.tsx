@@ -59,6 +59,7 @@ describe("CustomerCombobox Component", () => {
     await user.click(option);
 
     expect(onChange).toHaveBeenCalledWith("PT YUTAKA MANUFACTURING INDONESIA");
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
   });
 
   it("shows empty state when no customer matches query", async () => {

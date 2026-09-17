@@ -60,11 +60,16 @@ Route::middleware('auth.token')->group(function () {
         Route::post('/categories/{category}/items', [ItemController::class, 'store']);
         Route::post('/categories/{category}/items/batch', [ItemController::class, 'batchStore']);
         Route::post('/categories/{category}/ocr-upload', [\App\Http\Controllers\Api\OcrController::class, 'upload']);
+        Route::put('/items/{item}', [ItemController::class, 'update']);
+        Route::delete('/items/{item}', [ItemController::class, 'destroy']);
+        Route::post('/items/batch-delete', [ItemController::class, 'batchDestroy']);
         Route::patch('/items/{item}/subcont', [ItemController::class, 'updateSubcont']);
 
         Route::patch('/controls/{control}/status', [ControlController::class, 'updateStatus']);
         Route::patch('/controls/{control}/target-date', [ControlController::class, 'updateTargetDate']);
         Route::patch('/controls/{control}/po-tracking', [ControlController::class, 'updatePoTracking']);
+        Route::post('/controls/{control}/photos', [ControlController::class, 'uploadPhoto']);
+        Route::delete('/process-photos/{photo}', [ControlController::class, 'deletePhoto']);
 
         Route::post('/jos/{jo}/bulk/send-po', [BulkActionController::class, 'bulkSendPo']);
         Route::post('/jos/{jo}/bulk/update-status', [BulkActionController::class, 'bulkUpdateStatus']);

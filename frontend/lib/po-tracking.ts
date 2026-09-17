@@ -45,13 +45,11 @@ export function collectPoTrackingRows(projects: Project[]): PoTrackingRow[] {
 
             const tracking = control.poTracking;
             const trackingStatus: ControlStatus =
-              arrivalControl?.status === "Done"
-                ? "Done"
-                : arrivalControl?.status === "Problem"
+              control.status === "Problem" || arrivalControl?.status === "Problem"
                 ? "Problem"
-                : control.status === "Done" || (tracking?.poNo && tracking.poNo.trim() !== "")
-                ? "In Progress"
-                : control.status;
+                : control.status === "Done" || arrivalControl?.status === "Done"
+                ? "Done"
+                : "In Progress";
 
             rows.push({
               project,
@@ -68,7 +66,16 @@ export function collectPoTrackingRows(projects: Project[]): PoTrackingRow[] {
               poNo: tracking?.poNo ?? "",
               poDate: tracking?.poDate ?? "",
               targetArrival: tracking?.targetArrival ?? control.targetDate ?? "",
-              notes: tracking?.notes ?? control.notes ?? "",
+              notes:
+                (control.status === "Problem" && control.notes?.trim())
+                  ? control.notes.trim()
+                  : (arrivalControl?.status === "Problem" && arrivalControl?.notes?.trim())
+                  ? arrivalControl.notes.trim()
+                  : tracking?.notes?.trim()
+                  ? tracking.notes.trim()
+                  : control.notes?.trim()
+                  ? control.notes.trim()
+                  : arrivalControl?.notes?.trim() || "",
               originalIndex,
             });
             originalIndex++;

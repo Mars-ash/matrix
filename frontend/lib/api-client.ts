@@ -9,9 +9,12 @@ import type {
   JoType,
   CategoryKind,
   CompanyEntity,
+  ProcessPhoto,
 } from "./types";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  (typeof window !== "undefined" ? "/api/backend" : "http://127.0.0.1:8000/api");
 
 class ApiError extends Error {
   status: number;
@@ -68,11 +71,12 @@ export const api = {
   async createProject(
     name: string,
     customer: string,
-    company?: CompanyEntity
+    company?: CompanyEntity,
+    id?: string
   ): Promise<{ data: Project; message: string }> {
     return request<{ data: Project; message: string }>("/projects", {
       method: "POST",
-      body: JSON.stringify({ name, customer, company: company || "BKP" }),
+      body: JSON.stringify({ name, customer, company: company || "BKP", ...(id ? { id } : {}) }),
     });
   },
 
@@ -90,11 +94,12 @@ export const api = {
   async createJO(
     projectId: string,
     payload: {
+      id?: string;
       joNumber: string;
       product: string;
       type: JoType;
       targetDate?: string;
-      categories?: { label: string; kind: CategoryKind; isCustom: boolean }[];
+      categories?: { id?: string; label: string; kind: CategoryKind; isCustom: boolean }[];
     }
   ): Promise<{ data: JO; message: string }> {
     return request<{ data: JO; message: string }>(`/projects/${projectId}/jos`, {
@@ -170,7 +175,7 @@ export const api = {
       isSubcont: boolean;
       subcontNotes?: string;
       subcontSupplier?: string;
-      subcontStatus?: "In Progress" | "Done";
+      subcontStatus?: "In Progress" | "Done" | "Problem";
       subcontProcess?: string;
       qty?: number;
       arrivalTargetDate?: string;
@@ -179,6 +184,36 @@ export const api = {
     return request<{ data: Item; message: string }>(`/items/${itemId}/subcont`, {
       method: "PATCH",
       body: JSON.stringify(payload),
+    });
+  },
+
+  async updateItem(
+    itemId: string,
+    payload: {
+      no?: string;
+      description: string;
+      dimension?: string;
+      material?: string;
+      qty?: number;
+      hrc?: string;
+    }
+  ): Promise<{ data: Item; message: string }> {
+    return request<{ data: Item; message: string }>(`/items/${itemId}`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async deleteItem(itemId: string): Promise<{ message: string }> {
+    return request<{ message: string }>(`/items/${itemId}`, {
+      method: "DELETE",
+    });
+  },
+
+  async batchDeleteItems(itemIds: string[]): Promise<{ deletedCount: number; message: string }> {
+    return request<{ deletedCount: number; message: string }>(`/items/batch-delete`, {
+      method: "POST",
+      body: JSON.stringify({ itemIds }),
     });
   },
 
@@ -432,6 +467,39 @@ export const api = {
 
   async deleteTrialPhoto(photoId: string): Promise<{ data: any; message: string }> {
     return request<{ data: any; message: string }>(`/trial-entry-photos/${photoId}`, {
+      method: "DELETE",
+    });
+  },
+
+  // Process Evidence Photos
+  async uploadControlPhoto(
+    controlId: string,
+    file: File
+  ): Promise<{ data: ProcessPhoto; message: string }> {
+    const formData = new FormData();
+    formData.append("photo", file);
+
+    const token =
+      (typeof window !== "undefined" && localStorage.getItem("matrix_auth_token")) || "demo-prototype-token";
+    const res = await fetch(`${API_BASE_URL}/controls/${controlId}/photos`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: formData,
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || "Upload process photo failed");
+    }
+
+    return res.json();
+  },
+
+  async deleteControlPhoto(photoId: string): Promise<{ message: string }> {
+    return request<{ message: string }>(`/process-photos/${photoId}`, {
       method: "DELETE",
     });
   },

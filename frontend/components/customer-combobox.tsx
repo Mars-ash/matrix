@@ -59,6 +59,7 @@ export function CustomerCombobox({
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
   const listboxContainerRef = useRef<HTMLDivElement>(null);
+  const justSelectedRef = useRef(false);
 
   useEffect(() => {
     setMounted(true);
@@ -154,11 +155,14 @@ export function CustomerCombobox({
 
   const selectOption = useCallback(
     (option: string) => {
+      justSelectedRef.current = true;
       onChange(option);
       setQuery(option);
       setIsOpen(false);
       setActiveIndex(-1);
-      inputRef.current?.focus();
+      setTimeout(() => {
+        justSelectedRef.current = false;
+      }, 250);
     },
     [onChange]
   );
@@ -169,7 +173,7 @@ export function CustomerCombobox({
       onChange("");
       setQuery("");
       setActiveIndex(-1);
-      inputRef.current?.focus();
+      setIsOpen(false);
     },
     [onChange]
   );
@@ -271,14 +275,16 @@ export function CustomerCombobox({
           </li>
         ) : (
           filteredOptions.map((option, idx) => {
-            const isSelected = option === value;
             const isActive = idx === activeIndex;
 
             return (
               <li
                 key={option}
                 role="option"
-                aria-selected={isSelected}
+                aria-selected={option === value}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                }}
                 onClick={() => selectOption(option)}
                 onMouseEnter={() => setActiveIndex(idx)}
                 style={{
@@ -291,28 +297,13 @@ export function CustomerCombobox({
                   gap: 8,
                   background: isActive
                     ? "var(--color-bg-hover)"
-                    : isSelected
-                    ? "var(--color-status-not-started-bg)"
                     : "transparent",
-                  color: isSelected
-                    ? "var(--color-accent)"
-                    : "var(--color-text)",
-                  fontWeight: isSelected ? 600 : 400,
+                  color: "var(--color-text)",
+                  fontWeight: 400,
                   transition: "background 80ms",
                 }}
               >
                 <span>{option}</span>
-                {isSelected && (
-                  <span
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      color: "var(--color-accent)",
-                    }}
-                  >
-                    ✓
-                  </span>
-                )}
               </li>
             );
           })
@@ -359,8 +350,16 @@ export function CustomerCombobox({
             setActiveIndex(0);
           }}
           onFocus={() => {
+            if (justSelectedRef.current) return;
             updatePosition();
             setIsOpen(true);
+          }}
+          onClick={() => {
+            if (disabled || justSelectedRef.current) return;
+            if (!isOpen) {
+              updatePosition();
+              setIsOpen(true);
+            }
           }}
           onKeyDown={handleKeyDown}
         />

@@ -13,6 +13,7 @@ class Item extends Model
     use HasFactory, HasUuids;
 
     protected $fillable = [
+        'id',
         'category_id',
         'no',
         'description',

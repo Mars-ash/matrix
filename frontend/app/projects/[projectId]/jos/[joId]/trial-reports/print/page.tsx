@@ -25,13 +25,15 @@ export default function TrialReportPrintPage({ params }: PageProps) {
   }, [isViewer, projectId, joId, router]);
 
   const project = projects.find((p) => p.id === projectId)
-    || projects.find((p) => p.jos.some((j) => j.id === joId || j.joNumber === joId))
-    || projects[0];
-  const jo = project?.jos.find((j) => j.id === joId || j.joNumber === joId)
-    || project?.jos[0];
+    || projects.find((p) => p.jos.some((j) => j.id === joId || j.joNumber === joId));
+  const jo = project?.jos.find((j) => j.id === joId || j.joNumber === joId);
 
   if (!project || !jo) {
-    notFound();
+    return (
+      <div style={{ padding: 40, textAlign: "center", color: "var(--color-text-muted)" }}>
+        <p>Loading Trial Reports Print View...</p>
+      </div>
+    );
   }
 
   if (isViewer) {
@@ -132,6 +134,7 @@ export default function TrialReportPrintPage({ params }: PageProps) {
         <TrialReportPrintView
           jo={jo}
           sessions={selectedSessions}
+          company={project.company}
         />
       )}
     </AppShell>

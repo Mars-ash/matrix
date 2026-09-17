@@ -86,24 +86,26 @@ export function StatusSelect({ value, notes, process, allowedStatuses, onChange 
     return true;
   })).slice();
 
-  if (!availableStatuses.includes(value)) {
+  if (!allowedStatuses && !availableStatuses.includes(value)) {
     availableStatuses.unshift(value);
   }
+
+  const selectValue = availableStatuses.includes(value) ? value : availableStatuses[0];
 
   return (
     <>
       <select
         className="select"
-        value={value}
+        value={selectValue}
         onChange={handleChange}
         style={{
-          color: statusColorVar[value],
+          color: statusColorVar[selectValue],
           fontSize: 12,
           fontWeight: 600,
           padding: "4px 18px 4px 8px", // Adjusted right padding slightly to help optical centering
           width: "auto",
           minWidth: 100,
-          backgroundColor: statusBgVar[value],
+          backgroundColor: statusBgVar[selectValue],
           borderColor: "transparent",
           textAlign: "center",
           display: "block",

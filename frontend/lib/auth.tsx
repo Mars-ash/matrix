@@ -142,8 +142,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       email: newRole === "controller" ? "engineering@matrix.com" : "viewer@matrix.com",
       role: newRole,
     };
+    const newToken = newRole === "controller" ? "demo-controller-token" : "demo-viewer-token";
     setUser(updated);
+    setToken(newToken);
     localStorage.setItem("matrix_auth_user", JSON.stringify(updated));
+    localStorage.setItem("matrix_auth_token", newToken);
+    document.cookie = `matrix_token=${newToken}; path=/; max-age=86400; SameSite=Lax`;
   };
 
   const role: UserRole = user?.role || "viewer";

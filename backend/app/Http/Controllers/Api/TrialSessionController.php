@@ -65,7 +65,7 @@ class TrialSessionController extends Controller
             $nowDate = Carbon::now()->format('Y-m-d');
 
             $session = $jo->trialSessions()->create([
-                'id' => $validated['id'] ?? (string) Str::uuid(),
+                'id' => (!empty($validated['id']) && Str::isUuid($validated['id'])) ? $validated['id'] : (string) Str::uuid(),
                 'name' => $validated['name'],
                 'trial_date' => $validated['trialDate'] ?? $nowDate,
                 'update_date' => $validated['updateDate'] ?? $nowDate,
@@ -270,7 +270,7 @@ class TrialSessionController extends Controller
 
         $finding = DB::transaction(function () use ($session, $maxOrder, $nowDate, $validated) {
             $finding = $session->findings()->create([
-                'id' => $validated['id'] ?? (string) Str::uuid(),
+                'id' => (!empty($validated['id']) && Str::isUuid($validated['id'])) ? $validated['id'] : (string) Str::uuid(),
                 'order' => $maxOrder + 1,
             ]);
 
@@ -327,7 +327,7 @@ class TrialSessionController extends Controller
         $maxOrder = $finding->entries()->where('section', $validated['section'])->max('order') ?? 0;
 
         $entry = $finding->entries()->create([
-            'id' => $validated['id'] ?? (string) Str::uuid(),
+            'id' => (!empty($validated['id']) && Str::isUuid($validated['id'])) ? $validated['id'] : (string) Str::uuid(),
             'section' => $validated['section'],
             'order' => $maxOrder + 1,
             'text' => $validated['text'] ?? '',

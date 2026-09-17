@@ -8,9 +8,15 @@ interface DialogProps {
   children: ReactNode;
   /** Optional footer with action buttons. */
   footer?: ReactNode;
+  /** Optional custom class name applied to the dialog panel. */
+  className?: string;
+  /** Optional inline max-width constraint on desktop. */
+  maxWidth?: string | number;
+  /** Optional additional styling for the panel. */
+  panelStyle?: React.CSSProperties;
 }
 
-export function Dialog({ open, onClose, title, children, footer }: DialogProps) {
+export function Dialog({ open, onClose, title, children, footer, className, maxWidth, panelStyle }: DialogProps) {
   const panelRef = useRef<HTMLDivElement>(null);
 
   const handleKeyDown = useCallback(
@@ -43,7 +49,14 @@ export function Dialog({ open, onClose, title, children, footer }: DialogProps) 
       aria-modal="true"
       aria-label={title}
     >
-      <div className="dialog-panel" ref={panelRef}>
+      <div
+        className={`dialog-panel ${className || ""}`.trim()}
+        ref={panelRef}
+        style={{
+          ...(maxWidth ? { maxWidth } : {}),
+          ...panelStyle,
+        }}
+      >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
           <h2 style={{ fontSize: 16, fontWeight: 600 }}>{title}</h2>
           <button

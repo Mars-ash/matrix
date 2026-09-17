@@ -14,8 +14,9 @@ class ProjectController extends Controller
     public function index(): AnonymousResourceCollection
     {
         $projects = Project::with([
-            'jos.categories.items.controls',
-            'jos.trialSessions',
+            'jos.categories.items.controls.poTracking',
+            'jos.categories.items.controls.photos',
+            'jos.trialSessions.findings.entries.photos',
         ])->oldest()->get();
 
         return ProjectResource::collection($projects);
@@ -23,11 +24,17 @@ class ProjectController extends Controller
 
     public function store(StoreProjectRequest $request): JsonResponse
     {
-        $project = Project::create([
+        $data = [
             'name' => $request->validated('name'),
             'customer' => $request->validated('customer'),
             'company' => $request->validated('company') ?: 'BKP',
-        ]);
+        ];
+
+        if ($request->filled('id')) {
+            $data['id'] = $request->validated('id');
+        }
+
+        $project = Project::create($data);
 
         return response()->json([
             'data' => new ProjectResource($project->load('jos')),
@@ -38,7 +45,8 @@ class ProjectController extends Controller
     public function show(Project $project): ProjectResource
     {
         return new ProjectResource($project->load([
-            'jos.categories.items.controls',
+            'jos.categories.items.controls.poTracking',
+            'jos.categories.items.controls.photos',
             'jos.trialSessions.findings.entries.photos',
         ]));
     }

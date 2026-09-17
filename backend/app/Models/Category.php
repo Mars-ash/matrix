@@ -13,6 +13,7 @@ class Category extends Model
     use HasFactory, HasUuids;
 
     protected $fillable = [
+        'id',
         'jo_id',
         'label',
         'kind',

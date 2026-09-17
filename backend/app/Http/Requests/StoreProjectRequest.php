@@ -14,6 +14,7 @@ class StoreProjectRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'id' => ['nullable', 'uuid'],
             'name' => ['required', 'string', 'max:255'],
             'customer' => ['required', 'string', 'max:255'],
             'company' => ['nullable', 'string', 'in:BMI,BKP'],

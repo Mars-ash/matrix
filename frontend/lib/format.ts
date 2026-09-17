@@ -23,7 +23,14 @@ export function formatTimestamp(iso: string): string {
   return `${date}, ${time}`;
 }
 
-/** Generate a simple unique id (good enough for prototype local state). */
+/** Generate a valid RFC4122 v4 UUID string. */
 export function uid(): string {
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
 }

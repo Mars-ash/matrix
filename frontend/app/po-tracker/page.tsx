@@ -22,8 +22,6 @@ import {
 type GroupMode = "none" | "jo" | "supplier";
 
 const PO_STATUS_CHOICES: ControlStatus[] = [
-  "-",
-  "Not Started",
   "In Progress",
   "Done",
   "Problem",
@@ -38,6 +36,7 @@ function formatDate(value?: string) {
 
 function deadlineColor(state: "overdue" | "today" | "soon") {
   if (state === "overdue") return "var(--color-status-problem)";
+  if (state === "today") return "var(--color-status-problem)";
   return "var(--color-status-in-progress)";
 }
 
@@ -128,19 +127,14 @@ function PoTrackerContent() {
     trackingUpdates: PoTracking,
     options: { status?: ControlStatus; problemNotes?: string; qty?: number } = {}
   ) => {
-    // If status changed in PO Tracker, update Arrival process in JO
-    if (options.status !== undefined) {
-      dispatch({
-        type: "UPDATE_STATUS",
-        projectId: row.project.id,
-        joId: row.jo.id,
-        categoryId: row.category.id,
-        itemId: row.item.id,
-        process: "Arrival",
-        status: options.status,
-        notes: options.problemNotes ?? "",
-      });
-    }
+    const isProblem = options.status === "Problem";
+    const problemNotes = options.problemNotes?.trim() || "";
+    const resolvedNotes =
+      isProblem && problemNotes
+        ? problemNotes
+        : trackingUpdates.notes !== undefined
+        ? trackingUpdates.notes
+        : row.notes;
 
     dispatch({
       type: "UPDATE_PO_TRACKING",
@@ -149,16 +143,16 @@ function PoTrackerContent() {
       categoryId: row.category.id,
       itemId: row.item.id,
       process: row.process,
-      status: row.control.status,
-      problemNotes: options.problemNotes ?? row.control.notes,
+      status: options.status ?? row.control.status,
+      problemNotes: isProblem ? problemNotes : (options.problemNotes ?? row.control.notes),
       qty: options.qty,
       tracking: {
         supplier: row.supplier,
         poNo: row.poNo,
         poDate: row.poDate,
         targetArrival: row.targetArrival,
-        notes: row.notes,
         ...trackingUpdates,
+        notes: resolvedNotes,
       },
     });
   };
@@ -686,10 +680,10 @@ function PoTrackerContent() {
                 for (const row of selectedRows) {
                   updateRow(
                     row,
-                    {},
+                    bulkStatus === "Problem" ? { notes: bulkProblemNotes.trim() } : {},
                     {
                       status: bulkStatus,
-                      problemNotes: bulkStatus === "Problem" ? bulkProblemNotes : "",
+                      problemNotes: bulkStatus === "Problem" ? bulkProblemNotes.trim() : "",
                     }
                   );
                 }

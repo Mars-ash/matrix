@@ -10,6 +10,19 @@ const nextConfig: NextConfig = {
     "localhost:3000",
     "127.0.0.1:3000",
   ],
+  async rewrites() {
+    const backendUrl = process.env.BACKEND_INTERNAL_URL || "http://127.0.0.1:8000";
+    return [
+      {
+        source: "/api/backend/:path*",
+        destination: `${backendUrl}/api/:path*`,
+      },
+      {
+        source: "/storage/:path*",
+        destination: `${backendUrl}/storage/:path*`,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

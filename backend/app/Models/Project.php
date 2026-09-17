@@ -12,6 +12,7 @@ class Project extends Model
     use HasFactory, HasUuids;
 
     protected $fillable = [
+        'id',
         'name',
         'customer',
         'company',

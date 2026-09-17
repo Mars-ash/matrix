@@ -1,4 +1,5 @@
 import type { Project, TrialSession } from "./types";
+import { uid } from "./format";
 
 const DB_NAME = "matrix_trial_db_v1";
 const DB_VERSION = 1;
@@ -106,7 +107,7 @@ export async function saveTrialSessionsAsync(projects: Project[]): Promise<void>
       for (const [k, sessions] of Object.entries(data)) {
         strippedData[k] = sessions.map((s) => ({
           ...s,
-          findings: s.findings.map((f) => ({
+          findings: (s.findings || []).map((f) => ({
             ...f,
             problems: (f.problems || []).map((p) => ({
               ...p,
@@ -297,7 +298,9 @@ export function canonicalMergeTrialSessions(candidates: TrialSession[]): TrialSe
     const existing = sessionByName.get(normName);
 
     if (!existing) {
-      sessionByName.set(normName, structuredClone(candidate));
+      const cloned = structuredClone(candidate);
+      cloned.findings = cloned.findings || [];
+      sessionByName.set(normName, cloned);
       continue;
     }
 
@@ -314,7 +317,14 @@ export function canonicalMergeTrialSessions(candidates: TrialSession[]): TrialSe
     const winner = preferCandidate ? structuredClone(candidate) : existing;
     const loser = preferCandidate ? existing : candidate;
 
-    // Always adopt backend database ULID for session ID if either has one
+    // Ensure winner findings is preserved if winner has none but loser has them
+    if ((!winner.findings || winner.findings.length === 0) && loser.findings && loser.findings.length > 0) {
+      winner.findings = loser.findings;
+    } else {
+      winner.findings = winner.findings || [];
+    }
+
+    // Always adopt backend database ULID/UUID for session ID if either has one
     if (!isBackendId(winner.id) && isBackendId(loser.id)) {
       winner.id = loser.id;
     }

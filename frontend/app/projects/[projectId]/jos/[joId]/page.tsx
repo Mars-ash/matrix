@@ -10,6 +10,7 @@ import { CategoryCreateDialog } from "@/components/category-create-dialog";
 import { JoItemSearch } from "@/components/jo-item-search";
 import { Dialog } from "@/components/dialog";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { ItemEditDialog } from "@/components/item-edit-dialog";
 import { useAppState, useAppDispatch } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
 import { joProgress, joProblemCount, categoryProgress } from "@/lib/progress";
@@ -42,6 +43,11 @@ export default function JoDetailPage({ params }: PageProps) {
   const [categoryCreateOpen, setCategoryCreateOpen] = useState(false);
   const [highlightedItemId, setHighlightedItemId] = useState<string | null>(null);
 
+  // Item edit / delete states
+  const [editingItem, setEditingItem] = useState<{ item: Item; categoryId: string } | null>(null);
+  const [deletingItem, setDeletingItem] = useState<{ item: Item; categoryId: string } | null>(null);
+  const [batchDeleteOpen, setBatchDeleteOpen] = useState(false);
+
   // Bulk operation states
   const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
   const [activeBulkModal, setActiveBulkModal] = useState<"po" | "status" | "subcont" | null>(null);
@@ -65,11 +71,9 @@ export default function JoDetailPage({ params }: PageProps) {
   const [poTargetArrival, setPoTargetArrival] = useState("");
   const [poNotes, setPoNotes] = useState("");
 
-  const project = projects.find((p) => p.id === projectId)
-    || projects.find((p) => p.jos.some((j) => j.id === joId || j.joNumber === joId))
-    || projects[0];
-  const jo = project?.jos.find((j) => j.id === joId || j.joNumber === joId)
-    || project?.jos[0];
+  const project = projects.find((p) => p.id === projectId || (p as any).tempId === projectId)
+    || projects.find((p) => p.jos.some((j) => j.id === joId || (j as any).tempId === joId || j.joNumber === joId));
+  const jo = project?.jos.find((j) => j.id === joId || (j as any).tempId === joId || j.joNumber === joId);
 
   const progress = jo ? joProgress(jo) : null;
   const problems = jo ? joProblemCount(jo) : 0;
@@ -425,6 +429,8 @@ export default function JoDetailPage({ params }: PageProps) {
               onToggleSelectItem={handleToggleSelectItem}
               onToggleSelectAllCategory={handleToggleSelectAllCategory}
               onRequestSendPo={handleRequestSendPo}
+              onEditItem={(item) => setEditingItem({ item, categoryId: cat.id })}
+              onDeleteItem={(item) => setDeletingItem({ item, categoryId: cat.id })}
             />
           </section>
         ))}
@@ -584,6 +590,19 @@ export default function JoDetailPage({ params }: PageProps) {
             >
               Kirim Subcont
             </button>
+
+            <button
+              type="button"
+              className="btn btn-sm bulk-action-btn"
+              onClick={() => setBatchDeleteOpen(true)}
+              style={{
+                background: "var(--color-status-problem)",
+                color: "#fff",
+                borderColor: "var(--color-status-problem)",
+              }}
+            >
+              Hapus ({selectedItemIds.length})
+            </button>
           </div>
 
           <button
@@ -731,7 +750,7 @@ export default function JoDetailPage({ params }: PageProps) {
             </button>
             <button
               className="btn btn-primary"
-              disabled={bulkStatusProcesses.length === 0}
+              disabled={bulkStatusProcesses.length === 0 || (bulkStatusValue === "Problem" && !bulkStatusNotes.trim())}
               onClick={() => {
                 dispatch({
                   type: "BULK_UPDATE_STATUS",
@@ -979,6 +998,69 @@ export default function JoDetailPage({ params }: PageProps) {
           ) : null
         }
         confirmText="Hapus"
+      />
+
+      {/* Edit Item Dialog */}
+      {editingItem && (
+        <ItemEditDialog
+          open={!!editingItem}
+          onClose={() => setEditingItem(null)}
+          projectId={projectId}
+          joId={joId}
+          categoryId={editingItem.categoryId}
+          item={editingItem.item}
+        />
+      )}
+
+      {/* Single Item Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={!!deletingItem}
+        onClose={() => setDeletingItem(null)}
+        onConfirm={() => {
+          if (deletingItem) {
+            dispatch({
+              type: "DELETE_ITEM",
+              projectId,
+              joId,
+              categoryId: deletingItem.categoryId,
+              itemId: deletingItem.item.id,
+            });
+            setSelectedItemIds((prev) => prev.filter((id) => id !== deletingItem.item.id));
+            setDeletingItem(null);
+          }
+        }}
+        title="Hapus Part / Component"
+        message={
+          deletingItem ? (
+            <span>
+              Apakah Anda yakin ingin menghapus part <strong>{deletingItem.item.description}</strong>? Seluruh data proses dan kontrol part ini akan dihapus.
+            </span>
+          ) : null
+        }
+        confirmText="Hapus Part"
+        cancelText="Batal"
+        destructive={true}
+      />
+
+      {/* Bulk Delete Items Confirmation Dialog */}
+      <ConfirmDialog
+        open={batchDeleteOpen}
+        onClose={() => setBatchDeleteOpen(false)}
+        onConfirm={() => {
+          dispatch({
+            type: "BATCH_DELETE_ITEMS",
+            projectId,
+            joId,
+            itemIds: selectedItemIds,
+          });
+          setSelectedItemIds([]);
+          setBatchDeleteOpen(false);
+        }}
+        title="Hapus Part Terpilih"
+        message={`Apakah Anda yakin ingin menghapus ${selectedItemIds.length} part terpilih? Tindakan ini tidak dapat dibatalkan.`}
+        confirmText={`Hapus ${selectedItemIds.length} Part`}
+        cancelText="Batal"
+        destructive={true}
       />
     </AppShell>
   );

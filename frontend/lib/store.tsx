@@ -15,6 +15,7 @@ import { api } from "./api-client";
 import type {
   Project,
   JO,
+  Category,
   Item,
   ControlStatus,
   PoTracking,
@@ -26,6 +27,7 @@ import type {
   TrialCorrectiveActionEntry,
   TrialEntryPhoto,
   CompanyEntity,
+  ProcessPhoto,
 } from "./types";
 import { INITIAL_PROJECTS } from "./mock-data";
 import { defaultControls } from "./category";
@@ -41,6 +43,22 @@ export interface AppState {
   projects: Project[];
 }
 
+export const PROJECTS_CACHE_KEY = "matrix_projects_cache";
+
+export function getCachedProjects(): Project[] | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(PROJECTS_CACHE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
+      }
+    }
+  } catch {}
+  return null;
+}
+
 const initialState: AppState = {
   projects: structuredClone(INITIAL_PROJECTS),
 };
@@ -50,8 +68,47 @@ const initialState: AppState = {
 // ---------------------------------------------------------------------------
 export type AppAction =
   | {
+      type: "HYDRATE_PROJECTS";
+      projects: Project[];
+    }
+  | {
       type: "SET_PROJECTS";
       projects: Project[];
+    }
+  | {
+      type: "SYNC_PROJECT";
+      tempId?: string;
+      project: Project;
+    }
+  | {
+      type: "SYNC_JO";
+      projectId: string;
+      tempJoId?: string;
+      jo: JO;
+    }
+  | {
+      type: "SYNC_CATEGORY";
+      projectId: string;
+      joId: string;
+      category: Category;
+      tempCategoryId?: string;
+      tempCategoryLabel?: string;
+    }
+  | {
+      type: "SYNC_ITEM";
+      projectId: string;
+      joId: string;
+      categoryId: string;
+      item: Item;
+      tempItemId?: string;
+    }
+  | {
+      type: "SYNC_ITEMS_BATCH";
+      projectId: string;
+      joId: string;
+      categoryId: string;
+      items: Item[];
+      tempItemIds?: string[];
     }
   | {
       type: "CREATE_PROJECT";
@@ -92,6 +149,7 @@ export type AppAction =
       projectId: string;
       joId: string;
       categoryId: string;
+      itemId?: string;
       item: Omit<Item, "id" | "controls">;
       kind: CategoryKind;
     }
@@ -102,6 +160,34 @@ export type AppAction =
       categoryId: string;
       items: Omit<Item, "id" | "controls">[];
       kind: CategoryKind;
+    }
+  | {
+      type: "UPDATE_ITEM";
+      projectId: string;
+      joId: string;
+      categoryId: string;
+      itemId: string;
+      data: {
+        no?: string;
+        description: string;
+        dimension?: string;
+        material?: string;
+        qty?: number;
+        hrc?: string;
+      };
+    }
+  | {
+      type: "DELETE_ITEM";
+      projectId: string;
+      joId: string;
+      categoryId: string;
+      itemId: string;
+    }
+  | {
+      type: "BATCH_DELETE_ITEMS";
+      projectId: string;
+      joId: string;
+      itemIds: string[];
     }
   | {
       type: "UPDATE_STATUS";
@@ -185,7 +271,7 @@ export type AppAction =
       isSubcont: boolean;
       subcontNotes?: string;
       subcontSupplier?: string;
-      subcontStatus?: "In Progress" | "Done";
+      subcontStatus?: "In Progress" | "Done" | "Problem";
       subcontProcess?: string;
       qty?: number;
       arrivalTargetDate?: string;
@@ -198,6 +284,17 @@ export type AppAction =
       itemId: string;
       process: string;
       photo: { id: string; name: string; previewUrl: string };
+      file?: File;
+    }
+  | {
+      type: "SYNC_PROCESS_PHOTO";
+      projectId: string;
+      joId: string;
+      categoryId: string;
+      itemId: string;
+      process: string;
+      tempPhotoId: string;
+      photo: ProcessPhoto;
     }
   | {
       type: "REMOVE_PROCESS_PHOTO";
@@ -385,6 +482,13 @@ function addActivity(jo: JO, message: string): void {
 function executeReducer(next: AppState, state: AppState, action: AppAction): AppState {
 
   switch (action.type) {
+    case "HYDRATE_PROJECTS": {
+      return {
+        ...state,
+        projects: action.projects,
+      };
+    }
+
     case "SET_PROJECTS": {
       const storedTrials = loadTrialSessionsFromStorage();
       const existingTrialsByJoNumber = new Map<string, TrialSession[]>();
@@ -410,7 +514,10 @@ function executeReducer(next: AppState, state: AppState, action: AppAction): App
             ...backendSessions,
             ...fromExisting,
             ...fromStored,
-          ]);
+          ]).map((s) => ({
+            ...s,
+            findings: s.findings || [],
+          }));
 
           return {
             ...j,
@@ -426,6 +533,113 @@ function executeReducer(next: AppState, state: AppState, action: AppAction): App
           };
         }),
       }));
+      return next;
+    }
+
+    case "SYNC_PROJECT": {
+      const existingIdx = next.projects.findIndex(
+        (p) => p.id === action.project.id || (action.tempId && p.id === action.tempId)
+      );
+      if (existingIdx !== -1) {
+        const existingJos = next.projects[existingIdx].jos || [];
+        next.projects[existingIdx] = {
+          ...action.project,
+          jos: existingJos.length > 0 ? existingJos : (action.project.jos || []),
+        };
+      } else {
+        next.projects.push(action.project);
+      }
+      return next;
+    }
+
+    case "SYNC_JO": {
+      const project = next.projects.find(
+        (p) => p.id === action.projectId || (p as any).tempId === action.projectId
+      );
+      if (!project) return state;
+
+      const existingJoIdx = project.jos.findIndex(
+        (j) =>
+          j.id === action.jo.id ||
+          (action.tempJoId && j.id === action.tempJoId) ||
+          j.joNumber === action.jo.joNumber
+      );
+      if (existingJoIdx !== -1) {
+        project.jos[existingJoIdx] = action.jo;
+      } else {
+        project.jos.push(action.jo);
+      }
+      return next;
+    }
+
+    case "SYNC_CATEGORY": {
+      const project = next.projects.find((p) => p.id === action.projectId);
+      const jo = project?.jos.find((j) => j.id === action.joId);
+      if (!jo) return state;
+
+      const catIdx = jo.categories.findIndex(
+        (c) =>
+          c.id === action.category.id ||
+          (action.tempCategoryId && c.id === action.tempCategoryId) ||
+          (action.tempCategoryLabel && c.label.trim().toLowerCase() === action.tempCategoryLabel.trim().toLowerCase())
+      );
+      if (catIdx !== -1) {
+        jo.categories[catIdx] = {
+          ...action.category,
+          items: jo.categories[catIdx].items.length > 0 ? jo.categories[catIdx].items : action.category.items,
+        };
+      } else {
+        if (action.category.kind === "Part") {
+          const firstComponentIdx = jo.categories.findIndex((c) => c.kind === "Component");
+          if (firstComponentIdx !== -1) {
+            jo.categories.splice(firstComponentIdx, 0, action.category);
+          } else {
+            jo.categories.push(action.category);
+          }
+        } else {
+          jo.categories.push(action.category);
+        }
+      }
+      return next;
+    }
+
+    case "SYNC_ITEM": {
+      const project = next.projects.find((p) => p.id === action.projectId);
+      const jo = project?.jos.find((j) => j.id === action.joId);
+      const cat = jo?.categories.find((c) => c.id === action.categoryId);
+      if (!cat) return state;
+
+      const itemIdx = cat.items.findIndex(
+        (i) =>
+          i.id === action.item.id ||
+          (action.tempItemId && i.id === action.tempItemId) ||
+          (i.description?.trim() === action.item.description?.trim() && i.no === action.item.no)
+      );
+      if (itemIdx !== -1) {
+        cat.items[itemIdx] = action.item;
+      } else {
+        cat.items.push(action.item);
+      }
+      return next;
+    }
+
+    case "SYNC_ITEMS_BATCH": {
+      const project = next.projects.find((p) => p.id === action.projectId);
+      const jo = project?.jos.find((j) => j.id === action.joId);
+      const cat = jo?.categories.find((c) => c.id === action.categoryId);
+      if (!cat) return state;
+
+      if (action.tempItemIds && action.tempItemIds.length > 0) {
+        cat.items = cat.items.filter((i) => !action.tempItemIds?.includes(i.id));
+      }
+      for (const item of action.items) {
+        const idx = cat.items.findIndex((i) => i.id === item.id);
+        if (idx !== -1) {
+          cat.items[idx] = item;
+        } else {
+          cat.items.push(item);
+        }
+      }
       return next;
     }
 
@@ -491,13 +705,25 @@ function executeReducer(next: AppState, state: AppState, action: AppAction): App
       const jo = project?.jos.find((j) => j.id === action.joId);
       if (!jo) return state;
 
-      jo.categories.push({
+      const newCategory: Category = {
         id: uid(),
         label: action.label,
         kind: action.kind,
         isCustom: action.isCustom,
         items: [],
-      });
+      };
+
+      if (action.kind === "Part") {
+        const firstComponentIdx = jo.categories.findIndex((c) => c.kind === "Component");
+        if (firstComponentIdx !== -1) {
+          jo.categories.splice(firstComponentIdx, 0, newCategory);
+        } else {
+          jo.categories.push(newCategory);
+        }
+      } else {
+        jo.categories.push(newCategory);
+      }
+
       addActivity(jo, `Category "${action.label}" added.`);
       return next;
     }
@@ -510,7 +736,7 @@ function executeReducer(next: AppState, state: AppState, action: AppAction): App
 
       const newItem: Item = {
         ...action.item,
-        id: uid(),
+        id: action.itemId || uid(),
         controls: defaultControls(action.kind),
       };
       cat.items.push(newItem);
@@ -537,6 +763,54 @@ function executeReducer(next: AppState, state: AppState, action: AppAction): App
         jo!,
         `${action.items.length} items added to ${cat.label} via image conversion.`
       );
+      return next;
+    }
+
+    case "UPDATE_ITEM": {
+      const project = next.projects.find((p) => p.id === action.projectId);
+      const jo = project?.jos.find((j) => j.id === action.joId);
+      const cat = jo?.categories.find((c) => c.id === action.categoryId);
+      const item = cat?.items.find((i) => i.id === action.itemId);
+      if (!item) return state;
+
+      if (action.data.no !== undefined) item.no = action.data.no;
+      if (action.data.description !== undefined) item.description = action.data.description;
+      if (action.data.dimension !== undefined) item.dimension = action.data.dimension;
+      if (action.data.material !== undefined) item.material = action.data.material;
+      if (action.data.qty !== undefined) item.qty = action.data.qty;
+      if (action.data.hrc !== undefined) item.hrc = action.data.hrc;
+
+      addActivity(jo!, `Item "${item.description}" updated.`);
+      return next;
+    }
+
+    case "DELETE_ITEM": {
+      const project = next.projects.find((p) => p.id === action.projectId);
+      const jo = project?.jos.find((j) => j.id === action.joId);
+      const cat = jo?.categories.find((c) => c.id === action.categoryId);
+      if (!cat) return state;
+
+      const item = cat.items.find((i) => i.id === action.itemId);
+      const desc = item ? item.description : "Item";
+
+      cat.items = cat.items.filter((i) => i.id !== action.itemId);
+      addActivity(jo!, `Item "${desc}" deleted.`);
+      return next;
+    }
+
+    case "BATCH_DELETE_ITEMS": {
+      const project = next.projects.find((p) => p.id === action.projectId);
+      const jo = project?.jos.find((j) => j.id === action.joId);
+      if (!jo) return state;
+
+      let deletedCount = 0;
+      for (const cat of jo.categories) {
+        const prevLength = cat.items.length;
+        cat.items = cat.items.filter((i) => !action.itemIds.includes(i.id));
+        deletedCount += prevLength - cat.items.length;
+      }
+
+      addActivity(jo, `Batch: ${deletedCount} items deleted.`);
       return next;
     }
 
@@ -615,13 +889,16 @@ function executeReducer(next: AppState, state: AppState, action: AppAction): App
       const prevStatus = control.status;
       control.status = action.status;
       control.notes = action.status === "Problem" ? action.problemNotes.trim() : "";
+      const effectiveNotes = action.status === "Problem"
+        ? (action.problemNotes?.trim() || action.tracking.notes?.trim() || "")
+        : (action.tracking.notes?.trim() ?? control.poTracking?.notes ?? "");
       control.poTracking = {
         ...control.poTracking,
         supplier: action.tracking.supplier?.trim() ?? "",
         poNo: action.tracking.poNo?.trim() ?? "",
         poDate: action.tracking.poDate?.trim() ?? "",
         targetArrival: action.tracking.targetArrival?.trim() ?? "",
-        notes: action.tracking.notes?.trim() ?? "",
+        notes: effectiveNotes,
       };
 
       if (action.tracking.targetArrival) {
@@ -636,6 +913,17 @@ function executeReducer(next: AppState, state: AppState, action: AppAction): App
         const arrivalCtrl = item.controls.find((c) => c.process === "Arrival");
         if (arrivalCtrl) {
           arrivalCtrl.status = "Done";
+        }
+      } else if (action.status === "Problem") {
+        const arrivalCtrl = item.controls.find((c) => c.process === "Arrival");
+        if (arrivalCtrl) {
+          arrivalCtrl.status = "Problem";
+          arrivalCtrl.notes = action.problemNotes.trim();
+        }
+      } else if (action.status === "In Progress") {
+        const arrivalCtrl = item.controls.find((c) => c.process === "Arrival");
+        if (arrivalCtrl && (arrivalCtrl.status === "Problem" || arrivalCtrl.status === "Done")) {
+          arrivalCtrl.status = "In Progress";
         }
       }
 
@@ -691,6 +979,11 @@ function executeReducer(next: AppState, state: AppState, action: AppAction): App
           : [];
 
       if (targetProcesses.length === 0) return state;
+
+      // Problem requires notes — guard like individual UPDATE_STATUS
+      if (action.status === "Problem" && !(action.notes ?? "").trim()) {
+        return state;
+      }
 
       let count = 0;
       for (const cat of jo.categories) {
@@ -839,6 +1132,20 @@ function executeReducer(next: AppState, state: AppState, action: AppAction): App
               ctrl.status = "Done";
             }
           }
+        } else if (action.subcontStatus === "Problem") {
+          item.subcontDoneAt = undefined;
+          const targetProcess =
+            item.subcontProcess ||
+            item.controls.find((c) => c.status === "In Progress SC" || c.status === "In Progress" || c.status === "Problem")?.process;
+          if (targetProcess) {
+            const ctrl = item.controls.find((c) => c.process === targetProcess);
+            if (ctrl) {
+              ctrl.status = "Problem";
+              if (action.subcontNotes) {
+                ctrl.notes = action.subcontNotes;
+              }
+            }
+          }
         } else {
           item.subcontDoneAt = undefined;
           const targetProcess = item.subcontProcess;
@@ -860,10 +1167,19 @@ function executeReducer(next: AppState, state: AppState, action: AppAction): App
         item.arrivalTargetDate = action.arrivalTargetDate;
       }
 
-      addActivity(
-        jo!,
-        `${item.description} ${action.isSubcont ? "marked as Subcont" : "unmarked as Subcont"}.`
-      );
+      // Only log meaningful changes
+      if (action.isSubcont !== undefined) {
+        addActivity(
+          jo!,
+          `${item.description} marked as ${action.isSubcont ? "Subcont" : "Internal"}.`
+        );
+      } else if (action.subcontStatus !== undefined) {
+        addActivity(jo!, `${item.description} subcont status → ${action.subcontStatus}.`);
+      } else if (action.subcontSupplier !== undefined) {
+        addActivity(jo!, `${item.description} subcont supplier → ${action.subcontSupplier || '—'}.`);
+      } else if (action.arrivalTargetDate !== undefined) {
+        addActivity(jo!, `${item.description} subcont target arrival → ${action.arrivalTargetDate || '—'}.`);
+      }
       return next;
     }
 
@@ -908,6 +1224,23 @@ function executeReducer(next: AppState, state: AppState, action: AppAction): App
         jo!,
         `Photo removed from ${item.description} → ${action.process}.`
       );
+      return next;
+    }
+
+    case "SYNC_PROCESS_PHOTO": {
+      const project = next.projects.find((p) => p.id === action.projectId);
+      const jo = project?.jos.find((j) => j.id === action.joId);
+      const cat = jo?.categories.find((c) => c.id === action.categoryId);
+      const item = cat?.items.find((i) => i.id === action.itemId);
+      if (!item) return state;
+
+      const control = item.controls.find((c) => c.process === action.process);
+      if (!control || !control.photos) return state;
+
+      const pIdx = control.photos.findIndex((p) => p.id === action.tempPhotoId);
+      if (pIdx !== -1) {
+        control.photos[pIdx] = action.photo;
+      }
       return next;
     }
 
@@ -971,7 +1304,7 @@ function executeReducer(next: AppState, state: AppState, action: AppAction): App
         jobNo: session.jobNo,
         picName: session.picName,
         approvedByName: session.approvedByName,
-        findings: JSON.parse(JSON.stringify(session.findings)),
+        findings: JSON.parse(JSON.stringify(session.findings ?? [])),
         createdAt: session.createdAt,
         updatedAt: now,
       };
@@ -997,6 +1330,7 @@ function executeReducer(next: AppState, state: AppState, action: AppAction): App
         (s) => s.id === action.sessionId
       );
       if (!session) return state;
+      if (!session.findings) session.findings = [];
       session.findings.push(action.finding);
       session.updatedAt = new Date().toISOString();
       return next;
@@ -1009,6 +1343,7 @@ function executeReducer(next: AppState, state: AppState, action: AppAction): App
         (s) => s.id === action.sessionId
       );
       if (!session) return state;
+      if (!session.findings) session.findings = [];
       const fidx = session.findings.findIndex((f) => f.id === action.findingId);
       if (fidx === -1) return state;
       session.findings.splice(fidx, 1);
@@ -1029,6 +1364,7 @@ function executeReducer(next: AppState, state: AppState, action: AppAction): App
         (s) => s.id === action.sessionId
       );
       if (!session) return state;
+      if (!session.findings) session.findings = [];
       const sorted = [...session.findings].sort((a, b) => a.order - b.order);
       const idx = sorted.findIndex((f) => f.id === action.findingId);
       if (idx === -1) return state;
@@ -1052,7 +1388,7 @@ function executeReducer(next: AppState, state: AppState, action: AppAction): App
         (s) => s.id === action.sessionId
       );
       if (!session) return state;
-      const finding = session.findings.find((f) => f.id === action.findingId);
+      const finding = (session.findings ?? []).find((f) => f.id === action.findingId);
       if (!finding) return state;
       if (action.section === "correctiveActions") {
         if (!finding.correctiveActions) finding.correctiveActions = [];
@@ -1085,7 +1421,7 @@ function executeReducer(next: AppState, state: AppState, action: AppAction): App
         (s) => s.id === action.sessionId
       );
       if (!session) return state;
-      const finding = session.findings.find((f) => f.id === action.findingId);
+      const finding = (session.findings ?? []).find((f) => f.id === action.findingId);
       if (!finding) return state;
       if (action.section === "correctiveActions") {
         const entry = (finding.correctiveActions ?? []).find(
@@ -1114,7 +1450,7 @@ function executeReducer(next: AppState, state: AppState, action: AppAction): App
         (s) => s.id === action.sessionId
       );
       if (!session) return state;
-      const finding = session.findings.find((f) => f.id === action.findingId);
+      const finding = (session.findings ?? []).find((f) => f.id === action.findingId);
       if (!finding) return state;
       if (action.section === "correctiveActions") {
         const list = finding.correctiveActions ?? [];
@@ -1149,7 +1485,7 @@ function executeReducer(next: AppState, state: AppState, action: AppAction): App
         (s) => s.id === action.sessionId
       );
       if (!session) return state;
-      const finding = session.findings.find((f) => f.id === action.findingId);
+      const finding = (session.findings ?? []).find((f) => f.id === action.findingId);
       if (!finding) return state;
       if (action.section === "correctiveActions") {
         const list = finding.correctiveActions ?? [];
@@ -1188,7 +1524,7 @@ function executeReducer(next: AppState, state: AppState, action: AppAction): App
         (s) => s.id === action.sessionId
       );
       if (!session) return state;
-      const finding = session.findings.find((f) => f.id === action.findingId);
+      const finding = (session.findings ?? []).find((f) => f.id === action.findingId);
       if (!finding) return state;
       let targetEntry: TrialTextEntry | TrialCorrectiveActionEntry | undefined;
       if (action.section === "correctiveActions") {
@@ -1219,7 +1555,7 @@ function executeReducer(next: AppState, state: AppState, action: AppAction): App
         (s) => s.id === action.sessionId
       );
       if (!session) return state;
-      const finding = session.findings.find((f) => f.id === action.findingId);
+      const finding = (session.findings ?? []).find((f) => f.id === action.findingId);
       if (!finding) return state;
       let targetEntry: TrialTextEntry | TrialCorrectiveActionEntry | undefined;
       if (action.section === "correctiveActions") {
@@ -1260,6 +1596,11 @@ function reducer(state: AppState, action: AppAction): AppState {
   if (action.type.includes("TRIAL") && result !== state) {
     saveTrialSessionsToStorage(result.projects);
   }
+  if (typeof window !== "undefined" && result !== state) {
+    try {
+      localStorage.setItem(PROJECTS_CACHE_KEY, JSON.stringify(result.projects));
+    } catch {}
+  }
   return result;
 }
 
@@ -1270,7 +1611,44 @@ const StateContext = createContext<AppState>(initialState);
 const DispatchContext = createContext<Dispatch<AppAction>>(() => {});
 
 export function StoreProvider({ children }: { children: ReactNode }) {
-  const [state, rawDispatch] = useReducer(reducer, initialState);
+  const [state, rawDispatch] = useReducer(
+    reducer,
+    initialState,
+    (init) => {
+      const cached = getCachedProjects();
+      if (cached && cached.length > 0) {
+        return { ...init, projects: cached };
+      }
+      // In browser: never fall back to old prototype mock data; show empty/loading until API loads
+      if (typeof window !== "undefined") {
+        return { ...init, projects: [] };
+      }
+      return init;
+    }
+  );
+
+  const isHydratedRef = React.useRef(false);
+
+  // Synchronously hydrate cached projects from localStorage BEFORE browser paint
+  const useIsomorphicLayoutEffect =
+    typeof window !== "undefined" ? React.useLayoutEffect : React.useEffect;
+
+  useIsomorphicLayoutEffect(() => {
+    const cached = getCachedProjects();
+    if (cached && cached.length > 0) {
+      rawDispatch({ type: "HYDRATE_PROJECTS", projects: cached });
+    }
+    isHydratedRef.current = true;
+  }, []);
+
+  // Save current projects to localStorage whenever state changes
+  useEffect(() => {
+    if (typeof window !== "undefined" && isHydratedRef.current && state.projects && state.projects.length > 0) {
+      try {
+        localStorage.setItem(PROJECTS_CACHE_KEY, JSON.stringify(state.projects));
+      } catch {}
+    }
+  }, [state.projects]);
 
   // Hydrate trial sessions from localStorage & IndexedDB once mounted on client (avoids SSR hydration mismatch)
   useEffect(() => {
@@ -1315,6 +1693,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       .then((res) => {
         if (active && res.data && res.data.length > 0) {
           rawDispatch({ type: "SET_PROJECTS", projects: res.data });
+          try {
+            localStorage.setItem(PROJECTS_CACHE_KEY, JSON.stringify(res.data));
+          } catch {}
         }
       })
       .catch(() => {
@@ -1334,24 +1715,53 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     // 2. Background API persistence
     switch (action.type) {
       case "CREATE_PROJECT":
-        api.createProject(action.name, action.customer, action.company).catch(() => {});
+        api
+          .createProject(action.name, action.customer, action.company, action.id)
+          .then((res) => {
+            if (res?.data) {
+              rawDispatch({
+                type: "SYNC_PROJECT",
+                tempId: action.id,
+                project: res.data,
+              });
+            }
+          })
+          .catch((err) => {
+            // Keep silent or debug log
+          });
         break;
 
       case "DELETE_PROJECT":
         api.deleteProject(action.projectId).catch(() => {});
         break;
 
-      case "CREATE_JO":
+      case "CREATE_JO": {
+        const proj = state.projects.find((p) => p.id === action.projectId || (p as any).tempId === action.projectId);
+        const resolvedProjectId = proj?.id || action.projectId;
         api
-          .createJO(action.projectId, {
+          .createJO(resolvedProjectId, {
+            id: action.id,
             joNumber: action.joNumber,
             product: action.product,
             type: action.joType,
             targetDate: action.targetDate,
             categories: action.categories,
           })
-          .catch(() => {});
+          .then((res) => {
+            if (res?.data) {
+              rawDispatch({
+                type: "SYNC_JO",
+                projectId: resolvedProjectId,
+                tempJoId: action.id,
+                jo: res.data,
+              });
+            }
+          })
+          .catch((err) => {
+            console.warn("Failed to persist JO to database:", err?.message || err);
+          });
         break;
+      }
 
       case "DELETE_JO":
         api.deleteJO(action.joId).catch(() => {});
@@ -1364,24 +1774,106 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             kind: action.kind,
             isCustom: action.isCustom,
           })
-          .catch(() => {});
+          .then((res) => {
+            if (res?.data) {
+              rawDispatch({
+                type: "SYNC_CATEGORY",
+                projectId: action.projectId,
+                joId: action.joId,
+                tempCategoryLabel: action.label,
+                category: res.data,
+              });
+            }
+          })
+          .catch((err) => {
+            console.warn("Failed to persist category to database:", err?.message || err);
+          });
         break;
 
-      case "ADD_ITEM":
-        api.addItem(action.categoryId, action.item).catch(() => {});
+      case "ADD_ITEM": {
+        const tempItemId = action.itemId;
+        api
+          .addItem(action.categoryId, action.item)
+          .then((res) => {
+            if (res?.data) {
+              rawDispatch({
+                type: "SYNC_ITEM",
+                projectId: action.projectId,
+                joId: action.joId,
+                categoryId: action.categoryId,
+                tempItemId,
+                item: res.data,
+              });
+            }
+          })
+          .catch((err) => {
+            console.warn("Failed to persist item to database:", err?.message || err);
+          });
         break;
+      }
 
       case "ADD_ITEMS_BATCH":
-        api.batchAddItems(action.categoryId, action.items).catch(() => {});
+        api
+          .batchAddItems(action.categoryId, action.items)
+          .then((res) => {
+            if (res?.data) {
+              rawDispatch({
+                type: "SYNC_ITEMS_BATCH",
+                projectId: action.projectId,
+                joId: action.joId,
+                categoryId: action.categoryId,
+                items: res.data,
+              });
+            }
+          })
+          .catch((err) => {
+            console.warn("Failed to persist batch items to database:", err?.message || err);
+          });
+        break;
+
+      case "UPDATE_ITEM":
+        api
+          .updateItem(action.itemId, action.data)
+          .catch((err) => {
+            console.warn("Failed to update item in database:", err?.message || err);
+          });
+        break;
+
+      case "DELETE_ITEM":
+        api
+          .deleteItem(action.itemId)
+          .catch((err) => {
+            console.warn("Failed to delete item from database:", err?.message || err);
+          });
+        break;
+
+      case "BATCH_DELETE_ITEMS":
+        api
+          .batchDeleteItems(action.itemIds)
+          .catch((err) => {
+            console.warn("Failed to batch delete items from database:", err?.message || err);
+          });
         break;
 
       case "FINISH_JO":
         api.finishJO(action.joId).catch(() => {});
         break;
 
-      case "UPDATE_ITEM_SUBCONT":
+      case "UPDATE_ITEM_SUBCONT": {
+        let resolvedItemId = action.itemId;
+        for (const p of state.projects) {
+          for (const j of p.jos) {
+            for (const cat of j.categories) {
+              const it = cat.items.find((i) => i.id === action.itemId || (i as any).tempId === action.itemId);
+              if (it) {
+                resolvedItemId = it.id;
+                break;
+              }
+            }
+          }
+        }
         api
-          .updateItemSubcont(action.itemId, {
+          .updateItemSubcont(resolvedItemId, {
             isSubcont: action.isSubcont,
             subcontNotes: action.subcontNotes,
             subcontSupplier: action.subcontSupplier,
@@ -1390,32 +1882,126 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             qty: action.qty,
             arrivalTargetDate: action.arrivalTargetDate,
           })
-          .catch(() => {});
+          .catch((err) => {
+            console.warn("Failed to update item subcont in database:", err?.message || err);
+          });
         break;
+      }
 
-      case "BULK_SEND_PO":
+      case "BULK_SEND_PO": {
+        const proj = state.projects.find((p) => p.id === action.projectId || (p as any).tempId === action.projectId);
+        const j = proj?.jos.find((jo) => jo.id === action.joId || (jo as any).tempId === action.joId);
+        const resolvedJoId = j?.id || action.joId;
+        const resolvedItemIds = action.itemIds.map((id) => {
+          for (const p of state.projects) {
+            for (const jo of p.jos) {
+              for (const cat of jo.categories) {
+                const it = cat.items.find((i) => i.id === id || (i as any).tempId === id);
+                if (it) return it.id;
+              }
+            }
+          }
+          return id;
+        });
         api
-          .bulkSendPo(action.joId, {
-            itemIds: action.itemIds,
+          .bulkSendPo(resolvedJoId, {
+            itemIds: resolvedItemIds,
             supplier: action.supplier,
             poNo: action.poNo,
             poDate: action.poDate,
             targetArrival: action.targetArrival,
             notes: action.notes,
           })
-          .catch(() => {});
+          .catch((err) => {
+            console.warn("Failed to bulk send PO in database:", err?.message || err);
+          });
         break;
+      }
 
-      case "BULK_UPDATE_STATUS":
+      case "UPDATE_STATUS": {
+        const p = state.projects.find((pr) => pr.id === action.projectId || (pr as any).tempId === action.projectId);
+        const j = p?.jos.find((jo) => jo.id === action.joId || (jo as any).tempId === action.joId);
+        const cat = j?.categories.find((c) => c.id === action.categoryId || (c as any).tempId === action.categoryId);
+        const it = cat?.items.find((i) => i.id === action.itemId || (i as any).tempId === action.itemId);
+        const ctrl = it?.controls.find((c) => c.process === action.process);
+        if (ctrl?.id) {
+          api.updateControlStatus(ctrl.id, action.status, action.notes).catch((err) => {
+            console.warn("Failed to update control status in database:", err?.message || err);
+          });
+        }
+        break;
+      }
+
+      case "UPDATE_PO_TRACKING": {
+        const p = state.projects.find((pr) => pr.id === action.projectId || (pr as any).tempId === action.projectId);
+        const j = p?.jos.find((jo) => jo.id === action.joId || (jo as any).tempId === action.joId);
+        const cat = j?.categories.find((c) => c.id === action.categoryId || (c as any).tempId === action.categoryId);
+        const it = cat?.items.find((i) => i.id === action.itemId || (i as any).tempId === action.itemId);
+        const ctrl = it?.controls.find((c) => c.process === action.process);
+        if (ctrl?.id) {
+          const resolvedNotes =
+            action.status === "Problem" && action.problemNotes?.trim()
+              ? action.problemNotes.trim()
+              : action.tracking.notes;
+          api
+            .updatePoTracking(ctrl.id, {
+              status: action.status,
+              problemNotes: action.problemNotes,
+              supplier: action.tracking.supplier,
+              poNo: action.tracking.poNo,
+              poDate: action.tracking.poDate,
+              targetArrival: action.tracking.targetArrival,
+              notes: resolvedNotes,
+              qty: action.qty,
+            })
+            .catch((err) => {
+              console.warn("Failed to update PO tracking in database:", err?.message || err);
+            });
+        }
+        break;
+      }
+
+      case "UPDATE_CONTROL_TARGET_DATE": {
+        const p = state.projects.find((pr) => pr.id === action.projectId || (pr as any).tempId === action.projectId);
+        const j = p?.jos.find((jo) => jo.id === action.joId || (jo as any).tempId === action.joId);
+        const cat = j?.categories.find((c) => c.id === action.categoryId || (c as any).tempId === action.categoryId);
+        const it = cat?.items.find((i) => i.id === action.itemId || (i as any).tempId === action.itemId);
+        const ctrl = it?.controls.find((c) => c.process === action.process);
+        if (ctrl?.id) {
+          api.updateControlTargetDate(ctrl.id, action.targetDate).catch((err) => {
+            console.warn("Failed to update control target date in database:", err?.message || err);
+          });
+        }
+        break;
+      }
+
+      case "BULK_UPDATE_STATUS": {
+        const proj = state.projects.find((p) => p.id === action.projectId || (p as any).tempId === action.projectId);
+        const j = proj?.jos.find((jo) => jo.id === action.joId || (jo as any).tempId === action.joId);
+        const resolvedJoId = j?.id || action.joId;
+        const resolvedItemIds = action.itemIds.map((id) => {
+          for (const p of state.projects) {
+            for (const jo of p.jos) {
+              for (const cat of jo.categories) {
+                const it = cat.items.find((i) => i.id === id || (i as any).tempId === id);
+                if (it) return it.id;
+              }
+            }
+          }
+          return id;
+        });
         api
-          .bulkUpdateStatus(action.joId, {
-            itemIds: action.itemIds,
+          .bulkUpdateStatus(resolvedJoId, {
+            itemIds: resolvedItemIds,
             processes: action.processes || (action.process ? [action.process] : []),
             status: action.status,
             notes: action.notes,
           })
-          .catch(() => {});
+          .catch((err) => {
+            console.warn("Failed to bulk update status in database:", err?.message || err);
+          });
         break;
+      }
 
       case "BULK_SEND_SUBCONT":
         api
@@ -1449,6 +2035,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             picName: action.session.picName,
             approvedByName: action.session.approvedByName,
           })
+          .then((res) => {
+            if (res.data?.id && res.data.id !== action.session.id) {
+              const { jo } = findProjectAndJo(state.projects, action.projectId, action.joId);
+              const s = (jo?.trialSessions ?? []).find(
+                (sess) =>
+                  sess.id === action.session.id ||
+                  (sess.name && sess.name.trim().toLowerCase() === action.session.name.trim().toLowerCase())
+              );
+              if (s) {
+                s.id = res.data.id;
+              }
+            }
+          })
           .catch(() => {});
         break;
 
@@ -1461,7 +2060,31 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       case "UPDATE_TRIAL_SESSION":
         api
           .updateTrialSession(action.sessionId, action.updates)
-          .catch(() => {});
+          .catch(async (err) => {
+            if (err?.status === 404 || err?.statusCode === 404) {
+              const { jo } = findProjectAndJo(state.projects, action.projectId, action.joId);
+              const session = (jo?.trialSessions ?? []).find((s) => s.id === action.sessionId);
+              if (session) {
+                try {
+                  const createRes = await api.createTrialSession(action.joId, {
+                    id: session.id,
+                    name: session.name,
+                    trialDate: session.trialDate,
+                    updateDate: session.updateDate,
+                    customer: session.customer,
+                    jobNo: session.jobNo,
+                    picName: session.picName,
+                    approvedByName: session.approvedByName,
+                  });
+                  const finalId = createRes.data?.id || session.id;
+                  session.id = finalId;
+                  await api.updateTrialSession(finalId, action.updates);
+                } catch {
+                  // Silent fallback
+                }
+              }
+            }
+          });
         break;
 
       case "PUBLISH_TRIAL_SESSION_TO_VIEWER": {
@@ -1470,13 +2093,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           (s) => s.id === action.sessionId || (s.name && s.name.trim().toLowerCase() === action.sessionId.trim().toLowerCase())
         );
         if (session) {
+          const isUuid = (id?: string) => Boolean(id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id));
           let targetSessionId = session.id;
-          if (!Boolean(targetSessionId && targetSessionId.length >= 26 && targetSessionId.includes("-"))) {
+          if (!isUuid(targetSessionId)) {
             const matchWithBackendId = (jo?.trialSessions ?? []).find(
-              (s) => s.id.length >= 26 && s.id.includes("-") && s.name.trim().toLowerCase() === session.name.trim().toLowerCase()
+              (s) => isUuid(s.id) && s.name.trim().toLowerCase() === session.name.trim().toLowerCase()
             );
             if (matchWithBackendId) {
               targetSessionId = matchWithBackendId.id;
+              session.id = matchWithBackendId.id;
+            } else {
+              targetSessionId = uid();
+              session.id = targetSessionId;
             }
           }
           const now = new Date().toISOString();
@@ -1490,12 +2118,31 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             jobNo: session.jobNo,
             picName: session.picName,
             approvedByName: session.approvedByName,
-            findings: JSON.parse(JSON.stringify(session.findings)),
+            findings: JSON.parse(JSON.stringify(session.findings ?? [])),
             createdAt: session.createdAt,
             updatedAt: now,
           };
-          api.publishTrialSession(targetSessionId, freshSnapshot).catch((err) => {
-            console.error("Failed to publish trial session to backend:", err);
+          api.publishTrialSession(targetSessionId, freshSnapshot).catch(async (err) => {
+            if (err?.status === 404 || err?.statusCode === 404) {
+              try {
+                const createRes = await api.createTrialSession(action.joId, {
+                  id: targetSessionId,
+                  name: session.name,
+                  trialDate: session.trialDate,
+                  updateDate: session.updateDate,
+                  customer: session.customer,
+                  jobNo: session.jobNo,
+                  picName: session.picName,
+                  approvedByName: session.approvedByName,
+                });
+                const finalId = createRes.data?.id || targetSessionId;
+                session.id = finalId;
+                freshSnapshot.id = finalId;
+                await api.publishTrialSession(finalId, freshSnapshot);
+              } catch {
+                // Silent fallback
+              }
+            }
           });
         }
         break;
@@ -1505,16 +2152,36 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         api.deleteTrialSession(action.sessionId).catch(() => {});
         break;
 
-      case "DELETE_PROJECT":
-        api.deleteProject(action.projectId).catch(() => {});
-        break;
-
       case "DELETE_JO":
-        api.deleteJO(action.joId).catch(() => {});
+        // Handled above (lines 1373-1375)
         break;
 
       case "ADD_TRIAL_FINDING":
-        api.addTrialFinding(action.sessionId, { id: action.finding.id }).catch(() => {});
+        api.addTrialFinding(action.sessionId, { id: action.finding.id }).catch(async (err) => {
+          if (err?.status === 404 || err?.statusCode === 404) {
+            const { jo } = findProjectAndJo(state.projects, action.projectId, action.joId);
+            const session = (jo?.trialSessions ?? []).find((s) => s.id === action.sessionId);
+            if (session) {
+              try {
+                const createRes = await api.createTrialSession(action.joId, {
+                  id: session.id,
+                  name: session.name,
+                  trialDate: session.trialDate,
+                  updateDate: session.updateDate,
+                  customer: session.customer,
+                  jobNo: session.jobNo,
+                  picName: session.picName,
+                  approvedByName: session.approvedByName,
+                });
+                const finalId = createRes.data?.id || session.id;
+                session.id = finalId;
+                await api.addTrialFinding(finalId, { id: action.finding.id });
+              } catch {
+                // Silent fallback
+              }
+            }
+          }
+        });
         break;
 
       case "DELETE_TRIAL_FINDING":
@@ -1558,6 +2225,48 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       case "REMOVE_TRIAL_ENTRY_PHOTO":
         api.deleteTrialPhoto(action.photoId).catch(() => {});
         break;
+
+      case "ADD_PROCESS_PHOTO": {
+        const p = state.projects.find((pr) => pr.id === action.projectId || (pr as any).tempId === action.projectId);
+        const j = p?.jos.find((jo) => jo.id === action.joId || (jo as any).tempId === action.joId);
+        const cat = j?.categories.find((c) => c.id === action.categoryId || (c as any).tempId === action.categoryId);
+        const it = cat?.items.find((i) => i.id === action.itemId || (i as any).tempId === action.itemId);
+        const ctrl = it?.controls.find((c) => c.process === action.process);
+        if (ctrl?.id && action.file) {
+          api
+            .uploadControlPhoto(ctrl.id, action.file)
+            .then((res) => {
+              if (res?.data) {
+                rawDispatch({
+                  type: "SYNC_PROCESS_PHOTO",
+                  projectId: action.projectId,
+                  joId: action.joId,
+                  categoryId: action.categoryId,
+                  itemId: action.itemId,
+                  process: action.process,
+                  tempPhotoId: action.photo.id,
+                  photo: res.data,
+                });
+              }
+            })
+            .catch((err) => {
+              console.warn("Failed to upload process photo to database:", err?.message || err);
+            });
+        }
+        break;
+      }
+
+      case "REMOVE_PROCESS_PHOTO": {
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(action.photoId);
+        if (isUuid) {
+          api
+            .deleteControlPhoto(action.photoId)
+            .catch((err) => {
+              console.warn("Failed to delete process photo from database:", err?.message || err);
+            });
+        }
+        break;
+      }
 
       default:
         break;

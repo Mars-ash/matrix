@@ -40,4 +40,13 @@ class TrialEntry extends Model
     {
         return $this->hasMany(TrialEntryPhoto::class, 'trial_entry_id')->latest('added_at');
     }
+
+    public function resolveRouteBinding($value, $field = null)
+    {
+        if (!\Illuminate\Support\Str::isUuid($value)) {
+            return null;
+        }
+
+        return parent::resolveRouteBinding($value, $field);
+    }
 }

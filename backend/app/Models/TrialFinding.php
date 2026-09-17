@@ -60,4 +60,13 @@ class TrialFinding extends Model
             ->where('section', 'correctiveActions')
             ->orderBy('order');
     }
+
+    public function resolveRouteBinding($value, $field = null)
+    {
+        if (!\Illuminate\Support\Str::isUuid($value)) {
+            return null;
+        }
+
+        return parent::resolveRouteBinding($value, $field);
+    }
 }

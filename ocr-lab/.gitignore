@@ -1,0 +1,14 @@
+.venv/
+.python/
+.cache/
+.downloads/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.coverage
+*.egg-info/
+build/
+dist/
+model-cache/
+output/
+data/private/

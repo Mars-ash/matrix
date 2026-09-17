@@ -6,7 +6,7 @@ import {
   formatFindingNumber,
   formatDateDDMMYYYY,
 } from "@/lib/trial-report";
-import type { TrialSession, TrialTextEntry, JO } from "@/lib/types";
+import type { TrialSession, TrialTextEntry, JO, CompanyEntity } from "@/lib/types";
 
 function renderEntries(entries: TrialTextEntry[]) {
   if (entries.length === 0) {
@@ -36,11 +36,18 @@ function renderEntries(entries: TrialTextEntry[]) {
 }
 
 export function TrialReportPrintView({
+  jo,
   sessions,
+  company,
 }: {
   jo?: JO;
   sessions: TrialSession[];
+  company?: CompanyEntity;
 }) {
+  const isBkp = company === "BKP";
+  const logoSrc = isBkp ? "/logo/LOGO BKP.png" : "/company-logo.png";
+  const logoAlt = isBkp ? "PT. Bintang Kinerja Perdana Logo" : "Company Logo";
+
   return (
     <div className="trial-print-view">
       {sessions.map((session, sessionIdx) => {
@@ -57,8 +64,8 @@ export function TrialReportPrintView({
               <div className="trial-print-header-left">
                 <div className="trial-print-logo-area">
                   <img
-                    src="/company-logo.png"
-                    alt="Company Logo"
+                    src={logoSrc}
+                    alt={logoAlt}
                     className="trial-print-logo"
                   />
                 </div>

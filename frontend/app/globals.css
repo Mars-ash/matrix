@@ -495,6 +495,27 @@ tr.row-highlight .td-tracker-item {
   padding: 20px;
   animation: .15s slideUp;
   overflow-y: auto;
+  transition: max-width 200ms ease, width 200ms ease;
+}
+
+.dialog-panel-wide {
+  max-width: 960px;
+  width: min(960px, 94vw);
+}
+
+/* Remove spinner arrows from number inputs with .no-spinner or inside table-scroll */
+input.no-spinner::-webkit-outer-spin-button,
+input.no-spinner::-webkit-inner-spin-button,
+.table-scroll input[type="number"]::-webkit-outer-spin-button,
+.table-scroll input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input.no-spinner,
+.table-scroll input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
 }
 
 .dialog-footer {
@@ -1134,9 +1155,10 @@ tr.row-highlight .td-tracker-item {
     padding: 0;
   }
 
-  .dialog-panel {
-    width: 100%;
-    max-width: 100%;
+  .dialog-panel,
+  .dialog-panel-wide {
+    width: 100% !important;
+    max-width: 100% !important;
     padding: 18px 16px max(18px, env(safe-area-inset-bottom));
     border-radius: var(--radius-xl) var(--radius-xl) 0 0;
     max-height: 85vh;

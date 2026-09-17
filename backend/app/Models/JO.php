@@ -15,6 +15,7 @@ class JO extends Model
     protected $table = 'jos';
 
     protected $fillable = [
+        'id',
         'project_id',
         'jo_number',
         'product',

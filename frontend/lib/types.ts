@@ -22,6 +22,7 @@ export type JoType = (typeof JO_TYPES)[number];
 export const SUBCONT_SUPPLIERS = [
   "CHIYODA",
   "GEMA",
+  "IDM COATING",
   "KANETSU",
   "NCI",
   "OERLICON",
@@ -118,6 +119,7 @@ export interface PoTracking {
 
 /** A single process-control cell. */
 export interface Control {
+  id?: string;
   process: ProcessName;
   status: ControlStatus;
   notes: string;
@@ -140,7 +142,7 @@ export interface Item {
   isSubcont?: boolean;
   subcontNotes?: string;
   subcontSupplier?: string;
-  subcontStatus?: "In Progress" | "Done";
+  subcontStatus?: "In Progress" | "Done" | "Problem";
   subcontProcess?: string;
   subcontDispatchDate?: string; // ISO-8601 when marked In Progress SC
   subcontDoneAt?: string; // ISO-8601 timestamp when marked Done

@@ -114,7 +114,7 @@ export function formatFindingLetter(order: number): string {
 export function sortTrialEntries<T extends { order: number }>(
   entries: T[]
 ): T[] {
-  return [...entries].sort((a, b) => a.order - b.order);
+  return [...(entries ?? [])].sort((a, b) => (a?.order ?? 0) - (b?.order ?? 0));
 }
 
 /**
@@ -126,11 +126,11 @@ export function sortTrialEntries<T extends { order: number }>(
 export function deriveTrialSessionStatus(
   session: TrialSession
 ): TrialFindingStatus {
-  const allCorrectiveActions = session.findings.flatMap(
-    (f) => f.correctiveActions ?? []
+  const allCorrectiveActions = (session?.findings ?? []).flatMap(
+    (f) => f?.correctiveActions ?? []
   );
   if (allCorrectiveActions.length === 0) return "On Process";
-  const allClose = allCorrectiveActions.every((a) => a.status === "Close");
+  const allClose = allCorrectiveActions.every((a) => a?.status === "Close");
   return allClose ? "Close" : "On Process";
 }
 
@@ -143,9 +143,9 @@ export function deriveTrialSessionStatus(
 export function deriveTrialFindingStatus(
   finding: TrialFinding
 ): TrialFindingStatus {
-  const actions = finding.correctiveActions ?? [];
+  const actions = finding?.correctiveActions ?? [];
   if (actions.length === 0) return "On Process";
-  const allClose = actions.every((a) => a.status === "Close");
+  const allClose = actions.every((a) => a?.status === "Close");
   return allClose ? "Close" : "On Process";
 }
 
@@ -154,13 +154,13 @@ export function deriveTrialFindingStatus(
  * Does not mutate input.
  */
 export function sortTrialFindings(findings: TrialFinding[]): TrialFinding[] {
-  return [...findings]
-    .sort((a, b) => a.order - b.order)
+  return [...(findings ?? [])]
+    .sort((a, b) => (a?.order ?? 0) - (b?.order ?? 0))
     .map((f) => ({
       ...f,
-      problems: sortTrialEntries(f.problems ?? []),
-      causes: sortTrialEntries(f.causes ?? []),
-      correctiveActions: sortTrialEntries(f.correctiveActions ?? []),
+      problems: sortTrialEntries(f?.problems ?? []),
+      causes: sortTrialEntries(f?.causes ?? []),
+      correctiveActions: sortTrialEntries(f?.correctiveActions ?? []),
     }));
 }
 
@@ -177,12 +177,12 @@ export function cloneTrialSessionWithoutPhotos(
 ): TrialSession {
   const now = new Date().toISOString();
   const clonedFindings: TrialFinding[] = sortTrialFindings(
-    source.findings
+    source?.findings ?? []
   ).map((f, fIdx) => ({
     ...f,
     id: uid(),
     order: fIdx + 1,
-    problems: sortTrialEntries(f.problems ?? []).map((p, pIdx) => ({
+    problems: sortTrialEntries(f?.problems ?? []).map((p, pIdx) => ({
       ...p,
       id: uid(),
       order: pIdx + 1,
@@ -190,7 +190,7 @@ export function cloneTrialSessionWithoutPhotos(
       createdAt: now,
       updatedAt: now,
     })),
-    causes: sortTrialEntries(f.causes ?? []).map((c, cIdx) => ({
+    causes: sortTrialEntries(f?.causes ?? []).map((c, cIdx) => ({
       ...c,
       id: uid(),
       order: cIdx + 1,
@@ -198,7 +198,7 @@ export function cloneTrialSessionWithoutPhotos(
       createdAt: now,
       updatedAt: now,
     })),
-    correctiveActions: sortTrialEntries(f.correctiveActions ?? []).map(
+    correctiveActions: sortTrialEntries(f?.correctiveActions ?? []).map(
       (a, aIdx) => ({
         ...a,
         id: uid(),
@@ -214,14 +214,14 @@ export function cloneTrialSessionWithoutPhotos(
 
   return {
     id: uid(),
-    joId: source.joId,
-    name: overrides.name ?? source.name,
-    trialDate: overrides.trialDate ?? source.trialDate,
-    updateDate: overrides.updateDate ?? source.updateDate,
-    customer: overrides.customer ?? source.customer,
-    jobNo: overrides.jobNo ?? source.jobNo,
-    picName: overrides.picName ?? source.picName,
-    approvedByName: overrides.approvedByName ?? source.approvedByName,
+    joId: source?.joId ?? "",
+    name: overrides.name ?? source?.name ?? "",
+    trialDate: overrides.trialDate ?? source?.trialDate ?? "",
+    updateDate: overrides.updateDate ?? source?.updateDate ?? "",
+    customer: overrides.customer ?? source?.customer ?? "",
+    jobNo: overrides.jobNo ?? source?.jobNo ?? "",
+    picName: overrides.picName ?? source?.picName ?? "",
+    approvedByName: overrides.approvedByName ?? source?.approvedByName ?? "",
     findings: clonedFindings,
     createdAt: now,
     updatedAt: now,
@@ -244,7 +244,7 @@ export function createTrialSessionSnapshot(
     jobNo: session.jobNo,
     picName: session.picName,
     approvedByName: session.approvedByName,
-    findings: JSON.parse(JSON.stringify(session.findings)),
+    findings: JSON.parse(JSON.stringify(session.findings ?? [])),
     createdAt: session.createdAt,
     updatedAt: new Date().toISOString(),
   };
@@ -255,7 +255,7 @@ export function createTrialSessionSnapshot(
  * Returns true if never published or if any relevant field has changed since last publish.
  */
 export function hasUnpublishedTrialChanges(session: TrialSession): boolean {
-  if (!session.publishedSnapshot) return true;
+  if (!session?.publishedSnapshot) return true;
 
   if (session.lastPublishedAt && session.updatedAt) {
     if (new Date(session.updatedAt).getTime() > new Date(session.lastPublishedAt).getTime()) {
@@ -271,7 +271,7 @@ export function hasUnpublishedTrialChanges(session: TrialSession): boolean {
     jobNo: session.jobNo,
     picName: session.picName,
     approvedByName: session.approvedByName,
-    findings: session.findings,
+    findings: session.findings ?? [],
   };
 
   const publishedPayload = {
@@ -282,7 +282,7 @@ export function hasUnpublishedTrialChanges(session: TrialSession): boolean {
     jobNo: session.publishedSnapshot.jobNo,
     picName: session.publishedSnapshot.picName,
     approvedByName: session.publishedSnapshot.approvedByName,
-    findings: session.publishedSnapshot.findings,
+    findings: session.publishedSnapshot.findings ?? [],
   };
 
   return JSON.stringify(currentPayload) !== JSON.stringify(publishedPayload);

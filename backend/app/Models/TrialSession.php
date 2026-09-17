@@ -45,4 +45,14 @@ class TrialSession extends Model
     {
         return $this->hasMany(TrialFinding::class, 'trial_session_id')->orderBy('order');
     }
+
+    public function resolveRouteBinding($value, $field = null)
+    {
+        if (!\Illuminate\Support\Str::isUuid($value)) {
+            return $this->where('name', trim($value))->first();
+        }
+
+        return $this->where($field ?? $this->getRouteKeyName(), $value)->first()
+            ?? $this->where('name', trim($value))->first();
+    }
 }

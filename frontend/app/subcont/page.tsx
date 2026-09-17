@@ -1,13 +1,14 @@
 "use client";
-import React, { useState, useEffect, Suspense } from "react";
+import React, { useState, useEffect, useMemo, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { useAppState, useAppDispatch } from "@/lib/store";
-import type { Item, Project, JO, Category, Control } from "@/lib/types";
+import type { Item, Project, JO, Category, Control, ControlStatus } from "@/lib/types";
 import { SUBCONT_SUPPLIERS } from "@/lib/types";
 import { EmptyState } from "@/components/empty-state";
 import { Dialog } from "@/components/dialog";
+import { StatusSelect } from "@/components/status-select";
 import { useAuth } from "@/lib/auth";
 
 interface SubcontRow {
@@ -22,7 +23,7 @@ interface SubcontRow {
 type GroupMode = "none" | "jo" | "supplier";
 type SortMode = "newest" | "oldest" | "deadline" | "jo" | "supplier" | "qty";
 
-const SUBCONT_STATUSES: ("In Progress" | "Done")[] = ["In Progress", "Done"];
+const SUBCONT_STATUSES: ControlStatus[] = ["In Progress", "Done", "Problem"];
 const FIVE_MINUTES_MS = 5 * 60 * 1000;
 
 function getNotification(targetDate?: string, subcontStatus?: string): { text: string; color: string; diffDays: number } | null {
@@ -51,6 +52,7 @@ function getNotification(targetDate?: string, subcontStatus?: string): { text: s
 function formatDate(isoString?: string) {
   if (!isoString) return "-";
   const date = new Date(isoString);
+  if (Number.isNaN(date.getTime())) return isoString;
   return date.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 }
 
@@ -63,7 +65,7 @@ function SubcontTrackingContent() {
   const [searchQuery, setSearchQuery] = useState("");
   const [groupMode, setGroupMode] = useState<GroupMode>("none");
   const [sortMode, setSortMode] = useState<SortMode>("newest");
-  const [currentTime, setCurrentTime] = useState(0);
+  const [currentTime, setCurrentTime] = useState(() => Date.now());
   const [highlightedItemId, setHighlightedItemId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -105,7 +107,8 @@ function SubcontTrackingContent() {
 
   const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set());
   const [isBulkStatusOpen, setIsBulkStatusOpen] = useState(false);
-  const [bulkStatus, setBulkStatus] = useState<"In Progress" | "Done">("Done");
+  const [bulkStatus, setBulkStatus] = useState<"In Progress" | "Done" | "Problem">("Done");
+  const [bulkProblemNotes, setBulkProblemNotes] = useState("");
 
   const toggleSelectRow = (itemId: string) => {
     setSelectedItemIds((prev) => {
@@ -131,27 +134,30 @@ function SubcontTrackingContent() {
   };
 
   // Collect all items marked as Subcont
-  const rawSubcontRows: SubcontRow[] = [];
-  let itemCounter = 0;
+  const rawSubcontRows = useMemo(() => {
+    const rows: SubcontRow[] = [];
+    let itemCounter = 0;
 
-  for (const project of projects) {
-    for (const jo of project.jos) {
-      for (const category of jo.categories) {
-        for (const item of category.items) {
-          if (item.isSubcont) {
-            rawSubcontRows.push({
-              project,
-              jo,
-              category,
-              item,
-              arrivalControl: item.controls.find((c) => c.process === "Arrival"),
-              originalIndex: itemCounter++,
-            });
+    for (const project of projects) {
+      for (const jo of project.jos) {
+        for (const category of jo.categories) {
+          for (const item of category.items) {
+            if (item.isSubcont) {
+              rows.push({
+                project,
+                jo,
+                category,
+                item,
+                arrivalControl: item.controls.find((c) => c.process === "Arrival"),
+                originalIndex: itemCounter++,
+              });
+            }
           }
         }
       }
     }
-  }
+    return rows;
+  }, [projects]);
 
   // Filter 1: Exclude items marked "Done" that are older than 5 minutes
   const activeSubcontRows = rawSubcontRows.filter((row) => {
@@ -375,6 +381,9 @@ function SubcontTrackingContent() {
                         }}
                       >
                         <option value="">—</option>
+                        {row.item.subcontSupplier && !(SUBCONT_SUPPLIERS as readonly string[]).includes(row.item.subcontSupplier) && (
+                          <option value={row.item.subcontSupplier}>{row.item.subcontSupplier}</option>
+                        )}
                         {SUBCONT_SUPPLIERS.map((sup) => (
                           <option key={sup} value={sup}>
                             {sup}
@@ -450,59 +459,23 @@ function SubcontTrackingContent() {
 
                   {/* Status */}
                   <td style={{ textAlign: "center", minWidth: 125 }}>
-                    {isViewer ? (
-                      <span
-                        className="badge"
-                        style={{
-                          backgroundColor:
-                            (row.item.subcontStatus || "In Progress") === "Done"
-                              ? "var(--color-status-done-bg)"
-                              : "var(--color-status-in-progress-bg)",
-                          color:
-                            (row.item.subcontStatus || "In Progress") === "Done"
-                              ? "var(--color-status-done)"
-                              : "var(--color-status-in-progress)",
-                        }}
-                      >
-                        {row.item.subcontStatus || "In Progress"}
-                      </span>
-                    ) : (
-                      <select
-                        className="select"
-                        value={row.item.subcontStatus || "In Progress"}
-                        onChange={(e) => {
-                          dispatch({
-                            type: "UPDATE_ITEM_SUBCONT",
-                            projectId: row.project.id,
-                            joId: row.jo.id,
-                            categoryId: row.category.id,
-                            itemId: row.item.id,
-                            isSubcont: true,
-                            subcontStatus: e.target.value as "In Progress" | "Done",
-                          });
-                        }}
-                        style={{
-                          fontSize: 12,
-                          fontWeight: 600,
-                          padding: "4px 18px 4px 8px",
-                          minWidth: 100,
-                          backgroundColor:
-                            (row.item.subcontStatus || "In Progress") === "Done"
-                              ? "var(--color-status-done-bg)"
-                              : "var(--color-status-in-progress-bg)",
-                          color:
-                            (row.item.subcontStatus || "In Progress") === "Done"
-                              ? "var(--color-status-done)"
-                              : "var(--color-status-in-progress)",
-                          borderColor: "transparent",
-                          textAlign: "center",
-                        }}
-                      >
-                        {SUBCONT_STATUSES.map((s) => (
-                          <option key={s} value={s}>{s}</option>
-                        ))}
-                      </select>
-                    )}
+                    <StatusSelect
+                      value={(row.item.subcontStatus as ControlStatus) || "In Progress"}
+                      notes={row.item.subcontNotes || ""}
+                      allowedStatuses={SUBCONT_STATUSES}
+                      onChange={(status, problemNotes) => {
+                        dispatch({
+                          type: "UPDATE_ITEM_SUBCONT",
+                          projectId: row.project.id,
+                          joId: row.jo.id,
+                          categoryId: row.category.id,
+                          itemId: row.item.id,
+                          isSubcont: true,
+                          subcontStatus: status as "In Progress" | "Done" | "Problem",
+                          subcontNotes: status === "Problem" ? problemNotes.trim() : (row.item.subcontNotes || ""),
+                        });
+                      }}
+                    />
                   </td>
 
                   {/* Notes */}
@@ -901,18 +874,25 @@ function SubcontTrackingContent() {
       {/* Bulk Status Dialog */}
       <Dialog
         open={isBulkStatusOpen}
-        onClose={() => setIsBulkStatusOpen(false)}
+        onClose={() => {
+          setIsBulkStatusOpen(false);
+          setBulkProblemNotes("");
+        }}
         title={`Ubah Status (${selectedItemIds.size} Item)`}
         footer={
           <>
             <button
               className="btn btn-secondary"
-              onClick={() => setIsBulkStatusOpen(false)}
+              onClick={() => {
+                setIsBulkStatusOpen(false);
+                setBulkProblemNotes("");
+              }}
             >
               Batal
             </button>
             <button
               className="btn btn-primary"
+              disabled={bulkStatus === "Problem" && !bulkProblemNotes.trim()}
               onClick={() => {
                 const selectedRows = rawSubcontRows.filter((r) => selectedItemIds.has(r.item.id));
                 for (const row of selectedRows) {
@@ -924,10 +904,12 @@ function SubcontTrackingContent() {
                     itemId: row.item.id,
                     isSubcont: true,
                     subcontStatus: bulkStatus,
+                    subcontNotes: bulkStatus === "Problem" ? bulkProblemNotes.trim() : (row.item.subcontNotes || ""),
                   });
                 }
                 setIsBulkStatusOpen(false);
                 setSelectedItemIds(new Set());
+                setBulkProblemNotes("");
               }}
             >
               Simpan Status
@@ -941,13 +923,30 @@ function SubcontTrackingContent() {
             <select
               className="select"
               value={bulkStatus}
-              onChange={(e) => setBulkStatus(e.target.value as "In Progress" | "Done")}
+              onChange={(e) => setBulkStatus(e.target.value as "In Progress" | "Done" | "Problem")}
               style={{ width: "100%" }}
             >
               <option value="In Progress">In Progress</option>
               <option value="Done">Done</option>
+              <option value="Problem">Problem</option>
             </select>
           </div>
+
+          {bulkStatus === "Problem" && (
+            <div>
+              <label className="label">
+                Catatan Problem <span style={{ color: "var(--color-status-problem)" }}>*</span>
+              </label>
+              <textarea
+                className="input"
+                rows={3}
+                placeholder="Jelaskan kendala/masalah..."
+                value={bulkProblemNotes}
+                onChange={(e) => setBulkProblemNotes(e.target.value)}
+                autoFocus
+              />
+            </div>
+          )}
         </div>
       </Dialog>
     </AppShell>

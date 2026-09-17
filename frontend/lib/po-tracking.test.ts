@@ -138,6 +138,21 @@ describe("PO tracking helpers", () => {
     expect(row.targetArrival).toBe("2026-09-08");
   });
 
+  it("populates row notes from control notes or arrivalControl notes if tracking notes is empty", () => {
+    const testProjects = structuredClone(projects);
+    const materialControl =
+      testProjects[0].jos[0].categories[0].items[0].controls[0];
+    materialControl.notes = "Problem with material hardness";
+    materialControl.poTracking = {
+      supplier: "PT Fallback",
+      poNo: "PO-FALLBACK",
+      notes: "",
+    };
+
+    const [row] = collectPoTrackingRows(testProjects);
+    expect(row.notes).toBe("Problem with material hardness");
+  });
+
   it("filters rows by JO, item, supplier, PO number, and tracker label", () => {
     const rows = collectPoTrackingRows(projects);
 
@@ -202,5 +217,24 @@ describe("PO tracking helpers", () => {
     });
     expect(getPoTrackingDeadline("", "In Progress", today)).toBeNull();
     expect(getPoTrackingDeadline("not-a-date", "In Progress", today)).toBeNull();
+  });
+
+  it("prioritizes Problem status and notes even when poNo is populated", () => {
+    const problemProjects = structuredClone(projects);
+    const materialControl =
+      problemProjects[0].jos[0].categories[0].items[0].controls[0];
+    materialControl.status = "Problem";
+    materialControl.notes = "Supplier stock kosong";
+    materialControl.poTracking = {
+      supplier: "PT Baja",
+      poNo: "PO-MTL-001",
+      poDate: "2026-09-01",
+      targetArrival: "2026-09-04",
+      notes: "Supplier stock kosong",
+    };
+
+    const [row] = collectPoTrackingRows(problemProjects);
+    expect(row.status).toBe("Problem");
+    expect(row.notes).toBe("Supplier stock kosong");
   });
 });

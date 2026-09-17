@@ -15,6 +15,7 @@ import {
   PART_PROCESSES,
   COMPONENT_PROCESSES,
 } from "./types";
+import { uid } from "./format";
 
 /** Determine the kind of a standard category key. */
 export function categoryKind(key: StandardCategoryKey): CategoryKind {
@@ -46,6 +47,7 @@ export function isComponentCategory(key: string): key is ComponentCategoryKey {
 export function defaultControls(kind: CategoryKind): Control[] {
   const processes = processesForKind(kind);
   return processes.map((process) => ({
+    id: uid(),
     process,
     status:
       process === "Material" || process === "PO" || process === "Arrival"

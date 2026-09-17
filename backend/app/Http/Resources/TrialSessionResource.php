@@ -19,7 +19,9 @@ class TrialSessionResource extends JsonResource
             'jobNo' => $this->job_no ?? '',
             'picName' => $this->pic_name ?? '',
             'approvedByName' => $this->approved_by_name ?? '',
-            'findings' => TrialFindingResource::collection($this->whenLoaded('findings')),
+            'findings' => $this->relationLoaded('findings')
+                ? TrialFindingResource::collection($this->findings)
+                : [],
             'publishedSnapshot' => $this->published_snapshot,
             'lastPublishedAt' => $this->last_published_at?->toISOString(),
             'createdAt' => $this->created_at?->toISOString(),

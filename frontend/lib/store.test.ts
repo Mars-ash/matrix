@@ -6,6 +6,8 @@ import {
   saveTrialSessionsToStorage,
   loadTrialSessionsFromStorage,
   hydrateTrialSessions,
+  PROJECTS_CACHE_KEY,
+  getCachedProjects,
 } from "./store";
 import { MOCK_PROJECT } from "./mock-data";
 
@@ -111,6 +113,46 @@ describe("CREATE_JO", () => {
       .jos.find((j) => j.joNumber === "126.202");
     expect(jo).toBeDefined();
     expect(jo!.type).toBe("SEMI PROGRESSIVE");
+  });
+});
+
+describe("ADD_CATEGORY", () => {
+  it("places new Part category before the first Component category", () => {
+    const jo = state.projects[0].jos[0];
+    const next = reducer(state, {
+      type: "ADD_CATEGORY",
+      projectId,
+      joId: jo.id,
+      label: "SPECIAL PART INSERT",
+      kind: "Part",
+      isCustom: true,
+    });
+
+    const updatedJo = next.projects[0].jos[0];
+    const catLabels = updatedJo.categories.map((c) => ({ label: c.label, kind: c.kind }));
+    const insertedIdx = catLabels.findIndex((c) => c.label === "SPECIAL PART INSERT");
+    const firstCompIdx = catLabels.findIndex((c) => c.kind === "Component");
+
+    expect(insertedIdx).toBeGreaterThan(-1);
+    expect(firstCompIdx).toBeGreaterThan(-1);
+    expect(insertedIdx).toBe(firstCompIdx - 1);
+  });
+
+  it("places new Component category at the very bottom", () => {
+    const jo = state.projects[0].jos[0];
+    const next = reducer(state, {
+      type: "ADD_CATEGORY",
+      projectId,
+      joId: jo.id,
+      label: "CUSTOM HARDWARE COMPONENT",
+      kind: "Component",
+      isCustom: true,
+    });
+
+    const updatedJo = next.projects[0].jos[0];
+    const lastCat = updatedJo.categories[updatedJo.categories.length - 1];
+    expect(lastCat.label).toBe("CUSTOM HARDWARE COMPONENT");
+    expect(lastCat.kind).toBe("Component");
   });
 });
 
@@ -458,6 +500,35 @@ describe("UPDATE_PO_TRACKING", () => {
     const arrivalControl = updatedItem.controls.find((c) => c.process === "Arrival")!;
     expect(arrivalControl.targetDate).toBe("2026-09-10");
   });
+
+  it("automatically populates notes in poTracking when status is Problem", () => {
+    const jo = state.projects[0].jos[0];
+    const cat = jo.categories[0];
+    const item = cat.items[0];
+
+    const next = reducer(state, {
+      type: "UPDATE_PO_TRACKING",
+      projectId,
+      joId: jo.id,
+      categoryId: cat.id,
+      itemId: item.id,
+      process: "Material",
+      status: "Problem",
+      problemNotes: "Supplier delay due to raw stock shortage",
+      tracking: {
+        supplier: "PT Baja Makmur",
+        poNo: "PO-MTL-9999",
+        poDate: "2026-09-01",
+        targetArrival: "2026-09-10",
+      },
+    });
+
+    const updatedItem = next.projects[0].jos[0].categories[0].items[0];
+    const mtlCtrl = updatedItem.controls.find((c) => c.process === "Material")!;
+    expect(mtlCtrl.status).toBe("Problem");
+    expect(mtlCtrl.notes).toBe("Supplier delay due to raw stock shortage");
+    expect(mtlCtrl.poTracking?.notes).toBe("Supplier delay due to raw stock shortage");
+  });
 });
 
 describe("BULK_SEND_PO", () => {
@@ -612,6 +683,45 @@ describe("UPDATE_ITEM_SUBCONT", () => {
     expect(updatedJo.activities.length).toBe(actCountBefore + 1);
     expect(updatedJo.activities[0].message).toContain("marked as Subcont");
   });
+
+  it("supports Problem status and populates subcontNotes and control status", () => {
+    const jo = state.projects[0].jos[0];
+    const cat = jo.categories[0];
+    const item = cat.items[0];
+
+    // First assign process to Machining
+    let next = reducer(state, {
+      type: "UPDATE_STATUS",
+      projectId,
+      joId: jo.id,
+      categoryId: cat.id,
+      itemId: item.id,
+      process: "Machining",
+      status: "In Progress SC",
+      notes: "",
+    });
+
+    // Update status to Problem with notes
+    next = reducer(next, {
+      type: "UPDATE_ITEM_SUBCONT",
+      projectId,
+      joId: jo.id,
+      categoryId: cat.id,
+      itemId: item.id,
+      isSubcont: true,
+      subcontStatus: "Problem",
+      subcontNotes: "Tool broken at subcontractor workshop",
+    });
+
+    const updatedItem = next.projects[0].jos[0].categories[0].items[0];
+    expect(updatedItem.subcontStatus).toBe("Problem");
+    expect(updatedItem.subcontNotes).toBe("Tool broken at subcontractor workshop");
+    expect(updatedItem.subcontDoneAt).toBeUndefined();
+
+    const machiningCtrl = updatedItem.controls.find((c) => c.process === "Machining")!;
+    expect(machiningCtrl.status).toBe("Problem");
+    expect(machiningCtrl.notes).toBe("Tool broken at subcontractor workshop");
+  });
 });
 
 
@@ -734,6 +844,47 @@ describe("REMOVE_PROCESS_PHOTO", () => {
     )!;
     expect(ctrl.photos).toHaveLength(1);
     expect(ctrl.photos![0].id).toBe("photo-2");
+  });
+});
+
+describe("SYNC_PROCESS_PHOTO", () => {
+  it("syncs a process photo with permanent URL and id", () => {
+    const jo = state.projects[0].jos[0];
+    const cat = jo.categories[0];
+    const item = cat.items[0];
+
+    let next = reducer(state, {
+      type: "ADD_PROCESS_PHOTO",
+      projectId,
+      joId: jo.id,
+      categoryId: cat.id,
+      itemId: item.id,
+      process: "Machining",
+      photo: { id: "temp-photo-1", name: "machining-01.jpg", previewUrl: "data:image/jpeg;base64,..." },
+    });
+
+    next = reducer(next, {
+      type: "SYNC_PROCESS_PHOTO",
+      projectId,
+      joId: jo.id,
+      categoryId: cat.id,
+      itemId: item.id,
+      process: "Machining",
+      tempPhotoId: "temp-photo-1",
+      photo: {
+        id: "perm-uuid-1",
+        name: "machining-01.jpg",
+        previewUrl: "http://127.0.0.1:8000/storage/process-photos/uuid.jpg",
+        addedAt: new Date().toISOString(),
+      },
+    });
+
+    const ctrl = next.projects[0].jos[0].categories[0].items[0].controls.find(
+      (c) => c.process === "Machining"
+    )!;
+    expect(ctrl.photos).toHaveLength(1);
+    expect(ctrl.photos![0].id).toBe("perm-uuid-1");
+    expect(ctrl.photos![0].previewUrl).toBe("http://127.0.0.1:8000/storage/process-photos/uuid.jpg");
   });
 });
 
@@ -1950,6 +2101,122 @@ describe("Trial sessions storage persistence and hydration", () => {
       const updatedProject = next.projects.find((proj) => proj.id === p.id)!;
       expect(updatedProject.jos).toHaveLength(initialJoCount - 1);
       expect(updatedProject.jos.find((j) => j.id === joToDelete.id)).toBeUndefined();
+    });
+  });
+
+  describe("HYDRATE_PROJECTS and caching", () => {
+    it("hydrates projects state from cached payload", () => {
+      const customProjects = [
+        {
+          id: "custom-proj-1",
+          name: "Cached Project",
+          customer: "PT Test",
+          company: "BKP" as const,
+          jos: [],
+        },
+      ];
+
+      const next = reducer(state, {
+        type: "HYDRATE_PROJECTS",
+        projects: customProjects,
+      });
+
+      expect(next.projects).toHaveLength(1);
+      expect(next.projects[0].id).toBe("custom-proj-1");
+      expect(next.projects[0].name).toBe("Cached Project");
+    });
+
+    it("reads and parses projects from localStorage via getCachedProjects", () => {
+      const mockProjects = [
+        {
+          id: "ls-proj",
+          name: "LocalStorage Project",
+          customer: "PT LS",
+          company: "BMI" as const,
+          jos: [],
+        },
+      ];
+
+      localStorage.setItem(PROJECTS_CACHE_KEY, JSON.stringify(mockProjects));
+      const result = getCachedProjects();
+      expect(result).toBeDefined();
+      expect(result).toHaveLength(1);
+      expect(result![0].name).toBe("LocalStorage Project");
+      localStorage.removeItem(PROJECTS_CACHE_KEY);
+    });
+  });
+
+  describe("Item Edit and Delete Actions", () => {
+    it("updates item specifications with UPDATE_ITEM", () => {
+      const p = state.projects[0];
+      const jo = p.jos[0];
+      const cat = jo.categories[0];
+      const item = cat.items[0];
+
+      const next = reducer(state, {
+        type: "UPDATE_ITEM",
+        projectId: p.id,
+        joId: jo.id,
+        categoryId: cat.id,
+        itemId: item.id,
+        data: {
+          no: "99",
+          description: "Updated Punch Plate",
+          dimension: "250 x 200 x 30",
+          material: "SKD11",
+          qty: 5,
+          hrc: "60-62",
+        },
+      });
+
+      const updatedItem = next.projects[0].jos[0].categories[0].items[0];
+      expect(updatedItem.no).toBe("99");
+      expect(updatedItem.description).toBe("Updated Punch Plate");
+      expect(updatedItem.dimension).toBe("250 x 200 x 30");
+      expect(updatedItem.material).toBe("SKD11");
+      expect(updatedItem.qty).toBe(5);
+      expect(updatedItem.hrc).toBe("60-62");
+    });
+
+    it("deletes a single item with DELETE_ITEM", () => {
+      const p = state.projects[0];
+      const jo = p.jos[0];
+      const cat = jo.categories[0];
+      const initialCount = cat.items.length;
+      const itemToDelete = cat.items[0];
+
+      const next = reducer(state, {
+        type: "DELETE_ITEM",
+        projectId: p.id,
+        joId: jo.id,
+        categoryId: cat.id,
+        itemId: itemToDelete.id,
+      });
+
+      const updatedCat = next.projects[0].jos[0].categories[0];
+      expect(updatedCat.items).toHaveLength(initialCount - 1);
+      expect(updatedCat.items.find((i) => i.id === itemToDelete.id)).toBeUndefined();
+    });
+
+    it("deletes multiple items across categories with BATCH_DELETE_ITEMS", () => {
+      const p = state.projects[0];
+      const jo = p.jos[0];
+      const cat = jo.categories[0];
+      expect(cat.items.length).toBeGreaterThanOrEqual(2);
+
+      const itemIdsToDelete = [cat.items[0].id, cat.items[1].id];
+      const initialCount = cat.items.length;
+
+      const next = reducer(state, {
+        type: "BATCH_DELETE_ITEMS",
+        projectId: p.id,
+        joId: jo.id,
+        itemIds: itemIdsToDelete,
+      });
+
+      const updatedCat = next.projects[0].jos[0].categories[0];
+      expect(updatedCat.items).toHaveLength(initialCount - 2);
+      expect(updatedCat.items.find((i) => itemIdsToDelete.includes(i.id))).toBeUndefined();
     });
   });
 });

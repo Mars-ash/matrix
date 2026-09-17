@@ -102,28 +102,6 @@ export function TrialReportMatrixView({
           textAlign: "center",
         }}
       >
-        <h3
-          style={{
-            fontSize: 14,
-            fontWeight: 700,
-            margin: "0 0 6px",
-            color: "var(--color-text, #1a1a18)",
-          }}
-        >
-          Laporan Belum Dipublikasikan
-        </h3>
-        <p
-          style={{
-            fontSize: 12,
-            color: "var(--color-text-secondary, #5c5b56)",
-            maxWidth: 480,
-            margin: "0 auto 12px",
-            lineHeight: 1.6,
-          }}
-        >
-          Catatan hasil trial untuk session <strong>&quot;{session.name}&quot;</strong> belum dipublikasikan oleh Staff Engineer.
-          Data akan otomatis tampil di sini segera setelah Staff Engineer menekan tombol <strong>&quot;UPDATE&quot;</strong>.
-        </p>
         <span
           style={{
             fontSize: 11,

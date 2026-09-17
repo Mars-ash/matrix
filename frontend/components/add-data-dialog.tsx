@@ -27,6 +27,70 @@ const FALLBACK_EXTRACTION = [
   { no: "4", description: "Die Plate Lower", dimension: "450 x 300 x 50", material: "SLD", qty: 1, hrc: "60-62" },
 ];
 
+/**
+ * Optimize / normalize image for OCR (max 2048px, JPEG quality 0.88).
+ * Converts phone HEIC/large gallery photos to compact, high-clarity JPEG File.
+ */
+async function prepareImageForOcr(file: File): Promise<File> {
+  if (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) {
+    return file;
+  }
+
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const src = e.target?.result as string;
+      if (!src) {
+        resolve(file);
+        return;
+      }
+      const img = new Image();
+      img.onload = () => {
+        const maxDim = 2048;
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else {
+            width = Math.round((width * maxDim) / height);
+            height = Math.round(maxDim);
+          }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          resolve(file);
+          return;
+        }
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, width, height);
+        ctx.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              const cleanName = file.name.replace(/\.[^/.]+$/, "") + ".jpg";
+              const optimizedFile = new File([blob], cleanName, { type: "image/jpeg" });
+              resolve(optimizedFile);
+            } else {
+              resolve(file);
+            }
+          },
+          "image/jpeg",
+          0.88
+        );
+      };
+      img.onerror = () => resolve(file);
+      img.src = src;
+    };
+    reader.onerror = () => resolve(file);
+    reader.readAsDataURL(file);
+  });
+}
+
 export function AddDataDialog({
   open,
   onClose,
@@ -92,9 +156,10 @@ export function AddDataDialog({
   }, [formData, dispatch, projectId, joId, categoryId, categoryKind, handleClose]);
 
   const processFile = useCallback(
-    async (file: File) => {
+    async (rawFile: File) => {
       setIsExtracting(true);
       try {
+        const file = await prepareImageForOcr(rawFile);
         const res = await api.uploadOcrImage(categoryId, file);
         if (res.items && res.items.length > 0) {
           setConvRows(res.items);
@@ -202,6 +267,7 @@ export function AddDataDialog({
       open={open}
       onClose={handleClose}
       title={`Add Data — ${categoryLabel}`}
+      className={mode === "conversion" && convStep === "preview" ? "dialog-panel-wide" : undefined}
       footer={
         mode === "manual" ? (
           <>
@@ -323,6 +389,7 @@ export function AddDataDialog({
                 onChange={(e) => {
                   const file = e.target.files?.[0];
                   if (file) processFile(file);
+                  e.target.value = "";
                 }}
               />
               <span style={{ fontSize: 36, display: "block", marginBottom: 12 }}>📄</span>
@@ -358,16 +425,16 @@ export function AddDataDialog({
             </div>
           )}
 
-          <div className="table-scroll" style={{ maxHeight: "360px", overflowY: "auto" }}>
-            <table className="control-table">
+          <div className="table-scroll" style={{ maxHeight: "460px", overflowY: "auto" }}>
+            <table className="control-table" style={{ width: "100%", tableLayout: "auto" }}>
               <thead>
                 <tr>
-                  <th style={{ width: 45 }}>No</th>
+                  <th style={{ width: 45, textAlign: "center" }}>No</th>
                   <th>Description</th>
-                  <th style={{ width: 120 }}>Dimension</th>
-                  <th style={{ width: 90 }}>Material</th>
-                  <th style={{ width: 50 }}>Qty</th>
-                  <th style={{ width: 70 }}>HRc</th>
+                  <th style={{ width: 140 }}>Dimension</th>
+                  <th style={{ width: 105 }}>Material</th>
+                  <th style={{ width: 60, textAlign: "center" }}>Qty</th>
+                  <th style={{ width: 75, textAlign: "center" }}>HRc</th>
                 </tr>
               </thead>
               <tbody>
@@ -386,7 +453,7 @@ export function AddDataDialog({
                         className="input"
                         value={row.description}
                         onChange={(e) => updateConvRow(idx, "description", e.target.value)}
-                        style={{ width: "100%", minWidth: 140, padding: "4px 6px" }}
+                        style={{ width: "100%", minWidth: 160, padding: "4px 6px" }}
                       />
                     </td>
                     <td>
@@ -407,12 +474,17 @@ export function AddDataDialog({
                     </td>
                     <td>
                       <input
-                        className="input"
+                        className="input no-spinner"
                         type="number"
                         min={1}
                         value={row.qty}
                         onChange={(e) => updateConvRow(idx, "qty", e.target.value)}
-                        style={{ width: "100%", padding: "4px 6px", textAlign: "center" }}
+                        style={{
+                          width: "100%",
+                          padding: "4px 6px",
+                          textAlign: "center",
+                          MozAppearance: "textfield",
+                        }}
                       />
                     </td>
                     <td>
@@ -420,7 +492,7 @@ export function AddDataDialog({
                         className="input"
                         value={row.hrc}
                         onChange={(e) => updateConvRow(idx, "hrc", e.target.value)}
-                        style={{ width: "100%", padding: "4px 6px" }}
+                        style={{ width: "100%", padding: "4px 6px", textAlign: "center" }}
                       />
                     </td>
                   </tr>

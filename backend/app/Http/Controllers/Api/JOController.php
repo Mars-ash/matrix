@@ -18,23 +18,33 @@ class JOController extends Controller
     public function store(StoreJORequest $request, Project $project): JsonResponse
     {
         $jo = DB::transaction(function () use ($request, $project) {
-            $jo = $project->jos()->create([
+            $joData = [
                 'jo_number' => $request->validated('joNumber'),
                 'product' => $request->validated('product'),
                 'type' => $request->validated('type'),
                 'target_date' => $request->validated('targetDate'),
-            ]);
+            ];
+
+            if ($request->filled('id')) {
+                $joData['id'] = $request->validated('id');
+            }
+
+            $jo = $project->jos()->create($joData);
 
             $categories = $request->validated('categories', []);
             $catLabels = [];
 
             foreach ($categories as $idx => $cat) {
-                $jo->categories()->create([
+                $catData = [
                     'label' => $cat['label'],
                     'kind' => $cat['kind'],
                     'is_custom' => $cat['isCustom'] ?? false,
                     'sort_order' => $idx + 1,
-                ]);
+                ];
+                if (!empty($cat['id'])) {
+                    $catData['id'] = $cat['id'];
+                }
+                $jo->categories()->create($catData);
                 $catLabels[] = $cat['label'];
             }
 

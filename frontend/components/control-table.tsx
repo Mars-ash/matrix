@@ -21,6 +21,8 @@ interface ControlTableProps {
     item: Category["items"][number];
     process: "Material" | "PO";
   }) => void;
+  onEditItem?: (item: Category["items"][number]) => void;
+  onDeleteItem?: (item: Category["items"][number]) => void;
 }
 
 export function ControlTable({
@@ -33,6 +35,8 @@ export function ControlTable({
   onToggleSelectItem,
   onToggleSelectAllCategory,
   onRequestSendPo,
+  onEditItem,
+  onDeleteItem,
 }: ControlTableProps) {
   const dispatch = useAppDispatch();
   const { isController } = useAuth();
@@ -111,6 +115,9 @@ export function ControlTable({
               <th style={{ minWidth: 70 }}>Material</th>
               <th style={{ minWidth: 36, textAlign: "center" }}>Qty</th>
               <th style={{ minWidth: 50, textAlign: "center" }}>HRc</th>
+              {isController && (
+                <th style={{ width: 70, minWidth: 70, textAlign: "center" }}>Aksi</th>
+              )}
               {processes.map((p) => (
                 <th key={p} style={{ minWidth: 110, textAlign: "center" }}>
                   {p === "Material" ? "PO Mtl" : p}
@@ -175,6 +182,89 @@ export function ControlTable({
                   <td style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>{item.material}</td>
                   <td style={{ textAlign: "center" }}>{item.qty}</td>
                   <td style={{ fontSize: 12, color: "var(--color-text-secondary)", textAlign: "center" }}>{item.hrc || "-"}</td>
+                  {isController && (
+                    <td style={{ textAlign: "center", padding: "4px 6px" }}>
+                      <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
+                        <button
+                          type="button"
+                          className="btn-icon"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onEditItem?.(item);
+                          }}
+                          title="Edit Part"
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            width: 26,
+                            height: 26,
+                            borderRadius: "var(--radius-sm)",
+                            background: "transparent",
+                            border: "1px solid var(--color-border-subtle)",
+                            color: "var(--color-text-secondary)",
+                            cursor: "pointer",
+                            transition: "all 120ms ease",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.borderColor = "var(--color-accent)";
+                            e.currentTarget.style.color = "var(--color-accent)";
+                            e.currentTarget.style.background = "var(--color-bg-hover)";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.borderColor = "var(--color-border-subtle)";
+                            e.currentTarget.style.color = "var(--color-text-secondary)";
+                            e.currentTarget.style.background = "transparent";
+                          }}
+                        >
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+                            <path d="m15 5 4 4"/>
+                          </svg>
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-icon"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDeleteItem?.(item);
+                          }}
+                          title="Hapus Part"
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            width: 26,
+                            height: 26,
+                            borderRadius: "var(--radius-sm)",
+                            background: "transparent",
+                            border: "1px solid var(--color-border-subtle)",
+                            color: "var(--color-text-muted)",
+                            cursor: "pointer",
+                            transition: "all 120ms ease",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.borderColor = "rgba(220, 38, 38, 0.4)";
+                            e.currentTarget.style.color = "var(--color-status-problem)";
+                            e.currentTarget.style.background = "var(--color-status-problem-bg)";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.borderColor = "var(--color-border-subtle)";
+                            e.currentTarget.style.color = "var(--color-text-muted)";
+                            e.currentTarget.style.background = "transparent";
+                          }}
+                        >
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M3 6h18"/>
+                            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                            <line x1="10" x2="10" y1="11" y2="17"/>
+                            <line x1="14" x2="14" y1="11" y2="17"/>
+                          </svg>
+                        </button>
+                      </div>
+                    </td>
+                  )}
                   {processes.map((processName) => {
                     const control = item.controls.find((c) => c.process === processName);
                     if (!control) return <td key={processName} style={{ textAlign: "center" }}>-</td>;

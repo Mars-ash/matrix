@@ -26,6 +26,7 @@ frontend/.env*.local
 frontend/.env
 frontend/*.tsbuildinfo
 frontend/next-env.d.ts
+frontend/test-results/
 
 # ---------------------------------------------------------------------------
 # Backend (Laravel & PHP)
@@ -51,11 +52,17 @@ backend/storage/framework/sessions/*
 backend/storage/framework/views/*
 !backend/storage/framework/views/.gitignore
 backend/storage/pail/
+backend/storage/backups/*
+!backend/storage/backups/.gitignore
 backend/bootstrap/cache/*.php
 !backend/bootstrap/cache/.gitignore
 backend/_ide_helper.php
 backend/Homestead.json
 backend/Homestead.yaml
+
+# Local Test Reports & Context Snapshots
+.context/
+scripts/testing/*-results.json
 
 # IDE & Tooling
 .vscode/*

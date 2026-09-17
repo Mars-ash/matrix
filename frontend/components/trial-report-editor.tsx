@@ -50,12 +50,12 @@ export function TrialReportEditor({
 
   // Set of expanded finding IDs (default: all findings expanded so inputs and statuses are immediately accessible)
   const [expandedIds, setExpandedIds] = useState<Set<string>>(
-    () => new Set(session.findings.map((f) => f.id))
+    () => new Set((session.findings ?? []).map((f) => f.id))
   );
 
   // Expand all findings when session changes
   useEffect(() => {
-    setExpandedIds(new Set(session.findings.map((f) => f.id)));
+    setExpandedIds(new Set((session.findings ?? []).map((f) => f.id)));
   }, [session.id]);
 
   // Auto-expand highlighted finding if smart search jumps to it
@@ -83,7 +83,7 @@ export function TrialReportEditor({
   }, []);
 
   const handleExpandAll = useCallback(() => {
-    setExpandedIds(new Set(session.findings.map((f) => f.id)));
+    setExpandedIds(new Set((session.findings ?? []).map((f) => f.id)));
   }, [session.findings]);
 
   const handleCollapseAll = useCallback(() => {
@@ -106,7 +106,7 @@ export function TrialReportEditor({
 
   const handleAddFinding = () => {
     const now = new Date().toISOString();
-    const maxOrder = session.findings.reduce(
+    const maxOrder = (session.findings ?? []).reduce(
       (max, f) => Math.max(max, f.order),
       0
     );

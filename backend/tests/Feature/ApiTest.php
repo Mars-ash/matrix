@@ -9,7 +9,9 @@ use App\Models\JO;
 use App\Models\Project;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class ApiTest extends TestCase
@@ -380,6 +382,220 @@ class ApiTest extends TestCase
         $this->assertDatabaseMissing('categories', ['id' => $category->id]);
         // Parent project should still exist
         $this->assertDatabaseHas('projects', ['id' => $project->id]);
+    }
+
+    public function test_jo_creation_requires_target_date_and_categories(): void
+    {
+        $project = Project::create([
+            'name' => 'Validation Project',
+            'customer' => 'Customer Val',
+        ]);
+
+        // Missing targetDate
+        $resNoTarget = $this->withHeader('Authorization', 'Bearer ' . $this->controllerToken)
+            ->postJson("/api/projects/{$project->id}/jos", [
+                'joNumber' => 'JO-VAL-001',
+                'product' => 'Product Val',
+                'type' => 'PROGRESSIVE',
+                'categories' => [
+                    ['label' => 'PART DIES', 'kind' => 'Part', 'isCustom' => false],
+                ],
+            ]);
+        $resNoTarget->assertStatus(422)
+            ->assertJsonValidationErrors(['targetDate']);
+
+        // Missing categories
+        $resNoCat = $this->withHeader('Authorization', 'Bearer ' . $this->controllerToken)
+            ->postJson("/api/projects/{$project->id}/jos", [
+                'joNumber' => 'JO-VAL-002',
+                'product' => 'Product Val',
+                'type' => 'PROGRESSIVE',
+                'targetDate' => '2026-12-01',
+                'categories' => [],
+            ]);
+        $resNoCat->assertStatus(422)
+            ->assertJsonValidationErrors(['categories']);
+    }
+
+    public function test_item_update_destroy_and_batch_destroy(): void
+    {
+        $project = Project::create([
+            'name' => 'Item Action Project',
+            'customer' => 'Customer Item',
+        ]);
+        $jo = $project->jos()->create([
+            'jo_number' => 'JO-ITEM-001',
+            'product' => 'Product Item',
+            'type' => 'PROGRESSIVE',
+            'target_date' => '2026-12-31',
+        ]);
+        $category = $jo->categories()->create([
+            'label' => 'Part Category',
+            'kind' => 'Part',
+        ]);
+
+        // Add 2 items
+        $item1 = $category->items()->create([
+            'no' => '1',
+            'description' => 'Original Item 1',
+            'dimension' => '100x100',
+            'material' => 'SKD11',
+            'qty' => 1,
+            'sort_order' => 1,
+        ]);
+        $ctrl1 = $item1->controls()->create(['process' => 'Material', 'status' => 'Not Started']);
+
+        $item2 = $category->items()->create([
+            'no' => '2',
+            'description' => 'Original Item 2',
+            'dimension' => '200x200',
+            'material' => 'SS400',
+            'qty' => 2,
+            'sort_order' => 2,
+        ]);
+        $ctrl2 = $item2->controls()->create(['process' => 'Material', 'status' => 'Not Started']);
+
+        // 1. Viewer cannot update or delete item (403)
+        $this->withHeader('Authorization', 'Bearer ' . $this->viewerToken)
+            ->putJson("/api/items/{$item1->id}", ['description' => 'Hacked Item'])
+            ->assertStatus(403);
+
+        $this->withHeader('Authorization', 'Bearer ' . $this->viewerToken)
+            ->deleteJson("/api/items/{$item1->id}")
+            ->assertStatus(403);
+
+        // 2. Controller can update item
+        $updateRes = $this->withHeader('Authorization', 'Bearer ' . $this->controllerToken)
+            ->putJson("/api/items/{$item1->id}", [
+                'no' => '1B',
+                'description' => 'Updated Item 1',
+                'dimension' => '120x120',
+                'material' => 'SKD61',
+                'qty' => 5,
+                'hrc' => '58-60',
+            ]);
+        $updateRes->assertStatus(200)
+            ->assertJsonPath('data.description', 'Updated Item 1')
+            ->assertJsonPath('data.qty', 5)
+            ->assertJsonPath('data.hrc', '58-60');
+
+        $this->assertDatabaseHas('items', [
+            'id' => $item1->id,
+            'description' => 'Updated Item 1',
+            'qty' => 5,
+            'hrc' => '58-60',
+        ]);
+
+        // 3. Controller can delete single item
+        $deleteRes = $this->withHeader('Authorization', 'Bearer ' . $this->controllerToken)
+            ->deleteJson("/api/items/{$item1->id}");
+        $deleteRes->assertStatus(200);
+
+        $this->assertDatabaseMissing('items', ['id' => $item1->id]);
+        $this->assertDatabaseMissing('controls', ['id' => $ctrl1->id]);
+
+        // 4. Controller can batch delete items
+        $item3 = $category->items()->create([
+            'no' => '3',
+            'description' => 'Item 3 to delete',
+            'qty' => 1,
+            'sort_order' => 3,
+        ]);
+        $ctrl3 = $item3->controls()->create(['process' => 'Material', 'status' => 'Not Started']);
+
+        $batchRes = $this->withHeader('Authorization', 'Bearer ' . $this->controllerToken)
+            ->postJson('/api/items/batch-delete', [
+                'itemIds' => [$item2->id, $item3->id],
+            ]);
+        $batchRes->assertStatus(200)
+            ->assertJsonPath('deletedCount', 2);
+
+        $this->assertDatabaseMissing('items', ['id' => $item2->id]);
+        $this->assertDatabaseMissing('items', ['id' => $item3->id]);
+        $this->assertDatabaseMissing('controls', ['id' => $ctrl2->id]);
+        $this->assertDatabaseMissing('controls', ['id' => $ctrl3->id]);
+    }
+
+    public function test_controller_can_upload_and_delete_control_photo(): void
+    {
+        Storage::fake('public');
+
+        $project = Project::create(['name' => 'Photo Project', 'customer' => 'Cust']);
+        $jo = $project->jos()->create(['jo_number' => 'JO-P1', 'product' => 'Die', 'type' => 'PROGRESSIVE']);
+        $category = $jo->categories()->create(['label' => 'PART DIES', 'kind' => 'Part', 'sort_order' => 1]);
+        $item = $category->items()->create(['no' => '1', 'description' => 'Plate 1', 'qty' => 1]);
+        $control = $item->controls()->create(['process' => 'Machining', 'status' => 'In Progress']);
+
+        $file = UploadedFile::fake()->image('machining_proof.jpg', 800, 600);
+
+        // Upload photo
+        $response = $this->withHeader('Authorization', 'Bearer ' . $this->controllerToken)
+            ->postJson("/api/controls/{$control->id}/photos", [
+                'photo' => $file,
+            ]);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('data.name', 'machining_proof.jpg');
+
+        $photoId = $response->json('data.id');
+        $this->assertDatabaseHas('process_photos', ['id' => $photoId, 'control_id' => $control->id]);
+
+        // Eager load check via ProjectController show
+        $projShow = $this->withHeader('Authorization', 'Bearer ' . $this->controllerToken)
+            ->getJson("/api/projects/{$project->id}");
+        $projShow->assertStatus(200)
+            ->assertJsonCount(1, 'data.jos.0.categories.0.items.0.controls.0.photos');
+
+        // Delete photo
+        $delResponse = $this->withHeader('Authorization', 'Bearer ' . $this->controllerToken)
+            ->deleteJson("/api/process-photos/{$photoId}");
+        $delResponse->assertStatus(200);
+
+        $this->assertDatabaseMissing('process_photos', ['id' => $photoId]);
+    }
+
+    public function test_category_placement_places_part_before_component_and_component_at_end(): void
+    {
+        $project = Project::create(['name' => 'Category Order Project', 'customer' => 'Cust']);
+        $jo = $project->jos()->create(['jo_number' => 'JO-CAT', 'product' => 'Die', 'type' => 'PROGRESSIVE']);
+        $catPart1 = $jo->categories()->create(['label' => 'PART DIES OP 10', 'kind' => 'Part', 'sort_order' => 1]);
+        $catComp1 = $jo->categories()->create(['label' => 'COMPONENT DIES OP 10', 'kind' => 'Component', 'sort_order' => 2]);
+
+        // 1. Add another Part category -> should be inserted before COMPONENT DIES OP 10
+        $resPart2 = $this->withHeader('Authorization', 'Bearer ' . $this->controllerToken)
+            ->postJson("/api/jos/{$jo->id}/categories", [
+                'label' => 'PART DIES OP 20',
+                'kind' => 'Part',
+                'isCustom' => true,
+            ]);
+        $resPart2->assertStatus(201);
+        $part2Id = $resPart2->json('data.id');
+
+        // Check sort orders: Part1 (1), Part2 (2), Comp1 (3)
+        $this->assertEquals(1, $catPart1->fresh()->sort_order);
+        $this->assertEquals(2, $jo->categories()->find($part2Id)->sort_order);
+        $this->assertEquals(3, $catComp1->fresh()->sort_order);
+
+        // 2. Add another Component category -> should be at the very end
+        $resComp2 = $this->withHeader('Authorization', 'Bearer ' . $this->controllerToken)
+            ->postJson("/api/jos/{$jo->id}/categories", [
+                'label' => 'COMPONENT STD',
+                'kind' => 'Component',
+                'isCustom' => true,
+            ]);
+        $resComp2->assertStatus(201);
+        $comp2Id = $resComp2->json('data.id');
+
+        $this->assertEquals(4, $jo->categories()->find($comp2Id)->sort_order);
+
+        // Verify ordering through relation
+        $orderedLabels = $jo->fresh()->categories->pluck('label')->toArray();
+        $this->assertEquals([
+            'PART DIES OP 10',
+            'PART DIES OP 20',
+            'COMPONENT DIES OP 10',
+            'COMPONENT STD',
+        ], $orderedLabels);
     }
 }
 
