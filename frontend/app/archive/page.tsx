@@ -82,22 +82,7 @@ export default function ArchivePage() {
       {/* Header row */}
       <div className="dashboard-header">
         <div>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <h1 style={{ margin: 0 }}>Archive — Project & JO</h1>
-            <span
-              style={{
-                fontSize: 11,
-                fontWeight: 600,
-                color: "var(--color-status-done)",
-                background: "rgba(13, 124, 74, 0.08)",
-                border: "1px solid rgba(13, 124, 74, 0.25)",
-                padding: "2px 8px",
-                borderRadius: "var(--radius-sm)",
-              }}
-            >
-              Archived
-            </span>
-          </div>
+          <h1 style={{ margin: 0 }}>Archive — Project</h1>
           <p
             style={{
               fontSize: 12,

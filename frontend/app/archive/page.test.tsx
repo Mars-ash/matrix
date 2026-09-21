@@ -92,7 +92,8 @@ describe("ArchivePage", () => {
       </AuthProvider>
     );
 
-    expect(screen.getByText("Archive — Project & JO")).toBeInTheDocument();
+    expect(screen.getByText("Archive — Project")).toBeInTheDocument();
+    expect(screen.queryByText("Archived")).not.toBeInTheDocument();
     expect(screen.getByText("Kembali ke Dashboard")).toBeInTheDocument();
 
     // Archived project and JO must be shown

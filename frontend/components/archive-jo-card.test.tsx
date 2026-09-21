@@ -50,7 +50,7 @@ describe("ArchiveJoCard", () => {
     expect(screen.getByText("JO-2026-001")).toBeInTheDocument();
     expect(screen.getByText("Dies Stamping Upper Cover")).toBeInTheDocument();
     expect(screen.getByText("PROGRESSIVE")).toBeInTheDocument();
-    expect(screen.getByText(/Selesai: 2026-09-21/i)).toBeInTheDocument();
+    expect(screen.getByText("21-09-26")).toBeInTheDocument();
     expect(screen.getByText(/PT Astra/i)).toBeInTheDocument();
     expect(screen.getByText(/Project Alpha/i)).toBeInTheDocument();
   });
