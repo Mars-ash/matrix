@@ -18,13 +18,19 @@ class ControlResource extends JsonResource
             'inProgressAt' => $this->in_progress_at?->toISOString(),
             'targetDate' => $this->target_date?->format('Y-m-d'),
             'poTracking' => $this->whenLoaded('poTracking', fn () => $this->poTracking ? new PoTrackingResource($this->poTracking) : null, $this->poTracking ? new PoTrackingResource($this->poTracking) : null),
-            'photos' => $this->whenLoaded('photos', fn () => $this->photos->map(fn ($p) => [
-                'id' => $p->id,
-                'name' => $p->name,
-                'previewUrl' => str_starts_with($p->path, 'http') || str_starts_with($p->path, 'data:')
-                    ? $p->path
-                    : Storage::disk('public')->url($p->path),
-            ])),
+            'photos' => $this->whenLoaded('photos', fn () => $this->photos->map(function ($p) {
+                if (str_starts_with($p->path, 'data:') || str_starts_with($p->path, 'blob:')) {
+                    $url = $p->path;
+                } else {
+                    $rawUrl = str_starts_with($p->path, 'http') ? $p->path : Storage::disk('public')->url($p->path);
+                    $url = preg_match('#(/storage/.*)$#', $rawUrl, $matches) ? $matches[1] : $rawUrl;
+                }
+                return [
+                    'id' => $p->id,
+                    'name' => $p->name,
+                    'previewUrl' => $url,
+                ];
+            })),
         ];
     }
 }

@@ -270,6 +270,79 @@ describe("ADD_ITEMS_BATCH", () => {
 
     expect(next.projects[0].jos[0].categories[0].items).toHaveLength(before + 2);
   });
+
+  it("finds category even if joId is a joNumber or projectId is mismatched", () => {
+    const jo = state.projects[0].jos[0];
+    const cat = jo.categories[0];
+    const before = cat.items.length;
+
+    const next = reducer(state, {
+      type: "ADD_ITEMS_BATCH",
+      projectId: "mismatched-project-id",
+      joId: jo.joNumber, // Passing joNumber instead of jo.id
+      categoryId: cat.id,
+      items: [
+        { no: "C", description: "Batch Fuzzy 1", dimension: "", material: "", qty: 1, hrc: "" },
+      ],
+      kind: "Part",
+    });
+
+    expect(next.projects[0].jos[0].categories[0].items).toHaveLength(before + 1);
+  });
+});
+
+describe("SYNC_ITEMS_BATCH", () => {
+  it("replaces temporary optimistic items with server items without duplicating", () => {
+    const jo = state.projects[0].jos[0];
+    const cat = jo.categories[0];
+    const tempId = "temp-opt-1";
+
+    // 1. Optimistic addition
+    const stateAfterAdd = reducer(state, {
+      type: "ADD_ITEMS_BATCH",
+      projectId,
+      joId: jo.id,
+      categoryId: cat.id,
+      items: [
+        { id: tempId, no: "99", description: "Optimistic Part", dimension: "", material: "", qty: 1, hrc: "" },
+      ],
+      kind: "Part",
+    });
+
+    const itemsAfterAdd = stateAfterAdd.projects[0].jos[0].categories[0].items;
+    expect(itemsAfterAdd.some((i) => i.id === tempId)).toBe(true);
+
+    // 2. Server response sync with database ID
+    const serverId = "db-server-uuid-1";
+    const next = reducer(stateAfterAdd, {
+      type: "SYNC_ITEMS_BATCH",
+      projectId,
+      joId: jo.id,
+      categoryId: cat.id,
+      tempItemIds: [tempId],
+      items: [
+        {
+          id: serverId,
+          no: "99",
+          description: "Optimistic Part",
+          dimension: "",
+          material: "",
+          qty: 1,
+          hrc: "",
+          controls: [],
+        },
+      ],
+    });
+
+    const finalItems = next.projects[0].jos[0].categories[0].items;
+    // Temp item is removed
+    expect(finalItems.some((i) => i.id === tempId)).toBe(false);
+    // Server item is present
+    expect(finalItems.some((i) => i.id === serverId)).toBe(true);
+    // Only one copy exists (no duplicates)
+    const matching = finalItems.filter((i) => i.description === "Optimistic Part");
+    expect(matching).toHaveLength(1);
+  });
 });
 
 describe("UPDATE_STATUS", () => {

@@ -10,6 +10,7 @@ import {
   deriveTrialSessionStatus,
 } from "@/lib/trial-report";
 import type { TrialSession } from "@/lib/types";
+import { formatPhotoUrl } from "@/lib/format";
 
 /**
  * Clean industrial photo thumbnail: crisp border, subtle hover, no emoji badges.
@@ -29,7 +30,7 @@ function PhotoThumbnails({
         <button
           key={ph.id}
           type="button"
-          onClick={() => onSelectPhoto({ name: ph.name, url: ph.previewUrl })}
+          onClick={() => onSelectPhoto({ name: ph.name, url: formatPhotoUrl(ph.previewUrl) })}
           title={`Lihat foto: ${ph.name}`}
           style={{
             cursor: "pointer",
@@ -49,7 +50,7 @@ function PhotoThumbnails({
           }}
         >
           <img
-            src={ph.previewUrl}
+            src={formatPhotoUrl(ph.previewUrl)}
             alt={ph.name}
             style={{
               width: 72,

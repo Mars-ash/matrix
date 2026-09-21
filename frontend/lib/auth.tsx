@@ -123,13 +123,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }).catch(() => {});
       }
     } finally {
-      setUser(null);
-      setToken(null);
       localStorage.removeItem("matrix_auth_token");
       localStorage.removeItem("matrix_auth_user");
       document.cookie = "matrix_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
       if (typeof window !== "undefined") {
-        window.location.href = "/login";
+        window.location.replace("/login");
+      } else {
+        setUser(null);
+        setToken(null);
       }
     }
   };

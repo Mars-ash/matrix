@@ -151,7 +151,8 @@ class ControlController extends Controller
                 ]);
             }
 
-            $url = Storage::disk('public')->url($photo->path);
+            $rawUrl = Storage::disk('public')->url($photo->path);
+            $url = preg_match('#(/storage/.*)$#', $rawUrl, $matches) ? $matches[1] : $rawUrl;
 
             return response()->json([
                 'data' => [

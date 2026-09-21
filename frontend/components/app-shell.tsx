@@ -426,13 +426,14 @@ function NotificationBell() {
 
 export function AppShell({ children, breadcrumbs }: AppShellProps) {
   const { user, role, logout, isLoading } = useAuth();
+  const [isSigningOut, setIsSigningOut] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
-    if (!isLoading && !user) {
+    if (!isLoading && !isSigningOut && !user) {
       router.push("/login");
     }
-  }, [isLoading, user, router]);
+  }, [isLoading, isSigningOut, user, router]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }} suppressHydrationWarning>
@@ -459,12 +460,14 @@ export function AppShell({ children, breadcrumbs }: AppShellProps) {
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <div className="header-user-badge" style={{ textAlign: "right" }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: "var(--color-text)" }}>
-                {user?.name || (role === "controller" ? "Staff Engineering" : "Viewer")}
+                {user?.name || (user?.role === "controller" ? "Staff Engineering" : user?.role === "viewer" ? "Viewer" : "")}
               </div>
             </div>
             <button
               type="button"
+              disabled={isSigningOut}
               onClick={() => {
+                setIsSigningOut(true);
                 logout();
               }}
               title="Sign Out"
@@ -473,14 +476,17 @@ export function AppShell({ children, breadcrumbs }: AppShellProps) {
                 border: "none",
                 color: "var(--color-text-muted)",
                 fontSize: 12,
-                cursor: "pointer",
+                cursor: isSigningOut ? "default" : "pointer",
                 padding: "4px 6px",
                 borderRadius: 4,
+                opacity: isSigningOut ? 0.6 : 1,
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = "var(--color-status-problem)")}
+              onMouseEnter={(e) => {
+                if (!isSigningOut) e.currentTarget.style.color = "var(--color-status-problem)";
+              }}
               onMouseLeave={(e) => (e.currentTarget.style.color = "var(--color-text-muted)")}
             >
-              Sign Out
+              {isSigningOut ? "Signing out..." : "Sign Out"}
             </button>
           </div>
         </div>

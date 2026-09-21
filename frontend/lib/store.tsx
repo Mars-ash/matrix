@@ -158,7 +158,7 @@ export type AppAction =
       projectId: string;
       joId: string;
       categoryId: string;
-      items: Omit<Item, "id" | "controls">[];
+      items: (Omit<Item, "id" | "controls"> & { id?: string })[];
       kind: CategoryKind;
     }
   | {
@@ -457,12 +457,70 @@ function findProjectAndJo(
   projectId: string,
   joId: string
 ): { project?: Project; jo?: JO } {
-  let project = projects.find((p) => p.id === projectId);
+  let project = projects.find(
+    (p) => p.id === projectId || (p as any).tempId === projectId
+  );
   if (!project) {
-    project = projects.find((p) => p.jos?.some((j) => j.id === joId || j.joNumber === joId));
+    project = projects.find((p) =>
+      p.jos?.some((j) => j.id === joId || (j as any).tempId === joId || j.joNumber === joId)
+    );
   }
-  const jo = project?.jos?.find((j) => j.id === joId || j.joNumber === joId);
+  const jo = project?.jos?.find(
+    (j) => j.id === joId || (j as any).tempId === joId || j.joNumber === joId
+  );
   return { project, jo };
+}
+
+function findCategoryContext(
+  projects: Project[],
+  projectId?: string,
+  joId?: string,
+  categoryId?: string
+): { project?: Project; jo?: JO; category?: Category } {
+  let project: Project | undefined;
+  let jo: JO | undefined;
+  let category: Category | undefined;
+
+  if (projectId && joId) {
+    const pj = findProjectAndJo(projects, projectId, joId);
+    project = pj.project;
+    jo = pj.jo;
+    if (jo && categoryId) {
+      category = jo.categories?.find((c) => c.id === categoryId);
+    }
+  } else if (joId) {
+    for (const p of projects) {
+      const j = p.jos?.find(
+        (item) => item.id === joId || (item as any).tempId === joId || item.joNumber === joId
+      );
+      if (j) {
+        jo = j;
+        project = p;
+        if (categoryId) {
+          category = j.categories?.find((c) => c.id === categoryId);
+        }
+        break;
+      }
+    }
+  }
+
+  // Fallback: search globally across all projects and JOs by categoryId
+  if (!category && categoryId) {
+    for (const p of projects) {
+      for (const j of p.jos || []) {
+        const c = j.categories?.find((cat) => cat.id === categoryId);
+        if (c) {
+          category = c;
+          jo = j;
+          project = p;
+          break;
+        }
+      }
+      if (category) break;
+    }
+  }
+
+  return { project, jo, category };
 }
 
 function addActivity(jo: JO, message: string): void {
@@ -604,16 +662,20 @@ function executeReducer(next: AppState, state: AppState, action: AppAction): App
     }
 
     case "SYNC_ITEM": {
-      const project = next.projects.find((p) => p.id === action.projectId);
-      const jo = project?.jos.find((j) => j.id === action.joId);
-      const cat = jo?.categories.find((c) => c.id === action.categoryId);
+      const { category: cat } = findCategoryContext(
+        next.projects,
+        action.projectId,
+        action.joId,
+        action.categoryId
+      );
       if (!cat) return state;
 
       const itemIdx = cat.items.findIndex(
         (i) =>
           i.id === action.item.id ||
           (action.tempItemId && i.id === action.tempItemId) ||
-          (i.description?.trim() === action.item.description?.trim() && i.no === action.item.no)
+          (i.description?.trim().toLowerCase() === action.item.description?.trim().toLowerCase() &&
+            i.no === action.item.no)
       );
       if (itemIdx !== -1) {
         cat.items[itemIdx] = action.item;
@@ -624,16 +686,25 @@ function executeReducer(next: AppState, state: AppState, action: AppAction): App
     }
 
     case "SYNC_ITEMS_BATCH": {
-      const project = next.projects.find((p) => p.id === action.projectId);
-      const jo = project?.jos.find((j) => j.id === action.joId);
-      const cat = jo?.categories.find((c) => c.id === action.categoryId);
+      const { category: cat } = findCategoryContext(
+        next.projects,
+        action.projectId,
+        action.joId,
+        action.categoryId
+      );
       if (!cat) return state;
 
       if (action.tempItemIds && action.tempItemIds.length > 0) {
         cat.items = cat.items.filter((i) => !action.tempItemIds?.includes(i.id));
       }
       for (const item of action.items) {
-        const idx = cat.items.findIndex((i) => i.id === item.id);
+        const idx = cat.items.findIndex(
+          (i) =>
+            i.id === item.id ||
+            (action.tempItemIds && action.tempItemIds.includes(i.id)) ||
+            (i.description?.trim().toLowerCase() === item.description?.trim().toLowerCase() &&
+              i.no?.trim() === item.no?.trim())
+        );
         if (idx !== -1) {
           cat.items[idx] = item;
         } else {
@@ -729,9 +800,12 @@ function executeReducer(next: AppState, state: AppState, action: AppAction): App
     }
 
     case "ADD_ITEM": {
-      const project = next.projects.find((p) => p.id === action.projectId);
-      const jo = project?.jos.find((j) => j.id === action.joId);
-      const cat = jo?.categories.find((c) => c.id === action.categoryId);
+      const { jo, category: cat } = findCategoryContext(
+        next.projects,
+        action.projectId,
+        action.joId,
+        action.categoryId
+      );
       if (!cat) return state;
 
       const newItem: Item = {
@@ -740,29 +814,36 @@ function executeReducer(next: AppState, state: AppState, action: AppAction): App
         controls: defaultControls(action.kind),
       };
       cat.items.push(newItem);
-      addActivity(jo!, `Item "${action.item.description}" added to ${cat.label}.`);
+      if (jo) {
+        addActivity(jo, `Item "${action.item.description}" added to ${cat.label}.`);
+      }
       return next;
     }
 
     case "ADD_ITEMS_BATCH": {
-      const project = next.projects.find((p) => p.id === action.projectId);
-      const jo = project?.jos.find((j) => j.id === action.joId);
-      const cat = jo?.categories.find((c) => c.id === action.categoryId);
+      const { jo, category: cat } = findCategoryContext(
+        next.projects,
+        action.projectId,
+        action.joId,
+        action.categoryId
+      );
       if (!cat) return state;
 
       const newItems: Item[] = action.items.map((item) => {
         const newItem: Item = {
           ...item,
-          id: uid(),
+          id: item.id || uid(),
           controls: defaultControls(action.kind),
         };
         return newItem;
       });
       cat.items.push(...newItems);
-      addActivity(
-        jo!,
-        `${action.items.length} items added to ${cat.label} via image conversion.`
-      );
+      if (jo) {
+        addActivity(
+          jo,
+          `${action.items.length} items added to ${cat.label} via image conversion.`
+        );
+      }
       return next;
     }
 
@@ -1812,7 +1893,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         break;
       }
 
-      case "ADD_ITEMS_BATCH":
+      case "ADD_ITEMS_BATCH": {
+        const tempItemIds = action.items.map((i) => i.id).filter(Boolean) as string[];
         api
           .batchAddItems(action.categoryId, action.items)
           .then((res) => {
@@ -1823,6 +1905,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
                 joId: action.joId,
                 categoryId: action.categoryId,
                 items: res.data,
+                tempItemIds: tempItemIds.length > 0 ? tempItemIds : undefined,
               });
             }
           })
@@ -1830,6 +1913,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             console.warn("Failed to persist batch items to database:", err?.message || err);
           });
         break;
+      }
 
       case "UPDATE_ITEM":
         api

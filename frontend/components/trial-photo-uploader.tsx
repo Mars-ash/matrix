@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useRef, useCallback } from "react";
-import { uid } from "@/lib/format";
+import { uid, formatPhotoUrl } from "@/lib/format";
 import type { TrialEntryPhoto } from "@/lib/types";
 import { useAuth } from "@/lib/auth";
 import { ConfirmDialog } from "./confirm-dialog";
@@ -107,7 +107,7 @@ export function TrialPhotoUploader({
           {photos.map((photo) => (
             <div key={photo.id} className="trial-photo-thumb" title={photo.name}>
               <img
-                src={photo.previewUrl}
+                src={formatPhotoUrl(photo.previewUrl)}
                 alt={photo.name}
                 style={{
                   width: "100%",
@@ -146,7 +146,7 @@ export function TrialPhotoUploader({
         title="Hapus Foto"
         message="Hapus foto ini?"
         confirmText="Hapus"
-        thumbnailUrl={deletePhotoTarget?.previewUrl}
+        thumbnailUrl={formatPhotoUrl(deletePhotoTarget?.previewUrl)}
         photoName={deletePhotoTarget?.name}
       />
     </div>

@@ -6,6 +6,7 @@ import { ManualItemForm, emptyManualItemData, type ManualItemData } from "./manu
 import type { CategoryKind } from "@/lib/types";
 import { useAppDispatch } from "@/lib/store";
 import { api } from "@/lib/api-client";
+import { uid } from "@/lib/format";
 
 interface AddDataDialogProps {
   open: boolean;
@@ -112,6 +113,7 @@ export function AddDataDialog({
   const [convRows, setConvRows] = useState(FALLBACK_EXTRACTION.map((r) => ({ ...r })));
   const [isExtracting, setIsExtracting] = useState(false);
   const [extractionNotice, setExtractionNotice] = useState("");
+  const [isConfirming, setIsConfirming] = useState(false);
 
   const reset = useCallback(() => {
     setMode("choose");
@@ -121,6 +123,7 @@ export function AddDataDialog({
     setConvRows(FALLBACK_EXTRACTION.map((r) => ({ ...r })));
     setIsExtracting(false);
     setExtractionNotice("");
+    setIsConfirming(false);
   }, []);
 
   const handleClose = useCallback(() => {
@@ -196,27 +199,33 @@ export function AddDataDialog({
   );
 
   const handleConversionConfirm = useCallback(() => {
+    if (isConfirming) return;
     const validRows = convRows.filter((r) => r.description.trim());
     if (validRows.length === 0) return;
+
+    setIsConfirming(true);
+
+    const itemsWithIds = validRows.map((r) => ({
+      id: uid(),
+      no: r.no || "-",
+      description: r.description.trim(),
+      dimension: r.dimension.trim(),
+      material: r.material.trim(),
+      qty: Math.max(1, parseInt(String(r.qty), 10) || 1),
+      hrc: r.hrc.trim(),
+    }));
 
     dispatch({
       type: "ADD_ITEMS_BATCH",
       projectId,
       joId,
       categoryId,
-      items: validRows.map((r) => ({
-        no: r.no || "-",
-        description: r.description.trim(),
-        dimension: r.dimension.trim(),
-        material: r.material.trim(),
-        qty: Math.max(1, parseInt(String(r.qty), 10) || 1),
-        hrc: r.hrc.trim(),
-      })),
+      items: itemsWithIds,
       kind: categoryKind,
     });
 
     handleClose();
-  }, [convRows, dispatch, projectId, joId, categoryId, categoryKind, handleClose]);
+  }, [isConfirming, convRows, dispatch, projectId, joId, categoryId, categoryKind, handleClose]);
 
   const updateConvRow = useCallback((idx: number, field: string, value: string) => {
     setConvRows((prev) => {
@@ -283,8 +292,14 @@ export function AddDataDialog({
             <button className="btn btn-secondary" onClick={() => setConvStep("upload")}>
               Back
             </button>
-            <button className="btn btn-primary" onClick={handleConversionConfirm}>
-              Confirm Add ({convRows.filter((r) => r.description.trim()).length} items)
+            <button
+              className="btn btn-primary"
+              onClick={handleConversionConfirm}
+              disabled={isConfirming}
+            >
+              {isConfirming
+                ? "Adding..."
+                : `Confirm Add (${convRows.filter((r) => r.description.trim()).length} items)`}
             </button>
           </>
         ) : undefined

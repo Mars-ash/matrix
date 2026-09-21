@@ -513,8 +513,8 @@ export default function JoDetailPage({ params }: PageProps) {
         <AddDataDialog
           open={!!addDataCatId}
           onClose={() => setAddDataCatId(null)}
-          projectId={projectId}
-          joId={joId}
+          projectId={project ? project.id : projectId}
+          joId={jo ? jo.id : joId}
           categoryId={addDataCat.id}
           categoryKind={addDataCat.kind}
           categoryLabel={addDataCat.label}

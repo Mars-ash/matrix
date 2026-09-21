@@ -34,3 +34,17 @@ export function uid(): string {
     return v.toString(16);
   });
 }
+
+/**
+ * Format photo preview URL so it works seamlessly regardless of hostname,
+ * protocol (HTTP vs HTTPS), local dev port, or tunnel proxies.
+ */
+export function formatPhotoUrl(url?: string): string {
+  if (!url) return "";
+  if (url.startsWith("data:") || url.startsWith("blob:")) return url;
+  const storageIndex = url.indexOf("/storage/");
+  if (storageIndex !== -1) {
+    return url.substring(storageIndex);
+  }
+  return url;
+}

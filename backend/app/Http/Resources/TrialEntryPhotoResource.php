@@ -10,9 +10,12 @@ class TrialEntryPhotoResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
-        $url = str_starts_with($this->path, 'http') || str_starts_with($this->path, 'data:')
-            ? $this->path
-            : Storage::disk('public')->url($this->path);
+        if (str_starts_with($this->path, 'data:') || str_starts_with($this->path, 'blob:')) {
+            $url = $this->path;
+        } else {
+            $rawUrl = str_starts_with($this->path, 'http') ? $this->path : Storage::disk('public')->url($this->path);
+            $url = preg_match('#(/storage/.*)$#', $rawUrl, $matches) ? $matches[1] : $rawUrl;
+        }
 
         return [
             'id' => $this->id,

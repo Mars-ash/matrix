@@ -4,7 +4,7 @@ import { Dialog } from "./dialog";
 import { ConfirmDialog } from "./confirm-dialog";
 import { useAppDispatch } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
-import { uid } from "@/lib/format";
+import { uid, formatPhotoUrl } from "@/lib/format";
 import type { Control, ProcessPhoto } from "@/lib/types";
 
 interface ProcessPhotoDialogProps {
@@ -77,6 +77,7 @@ export function ProcessPhotoDialog({
   const { isController } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [deletePhotoTarget, setDeletePhotoTarget] = useState<ProcessPhoto | null>(null);
+  const [previewPhoto, setPreviewPhoto] = useState<ProcessPhoto | null>(null);
 
   const handleFileAdd = useCallback(
     async (files: FileList | null) => {
@@ -127,116 +128,201 @@ export function ProcessPhotoDialog({
   const photos = control.photos ?? [];
 
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      title={`Photos — ${itemDescription} → ${control.process}`}
-      footer={
-        <button className="btn btn-secondary" onClick={onClose}>Close</button>
-      }
-    >
-      {isController && (
-        <div style={{ marginBottom: 12 }}>
-          <label
+    <>
+      <Dialog
+        open={open}
+        onClose={onClose}
+        title={`Photos — ${itemDescription} → ${control.process}`}
+        footer={
+          <button className="btn btn-secondary" onClick={onClose}>Close</button>
+        }
+      >
+        {isController && (
+          <div style={{ marginBottom: 12 }}>
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "10px 14px",
+                border: "1px dashed var(--color-border)",
+                borderRadius: "var(--radius-md)",
+                cursor: "pointer",
+                fontSize: 12,
+                fontWeight: 500,
+                color: "var(--color-text-secondary)",
+                transition: "border-color 100ms",
+              }}
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                multiple
+                style={{ display: "none" }}
+                onChange={(e) => handleFileAdd(e.target.files)}
+              />
+              📷 Add Photo
+            </label>
+          </div>
+        )}
+
+        {photos.length === 0 ? (
+          <p style={{ fontSize: 12, color: "var(--color-text-muted)", textAlign: "center", padding: 16 }}>
+            No photos attached yet.
+          </p>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))", gap: 8 }}>
+            {photos.map((photo) => {
+              const formattedUrl = formatPhotoUrl(photo.previewUrl);
+              return (
+                <div
+                  key={photo.id}
+                  title={`Lihat foto: ${photo.name}`}
+                  onClick={() => setPreviewPhoto(photo)}
+                  style={{
+                    position: "relative",
+                    borderRadius: "var(--radius-md)",
+                    overflow: "hidden",
+                    border: "1px solid var(--color-border)",
+                    background: "var(--color-bg-wash)",
+                    cursor: "pointer",
+                    transition: "border-color 120ms ease, transform 120ms ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = "var(--color-accent, #3b82f6)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = "var(--color-border)";
+                  }}
+                >
+                  <img
+                    src={formattedUrl}
+                    alt={photo.name}
+                    style={{ width: "100%", height: 80, objectFit: "cover", display: "block" }}
+                    onError={(e) => {
+                      const target = e.currentTarget;
+                      target.style.display = "none";
+                      const parent = target.parentElement;
+                      if (parent && !parent.querySelector(".img-error-fallback")) {
+                        const fallback = document.createElement("div");
+                        fallback.className = "img-error-fallback";
+                        fallback.style.cssText =
+                          "height: 80px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4px; font-size: 10px; color: var(--color-text-muted); text-align: center; background: var(--color-bg-subtle, #1e293b);";
+                        fallback.innerHTML = `<span style="font-size: 16px;">🖼️</span><span style="font-size: 9px; max-width: 85px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 2px;">${photo.name}</span>`;
+                        parent.appendChild(fallback);
+                      }
+                    }}
+                  />
+                  {isController && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDeletePhotoTarget(photo);
+                      }}
+                      style={{
+                        position: "absolute",
+                        top: 4,
+                        right: 4,
+                        width: 20,
+                        height: 20,
+                        borderRadius: "50%",
+                        background: "rgba(0,0,0,0.6)",
+                        color: "#fff",
+                        border: "none",
+                        cursor: "pointer",
+                        fontSize: 12,
+                        lineHeight: 1,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        zIndex: 2,
+                      }}
+                      aria-label={`Remove ${photo.name}`}
+                      title="Hapus foto"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Custom photo delete confirmation */}
+        <ConfirmDialog
+          open={!!deletePhotoTarget}
+          onClose={() => setDeletePhotoTarget(null)}
+          onConfirm={() => {
+            if (deletePhotoTarget) {
+              handleRemove(deletePhotoTarget.id, deletePhotoTarget.previewUrl);
+              setDeletePhotoTarget(null);
+            }
+          }}
+          title="Hapus Foto"
+          message="Hapus foto ini?"
+          confirmText="Hapus"
+          thumbnailUrl={formatPhotoUrl(deletePhotoTarget?.previewUrl)}
+          photoName={deletePhotoTarget?.name}
+        />
+      </Dialog>
+
+      {/* Lightbox / Full-size photo viewer */}
+      {previewPhoto && (
+        <Dialog
+          open={!!previewPhoto}
+          onClose={() => setPreviewPhoto(null)}
+          title={`Foto: ${previewPhoto.name}`}
+          footer={
+            <div style={{ display: "flex", justifyContent: "space-between", width: "100%", alignItems: "center" }}>
+              <a
+                href={formatPhotoUrl(previewPhoto.previewUrl)}
+                target="_blank"
+                rel="noreferrer"
+                className="btn btn-secondary btn-sm"
+                style={{ textDecoration: "none" }}
+              >
+                Buka Resolusi Penuh ↗
+              </a>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => setPreviewPhoto(null)}
+              >
+                Tutup
+              </button>
+            </div>
+          }
+        >
+          <div
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 8,
-              padding: "10px 14px",
-              border: "1px dashed var(--color-border)",
+              justifyContent: "center",
+              background: "var(--color-bg-wash, #0f172a)",
               borderRadius: "var(--radius-md)",
-              cursor: "pointer",
-              fontSize: 12,
-              fontWeight: 500,
-              color: "var(--color-text-secondary)",
-              transition: "border-color 100ms",
+              padding: 8,
+              overflow: "hidden",
+              maxHeight: "70vh",
             }}
           >
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              multiple
-              style={{ display: "none" }}
-              onChange={(e) => handleFileAdd(e.target.files)}
-            />
-            📷 Add Photo
-          </label>
-        </div>
-      )}
-
-      {photos.length === 0 ? (
-        <p style={{ fontSize: 12, color: "var(--color-text-muted)", textAlign: "center", padding: 16 }}>
-          No photos attached yet.
-        </p>
-      ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))", gap: 8 }}>
-          {photos.map((photo) => (
-            <div
-              key={photo.id}
-              title={photo.name}
+            <img
+              src={formatPhotoUrl(previewPhoto.previewUrl)}
+              alt={previewPhoto.name}
               style={{
-                position: "relative",
-                borderRadius: "var(--radius-md)",
-                overflow: "hidden",
-                border: "1px solid var(--color-border)",
-                background: "var(--color-bg-wash)",
+                maxWidth: "100%",
+                maxHeight: "65vh",
+                objectFit: "contain",
+                borderRadius: "var(--radius-sm)",
+                display: "block",
               }}
-            >
-              <img
-                src={photo.previewUrl}
-                alt={photo.name}
-                style={{ width: "100%", height: 80, objectFit: "cover", display: "block" }}
-              />
-              {isController && (
-                <button
-                  type="button"
-                  onClick={() => setDeletePhotoTarget(photo)}
-                  style={{
-                    position: "absolute",
-                    top: 4,
-                    right: 4,
-                    width: 20,
-                    height: 20,
-                    borderRadius: "50%",
-                    background: "rgba(0,0,0,0.6)",
-                    color: "#fff",
-                    border: "none",
-                    cursor: "pointer",
-                    fontSize: 12,
-                    lineHeight: 1,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                  aria-label={`Remove ${photo.name}`}
-                  title="Hapus foto"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
+            />
+          </div>
+        </Dialog>
       )}
-
-      {/* Custom photo delete confirmation */}
-      <ConfirmDialog
-        open={!!deletePhotoTarget}
-        onClose={() => setDeletePhotoTarget(null)}
-        onConfirm={() => {
-          if (deletePhotoTarget) {
-            handleRemove(deletePhotoTarget.id, deletePhotoTarget.previewUrl);
-            setDeletePhotoTarget(null);
-          }
-        }}
-        title="Hapus Foto"
-        message="Hapus foto ini?"
-        confirmText="Hapus"
-        thumbnailUrl={deletePhotoTarget?.previewUrl}
-        photoName={deletePhotoTarget?.name}
-      />
-    </Dialog>
+    </>
   );
 }

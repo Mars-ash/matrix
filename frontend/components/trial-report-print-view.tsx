@@ -7,6 +7,7 @@ import {
   formatDateDDMMYYYY,
 } from "@/lib/trial-report";
 import type { TrialSession, TrialTextEntry, JO, CompanyEntity } from "@/lib/types";
+import { formatPhotoUrl } from "@/lib/format";
 
 function renderEntries(entries: TrialTextEntry[]) {
   if (entries.length === 0) {
@@ -22,7 +23,7 @@ function renderEntries(entries: TrialTextEntry[]) {
               {entry.photos.map((ph) => (
                 <img
                   key={ph.id}
-                  src={ph.previewUrl}
+                  src={formatPhotoUrl(ph.previewUrl)}
                   alt={ph.name}
                   className="trial-print-photo"
                 />
@@ -217,7 +218,7 @@ export function TrialReportPrintView({
                             {action.photos.map((ph) => (
                               <img
                                 key={ph.id}
-                                src={ph.previewUrl}
+                                src={formatPhotoUrl(ph.previewUrl)}
                                 alt={ph.name}
                                 className="trial-print-photo"
                               />
