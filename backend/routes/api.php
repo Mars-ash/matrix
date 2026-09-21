@@ -55,6 +55,7 @@ Route::middleware('auth.token')->group(function () {
         Route::post('/projects/{project}/jos', [JOController::class, 'store']);
         Route::delete('/jos/{jo}', [JOController::class, 'destroy']);
         Route::patch('/jos/{jo}/finish', [JOController::class, 'finish']);
+        Route::patch('/jos/{jo}/restore', [JOController::class, 'restore']);
 
         Route::post('/jos/{jo}/categories', [CategoryController::class, 'store']);
         Route::post('/categories/{category}/items', [ItemController::class, 'store']);

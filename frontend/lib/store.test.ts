@@ -2292,4 +2292,45 @@ describe("Trial sessions storage persistence and hydration", () => {
       expect(updatedCat.items.find((i) => itemIdsToDelete.includes(i.id))).toBeUndefined();
     });
   });
+
+  describe("FINISH_JO and RESTORE_JO", () => {
+    it("marks a JO as finished with finishDate", () => {
+      const p = state.projects[0];
+      const jo = p.jos[0];
+
+      const next = reducer(state, {
+        type: "FINISH_JO",
+        projectId: p.id,
+        joId: jo.id,
+      });
+
+      const updatedJo = next.projects[0].jos.find((j) => j.id === jo.id)!;
+      expect(updatedJo.finishDate).toBeDefined();
+      expect(updatedJo.activities[0].message).toContain("JO finished on");
+    });
+
+    it("restores a finished JO to active by clearing finishDate", () => {
+      const p = state.projects[0];
+      const jo = p.jos[0];
+
+      // 1. Finish
+      const finishedState = reducer(state, {
+        type: "FINISH_JO",
+        projectId: p.id,
+        joId: jo.id,
+      });
+      expect(finishedState.projects[0].jos.find((j) => j.id === jo.id)!.finishDate).toBeDefined();
+
+      // 2. Restore
+      const restoredState = reducer(finishedState, {
+        type: "RESTORE_JO",
+        projectId: p.id,
+        joId: jo.id,
+      });
+
+      const updatedJo = restoredState.projects[0].jos.find((j) => j.id === jo.id)!;
+      expect(updatedJo.finishDate).toBeUndefined();
+      expect(updatedJo.activities[0].message).toContain("JO restored to active");
+    });
+  });
 });

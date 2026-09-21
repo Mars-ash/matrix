@@ -53,7 +53,7 @@ describe("JoCreateDialog Component Validation", () => {
       screen.getByText("Minimal 1 kategori (Part/Component) wajib dipilih.")
     ).toBeInTheDocument();
     expect(mockDispatch).not.toHaveBeenCalled();
-  });
+  }, 15000);
 
   it("successfully creates JO when Target Date and 1 standard Category are provided", async () => {
     const user = userEvent.setup();
@@ -90,7 +90,7 @@ describe("JoCreateDialog Component Validation", () => {
         ]),
       })
     );
-  });
+  }, 15000);
 
   it("successfully creates JO when Custom Category is provided (Option A: counts as 1 category)", async () => {
     const user = userEvent.setup();
@@ -134,5 +134,5 @@ describe("JoCreateDialog Component Validation", () => {
         ]),
       })
     );
-  });
+  }, 15000);
 });

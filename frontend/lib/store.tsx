@@ -263,6 +263,11 @@ export type AppAction =
       joId: string;
     }
   | {
+      type: "RESTORE_JO";
+      projectId: string;
+      joId: string;
+    }
+  | {
       type: "UPDATE_ITEM_SUBCONT";
       projectId: string;
       joId: string;
@@ -1186,6 +1191,16 @@ function executeReducer(next: AppState, state: AppState, action: AppAction): App
       return next;
     }
 
+    case "RESTORE_JO": {
+      const project = next.projects.find((p) => p.id === action.projectId);
+      const jo = project?.jos.find((j) => j.id === action.joId);
+      if (!jo) return state;
+
+      jo.finishDate = undefined;
+      addActivity(jo, `JO restored to active from archive.`);
+      return next;
+    }
+
     case "UPDATE_ITEM_SUBCONT": {
       const project = next.projects.find((p) => p.id === action.projectId);
       const jo = project?.jos.find((j) => j.id === action.joId);
@@ -1941,6 +1956,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
       case "FINISH_JO":
         api.finishJO(action.joId).catch(() => {});
+        break;
+
+      case "RESTORE_JO":
+        api.restoreJO(action.joId).catch(() => {});
         break;
 
       case "UPDATE_ITEM_SUBCONT": {

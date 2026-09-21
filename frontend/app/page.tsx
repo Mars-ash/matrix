@@ -1,5 +1,6 @@
 "use client";
 import React, { useState } from "react";
+import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { JoCard } from "@/components/jo-card";
 import { JoCreateDialog } from "@/components/jo-create-dialog";
@@ -49,7 +50,16 @@ export default function DashboardPage() {
     }
   };
 
-  const filteredProjects = projects.map(p => {
+  const totalArchivedJos = projects.flatMap((p) => p.jos).filter((j) => Boolean(j.finishDate)).length;
+
+  const activeProjects = projects
+    .map((p) => {
+      const activeJos = p.jos.filter((jo) => !jo.finishDate);
+      return { ...p, jos: activeJos, totalOriginalJos: p.jos.length };
+    })
+    .filter((p) => p.totalOriginalJos === 0 || p.jos.length > 0);
+
+  const filteredProjects = activeProjects.map(p => {
     if (!searchQuery.trim()) return p;
     const q = searchQuery.toLowerCase();
     const projectMatches = p.name.toLowerCase().includes(q) ||
@@ -87,7 +97,7 @@ export default function DashboardPage() {
               marginTop: 2,
             }}
           >
-            {projects.length} project{projects.length !== 1 ? "s" : ""} · {allJos.length} JO{allJos.length !== 1 ? "s" : ""}
+            {activeProjects.length} project{activeProjects.length !== 1 ? "s" : ""} · {allJos.length} JO{allJos.length !== 1 ? "s" : ""}
             {totalProblems > 0 && (
               <span style={{ color: "var(--color-status-problem)", marginLeft: 8 }}>
                 {totalProblems} problem{totalProblems !== 1 ? "s" : ""}
@@ -96,7 +106,53 @@ export default function DashboardPage() {
           </p>
         </div>
         <div className="dashboard-controls">
-          {projects.length > 0 && (
+          <Link
+            href="/archive"
+            className="btn btn-secondary btn-sm"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              textDecoration: "none",
+              fontSize: 12,
+              padding: "4px 10px",
+              whiteSpace: "nowrap",
+            }}
+            title="Buka halaman arsip project & JO yang sudah selesai"
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              style={{ flexShrink: 0 }}
+            >
+              <polyline points="21 8 21 21 3 21 3 8" />
+              <rect x="1" y="3" width="22" height="5" />
+              <line x1="10" y1="12" x2="14" y2="12" />
+            </svg>
+            <span>Archive</span>
+            {totalArchivedJos > 0 && (
+              <span
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  background: "var(--color-bg-hover)",
+                  color: "var(--color-text)",
+                  padding: "1px 6px",
+                  borderRadius: "10px",
+                  marginLeft: 2,
+                }}
+              >
+                {totalArchivedJos}
+              </span>
+            )}
+          </Link>
+          {activeProjects.length > 0 && (
             <button
               type="button"
               className="btn btn-secondary btn-sm"
@@ -284,8 +340,10 @@ export default function DashboardPage() {
           }}
         >
           {projects.length === 0
-            ? "No projects yet. Create one to get started."
-            : "No projects or JOs match your search."}
+            ? "Belum ada project. Buat project baru untuk memulai."
+            : totalArchivedJos > 0 && activeProjects.length === 0
+              ? "Semua Job Order telah selesai dan tersimpan di Archive."
+              : "Tidak ada project atau JO yang sesuai dengan pencarian."}
         </div>
       )}
 

@@ -597,5 +597,44 @@ class ApiTest extends TestCase
             'COMPONENT STD',
         ], $orderedLabels);
     }
+
+    public function test_controller_can_finish_and_restore_jo(): void
+    {
+        $project = Project::create(['name' => 'Archive Test Project', 'customer' => 'Cust']);
+        $jo = $project->jos()->create(['jo_number' => 'JO-ARCHIVE-1', 'product' => 'Die', 'type' => 'PROGRESSIVE']);
+
+        // 1. Finish JO
+        $finishRes = $this->withHeader('Authorization', 'Bearer ' . $this->controllerToken)
+            ->patchJson("/api/jos/{$jo->id}/finish");
+        $finishRes->assertStatus(200);
+        $this->assertNotNull($jo->fresh()->finish_date);
+
+        // 2. Restore JO
+        $restoreRes = $this->withHeader('Authorization', 'Bearer ' . $this->controllerToken)
+            ->patchJson("/api/jos/{$jo->id}/restore");
+        $restoreRes->assertStatus(200);
+        $this->assertNull($jo->fresh()->finish_date);
+
+        $this->assertDatabaseHas('activities', [
+            'jo_id' => $jo->id,
+            'message' => "JO {$jo->jo_number} dikembalikan ke status aktif dari arsip.",
+        ]);
+    }
+
+    public function test_viewer_cannot_restore_jo(): void
+    {
+        $project = Project::create(['name' => 'Archive Viewer Test', 'customer' => 'Cust']);
+        $jo = $project->jos()->create([
+            'jo_number' => 'JO-ARCHIVE-2',
+            'product' => 'Die',
+            'type' => 'PROGRESSIVE',
+            'finish_date' => now()->format('Y-m-d'),
+        ]);
+
+        $res = $this->withHeader('Authorization', 'Bearer ' . $this->viewerToken)
+            ->patchJson("/api/jos/{$jo->id}/restore");
+        $res->assertStatus(403);
+        $this->assertNotNull($jo->fresh()->finish_date);
+    }
 }
 

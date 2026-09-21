@@ -92,9 +92,33 @@ class JOController extends Controller
         return response()->json([
             'data' => new JOResource($jo->load([
                 'categories.items.controls.poTracking',
+                'categories.items.controls.photos',
                 'activities',
             ])),
             'message' => 'Job Order finished successfully.',
+        ]);
+    }
+
+    public function restore(Request $request, JO $jo): JsonResponse
+    {
+        if (!$request->user()?->isController()) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
+        $jo->update(['finish_date' => null]);
+
+        Activity::create([
+            'jo_id' => $jo->id,
+            'message' => "JO {$jo->jo_number} dikembalikan ke status aktif dari arsip.",
+        ]);
+
+        return response()->json([
+            'data' => new JOResource($jo->load([
+                'categories.items.controls.poTracking',
+                'categories.items.controls.photos',
+                'activities',
+            ])),
+            'message' => 'Job Order restored to active successfully.',
         ]);
     }
 

@@ -118,6 +118,12 @@ export const api = {
     });
   },
 
+  async restoreJO(joId: string): Promise<{ data: JO; message: string }> {
+    return request<{ data: JO; message: string }>(`/jos/${joId}/restore`, {
+      method: "PATCH",
+    });
+  },
+
   async deleteJO(joId: string): Promise<{ message: string }> {
     return request<{ message: string }>(`/jos/${joId}`, {
       method: "DELETE",
