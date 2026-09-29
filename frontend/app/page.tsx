@@ -5,6 +5,7 @@ import { AppShell } from "@/components/app-shell";
 import { JoCard } from "@/components/jo-card";
 import { JoCreateDialog } from "@/components/jo-create-dialog";
 import { ProjectCreateDialog } from "@/components/project-create-dialog";
+import { ProjectEditDialog } from "@/components/project-edit-dialog";
 import { NewItemMenu } from "@/components/new-item-menu";
 import { NewDataDialog } from "@/components/new-data-dialog";
 import { ConfirmDialog } from "@/components/confirm-dialog";
@@ -12,9 +13,10 @@ import { useAppState, useAppDispatch } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
 import { joProblemCount } from "@/lib/progress";
 import type { Project, JO } from "@/lib/types";
+import { DashboardSkeleton } from "@/components/skeleton-loader";
 
 export default function DashboardPage() {
-  const { projects } = useAppState();
+  const { projects, isHydrated } = useAppState();
   const dispatch = useAppDispatch();
   const { isController } = useAuth();
   const [createOpen, setCreateOpen] = useState(false);
@@ -23,6 +25,7 @@ export default function DashboardPage() {
   const [newDataOpen, setNewDataOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [deleteProjectTarget, setDeleteProjectTarget] = useState<Project | null>(null);
+  const [editProjectTarget, setEditProjectTarget] = useState<Project | null>(null);
   const [deleteJoTarget, setDeleteJoTarget] = useState<{ projectId: string; jo: JO } | null>(null);
   const [collapsedProjectIds, setCollapsedProjectIds] = useState<Set<string>>(new Set());
 
@@ -82,6 +85,14 @@ export default function DashboardPage() {
   });
 
   const allJos = filteredProjects.flatMap((p) => p.jos);
+  if (isHydrated === false) {
+    return (
+      <AppShell breadcrumbs={[{ label: "Dashboard" }]}>
+        <DashboardSkeleton />
+      </AppShell>
+    );
+  }
+
   const totalProblems = allJos.reduce((sum, jo) => sum + joProblemCount(jo), 0);
 
   return (
@@ -237,53 +248,107 @@ export default function DashboardPage() {
                 {project.customer} · {project.jos.length} JO{project.jos.length !== 1 ? "s" : ""}
               </span>
               {isController && (
-                <button
-                  type="button"
-                  className="project-delete-btn"
-                  title={`Hapus project ${project.name}`}
-                  aria-label={`Hapus project ${project.name}`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setDeleteProjectTarget(project);
-                  }}
+                <div
                   style={{
                     marginLeft: "auto",
-                    background: "transparent",
-                    border: "none",
-                    cursor: "pointer",
-                    padding: "3px 6px",
-                    borderRadius: "var(--radius-sm)",
-                    color: "var(--color-text-muted)",
                     display: "inline-flex",
                     alignItems: "center",
                     gap: 4,
-                    fontSize: 11,
-                    transition: "color .1s, background .1s",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.color = "var(--color-status-problem)";
-                    e.currentTarget.style.background = "var(--color-status-problem-bg)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.color = "var(--color-text-muted)";
-                    e.currentTarget.style.background = "transparent";
                   }}
                 >
-                  <svg
-                    width="13"
-                    height="13"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
+                  <button
+                    type="button"
+                    className="project-edit-btn"
+                    title={`Edit nama project ${project.name}`}
+                    aria-label={`Edit nama project ${project.name}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditProjectTarget(project);
+                    }}
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      cursor: "pointer",
+                      padding: "3px 6px",
+                      borderRadius: "var(--radius-sm)",
+                      color: "var(--color-text-muted)",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4,
+                      fontSize: 11,
+                      transition: "color .1s, background .1s",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.color = "var(--color-accent)";
+                      e.currentTarget.style.background = "var(--color-bg-hover)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.color = "var(--color-text-muted)";
+                      e.currentTarget.style.background = "transparent";
+                    }}
                   >
-                    <polyline points="3 6 5 6 21 6" />
-                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                  </svg>
-                  <span>Hapus</span>
-                </button>
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
+                    </svg>
+                    <span>Edit</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="project-delete-btn"
+                    title={`Hapus project ${project.name}`}
+                    aria-label={`Hapus project ${project.name}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDeleteProjectTarget(project);
+                    }}
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      cursor: "pointer",
+                      padding: "3px 6px",
+                      borderRadius: "var(--radius-sm)",
+                      color: "var(--color-text-muted)",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4,
+                      fontSize: 11,
+                      transition: "color .1s, background .1s",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.color = "var(--color-status-problem)";
+                      e.currentTarget.style.background = "var(--color-status-problem-bg)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.color = "var(--color-text-muted)";
+                      e.currentTarget.style.background = "transparent";
+                    }}
+                  >
+                    <svg
+                      width="13"
+                      height="13"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <polyline points="3 6 5 6 21 6" />
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                    </svg>
+                    <span>Hapus</span>
+                  </button>
+                </div>
               )}
             </div>
 
@@ -367,6 +432,13 @@ export default function DashboardPage() {
       <NewDataDialog
         open={newDataOpen}
         onClose={() => setNewDataOpen(false)}
+      />
+
+      {/* Edit Project Name */}
+      <ProjectEditDialog
+        open={Boolean(editProjectTarget)}
+        project={editProjectTarget}
+        onClose={() => setEditProjectTarget(null)}
       />
 
       {/* Confirm Delete Project */}

@@ -70,6 +70,22 @@ def test_missing_column_line_is_not_invented(tmp_path):
     assert "unsupported_column_count" in {warning.code for warning in result.warnings}
 
 
+@pytest.mark.parametrize("stub", [3, 5, 7])
+@pytest.mark.parametrize("side", ["left", "top"])
+def test_leading_truncated_stub_cannot_hide_an_outer_cell(tmp_path, stub, side):
+    image = synthetic_table(7, 5, text=False)
+    image = image.crop(
+        (
+            124 - stub if side == "left" else 0,
+            80 - stub if side == "top" else 0,
+            image.width,
+            image.height,
+        )
+    )
+    _, result = detect(tmp_path, image)
+    assert result.grid is None
+
+
 def test_missing_outer_border_fails_safely(tmp_path):
     _, result = detect(tmp_path, synthetic_table(6, 3, missing_vertical=0))
     assert result.grid is None
@@ -227,7 +243,13 @@ def test_recovered_and_complete_tables_still_require_disambiguation(tmp_path):
 @pytest.mark.parametrize("side", ["right", "bottom"])
 def test_truncated_stub_cannot_disappear_into_a_supported_smaller_table(tmp_path, stub, side):
     image = synthetic_table(7, 5, text=False)
-    image = image.crop((0, 0, 624 + stub if side == "right" else image.width,
-                        248 + stub if side == "bottom" else image.height))
+    image = image.crop(
+        (
+            0,
+            0,
+            624 + stub if side == "right" else image.width,
+            248 + stub if side == "bottom" else image.height,
+        )
+    )
     _, result = detect(tmp_path, image)
     assert result.grid is None

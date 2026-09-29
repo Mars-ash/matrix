@@ -128,4 +128,65 @@ class OcrTest extends TestCase
 
         $response->assertStatus(403);
     }
+
+    public function test_ocr_automatically_falls_back_to_backup_key_when_primary_key_rate_limited(): void
+    {
+        Config::set('ocr.gemini_api_key', 'exhausted-primary-key');
+        Config::set('ocr.api_keys', ['exhausted-primary-key', 'valid-backup-key']);
+
+        Http::fake(function (\Illuminate\Http\Client\Request $request) {
+            $apiKey = $request->header('x-goog-api-key')[0] ?? '';
+
+            if ($apiKey === 'exhausted-primary-key') {
+                return Http::response([
+                    'error' => [
+                        'code' => 429,
+                        'message' => 'Resource has been exhausted (e.g. check quota).',
+                        'status' => 'RESOURCE_EXHAUSTED',
+                    ],
+                ], 429);
+            }
+
+            if ($apiKey === 'valid-backup-key') {
+                return Http::response([
+                    'candidates' => [
+                        [
+                            'content' => [
+                                'parts' => [
+                                    [
+                                        'text' => json_encode([
+                                            [
+                                                'no' => '01',
+                                                'description' => 'Backup Key Part',
+                                                'dimension' => '100 x 50',
+                                                'material' => 'SKD11',
+                                                'qty' => 2,
+                                                'hrc' => '58-60',
+                                            ],
+                                        ]),
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ], 200);
+            }
+
+            return Http::response([], 500);
+        });
+
+        $fakeImage = UploadedFile::fake()->image('drawing.jpg', 800, 600);
+
+        $response = $this->withHeader('Authorization', 'Bearer ' . $this->controllerToken)
+            ->post("/api/categories/{$this->category->id}/ocr-upload", [
+                'image' => $fakeImage,
+            ], ['Accept' => 'application/json']);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('provider', 'gemini')
+            ->assertJsonCount(1, 'items')
+            ->assertJsonPath('items.0.description', 'Backup Key Part');
+    }
 }
+

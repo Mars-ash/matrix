@@ -15,6 +15,10 @@ interface AuthContextType {
   switchRoleDemo: (role: UserRole) => void;
 }
 
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  (typeof window !== "undefined" ? "/api/backend" : "http://127.0.0.1:8000/api");
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -30,13 +34,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (storedToken && storedUser) {
         setToken(storedToken);
         setUser(JSON.parse(storedUser));
+        document.cookie = `matrix_token=${storedToken}; path=/; max-age=86400; SameSite=Lax`;
       } else {
         setToken(null);
         setUser(null);
+        document.cookie = "matrix_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax";
       }
     } catch {
       setToken(null);
       setUser(null);
+      document.cookie = "matrix_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax";
     } finally {
       setIsLoading(false);
     }
@@ -44,7 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (username: string, pass: string): Promise<boolean> => {
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/auth/login", {
+      const res = await fetch(`${API_BASE_URL}/auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -86,6 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setToken("demo-viewer-token");
         localStorage.setItem("matrix_auth_token", "demo-viewer-token");
         localStorage.setItem("matrix_auth_user", JSON.stringify(viewerUser));
+        document.cookie = "matrix_token=demo-viewer-token; path=/; max-age=86400; SameSite=Lax";
         return true;
       } else if (
         cleanUser === "matrix" ||
@@ -104,6 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setToken("demo-controller-token");
         localStorage.setItem("matrix_auth_token", "demo-controller-token");
         localStorage.setItem("matrix_auth_user", JSON.stringify(staffUser));
+        document.cookie = "matrix_token=demo-controller-token; path=/; max-age=86400; SameSite=Lax";
         return true;
       }
       return false;
@@ -112,9 +121,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = () => {
     try {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
       if (token && (token.startsWith("1|") || token?.startsWith("2|") || token.includes("|"))) {
-        fetch(`${apiBase}/auth/logout`, {
+        fetch(`${API_BASE_URL}/auth/logout`, {
           method: "POST",
           headers: {
             Authorization: `Bearer ${token}`,
@@ -125,12 +133,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       localStorage.removeItem("matrix_auth_token");
       localStorage.removeItem("matrix_auth_user");
-      document.cookie = "matrix_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+      document.cookie = "matrix_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax";
+      setUser(null);
+      setToken(null);
       if (typeof window !== "undefined") {
         window.location.replace("/login");
-      } else {
-        setUser(null);
-        setToken(null);
       }
     }
   };

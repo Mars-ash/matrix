@@ -43,10 +43,26 @@ export function ArchiveJoCard({
       style={{ textDecoration: "none", color: "inherit" }}
     >
       <div className="card" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {/* Top row: JO number + finish date badge + progress + restore button */}
+        {/* Top row: JO number + progress + finish date badge + restore button */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <span style={{ fontWeight: 600, fontSize: 14 }}>{jo.joNumber}</span>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span
+              style={{
+                fontSize: 12,
+                fontWeight: 600,
+                fontVariantNumeric: "tabular-nums",
+                color:
+                  progress === null
+                    ? "var(--color-text-muted)"
+                    : progress === 100
+                      ? "var(--color-status-done)"
+                      : "var(--color-text-secondary)",
+              }}
+            >
+              {pctText}
+            </span>
+
             {jo.finishDate && (
               <span
                 style={{
@@ -79,22 +95,6 @@ export function ArchiveJoCard({
                 <span>{formatFinishDate(jo.finishDate)}</span>
               </span>
             )}
-
-            <span
-              style={{
-                fontSize: 12,
-                fontWeight: 600,
-                fontVariantNumeric: "tabular-nums",
-                color:
-                  progress === null
-                    ? "var(--color-text-muted)"
-                    : progress === 100
-                      ? "var(--color-status-done)"
-                      : "var(--color-text-secondary)",
-              }}
-            >
-              {pctText}
-            </span>
 
             {onRestore && (
               <button

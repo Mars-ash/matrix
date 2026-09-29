@@ -6,7 +6,6 @@ const nextConfig: NextConfig = {
     : {}),
   allowedDevOrigins: [
     "*.trycloudflare.com",
-    "nature-stated-customs-conducted.trycloudflare.com",
     "localhost:3000",
     "127.0.0.1:3000",
   ],

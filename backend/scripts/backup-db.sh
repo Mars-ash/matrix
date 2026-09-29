@@ -15,7 +15,7 @@ DB_HOST="${DB_HOST:-postgres}"
 DB_PORT="${DB_PORT:-5432}"
 DB_NAME="${DB_DATABASE:-matrix}"
 DB_USER="${DB_USERNAME:-postgres}"
-export PGPASSWORD="${DB_PASSWORD:-marsx}"
+export PGPASSWORD="${DB_PASSWORD:-}"
 
 echo "[$(date)] Starting PostgreSQL backup for database '${DB_NAME}'..."
 

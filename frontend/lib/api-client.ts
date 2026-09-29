@@ -33,7 +33,9 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
 
   let token: string | null = null;
   if (typeof window !== "undefined") {
-    token = localStorage.getItem("matrix_auth_token") || "demo-prototype-token";
+    token =
+      localStorage.getItem("matrix_auth_token") ||
+      (process.env.NODE_ENV !== "production" ? "demo-prototype-token" : null);
   }
 
   const headers: HeadersInit = {
@@ -82,6 +84,20 @@ export const api = {
 
   async getProject(projectId: string): Promise<{ data: Project }> {
     return request<{ data: Project }>(`/projects/${projectId}`);
+  },
+
+  async updateProject(
+    projectId: string,
+    payload: {
+      name?: string;
+      customer?: string;
+      company?: CompanyEntity;
+    }
+  ): Promise<{ data: Project; message: string }> {
+    return request<{ data: Project; message: string }>(`/projects/${projectId}`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    });
   },
 
   async deleteProject(projectId: string): Promise<{ message: string }> {
@@ -486,7 +502,8 @@ export const api = {
     formData.append("photo", file);
 
     const token =
-      (typeof window !== "undefined" && localStorage.getItem("matrix_auth_token")) || "demo-prototype-token";
+      (typeof window !== "undefined" && localStorage.getItem("matrix_auth_token")) ||
+      (process.env.NODE_ENV !== "production" ? "demo-prototype-token" : null);
     const res = await fetch(`${API_BASE_URL}/controls/${controlId}/photos`, {
       method: "POST",
       headers: {
@@ -519,7 +536,8 @@ export const api = {
     formData.append("image", file);
 
     const token =
-      (typeof window !== "undefined" && localStorage.getItem("matrix_auth_token")) || "demo-prototype-token";
+      (typeof window !== "undefined" && localStorage.getItem("matrix_auth_token")) ||
+      (process.env.NODE_ENV !== "production" ? "demo-prototype-token" : null);
     const res = await fetch(`${API_BASE_URL}/categories/${categoryId}/ocr-upload`, {
       method: "POST",
       headers: {

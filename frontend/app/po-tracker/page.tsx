@@ -7,6 +7,7 @@ import { AppShell } from "@/components/app-shell";
 import { Dialog } from "@/components/dialog";
 import { EmptyState } from "@/components/empty-state";
 import { StatusSelect } from "@/components/status-select";
+import { TrackerTableSkeleton } from "@/components/skeleton-loader";
 import { useAppDispatch, useAppState } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
 import { PO_SUPPLIERS, type ControlStatus, type PoTracking } from "@/lib/types";
@@ -41,7 +42,7 @@ function deadlineColor(state: "overdue" | "today" | "soon") {
 }
 
 function PoTrackerContent() {
-  const { projects } = useAppState();
+  const { projects, isHydrated } = useAppState();
   const dispatch = useAppDispatch();
   const { isController, isViewer } = useAuth();
   const searchParams = useSearchParams();
@@ -488,6 +489,14 @@ function PoTrackerContent() {
     );
   };
 
+  if (isHydrated === false) {
+    return (
+      <AppShell breadcrumbs={[{ label: "PO Tracker" }]}>
+        <TrackerTableSkeleton title="PO Tracker" />
+      </AppShell>
+    );
+  }
+
   return (
     <AppShell breadcrumbs={[{ label: "PO Tracker" }]}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 12 }}>
@@ -737,7 +746,13 @@ function PoTrackerContent() {
 
 export default function PoTrackerPage() {
   return (
-    <Suspense fallback={<div style={{ padding: 24, fontSize: 13, color: "var(--color-text-muted)" }}>Loading PO Tracker...</div>}>
+    <Suspense
+      fallback={
+        <AppShell breadcrumbs={[{ label: "PO Tracker" }]}>
+          <TrackerTableSkeleton title="PO Tracker" />
+        </AppShell>
+      }
+    >
       <PoTrackerContent />
     </Suspense>
   );

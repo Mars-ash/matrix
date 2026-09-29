@@ -62,3 +62,36 @@ def test_empty_input_has_no_invented_fallback(field):
 def test_unrecognized_field_is_rejected():
     with pytest.raises(ValueError, match="field"):
         normalize_value("invented", "text")
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("1R / 1L", "1R / 1L"),
+        ("1R/1L", "1R / 1L"),
+        ("2L / 3R", "2L / 3R"),
+        (" 02R / 01L ", "02R / 01L"),
+    ],
+)
+def test_sided_quantity_preserves_counts_labels_and_order(raw, expected):
+    assert normalize_value("qty", raw) == expected
+
+
+@pytest.mark.parametrize(
+    "raw",
+    [
+        "0R/1L",
+        "1R/0L",
+        "1R/1R",
+        "1L/2L",
+        "1R/",
+        "1/1L",
+        "1R+1L",
+        "1R/1l",
+        "1R/1L/1R",
+        "1 R / 1 L",
+        "1.5R/1L",
+    ],
+)
+def test_sided_quantity_does_not_guess_missing_or_ambiguous_labels(raw):
+    assert normalize_value("qty", raw) is None

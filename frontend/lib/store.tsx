@@ -41,6 +41,7 @@ export type TrialEntrySection = "problems" | "causes" | "correctiveActions";
 // ---------------------------------------------------------------------------
 export interface AppState {
   projects: Project[];
+  isHydrated?: boolean;
 }
 
 export const PROJECTS_CACHE_KEY = "matrix_projects_cache";
@@ -61,6 +62,7 @@ export function getCachedProjects(): Project[] | null {
 
 const initialState: AppState = {
   projects: structuredClone(INITIAL_PROJECTS),
+  isHydrated: true,
 };
 
 // ---------------------------------------------------------------------------
@@ -126,6 +128,13 @@ export type AppAction =
       joType: JoType;
       targetDate?: string;
       categories: { label: string; kind: CategoryKind; isCustom: boolean }[];
+    }
+  | {
+      type: "UPDATE_PROJECT";
+      projectId: string;
+      name?: string;
+      customer?: string;
+      company?: CompanyEntity;
     }
   | {
       type: "DELETE_PROJECT";
@@ -546,11 +555,18 @@ function executeReducer(next: AppState, state: AppState, action: AppAction): App
 
   switch (action.type) {
     case "HYDRATE_PROJECTS": {
+      const stored = typeof window !== "undefined" ? loadTrialSessionsFromStorage() : {};
+      const projectsWithTrials =
+        Object.keys(stored).length > 0
+          ? hydrateTrialSessions(action.projects, stored)
+          : action.projects;
       return {
         ...state,
-        projects: action.projects,
+        projects: projectsWithTrials,
+        isHydrated: true,
       };
     }
+
 
     case "SET_PROJECTS": {
       const storedTrials = loadTrialSessionsFromStorage();
@@ -596,6 +612,7 @@ function executeReducer(next: AppState, state: AppState, action: AppAction): App
           };
         }),
       }));
+      next.isHydrated = true;
       return next;
     }
 
@@ -700,16 +717,11 @@ function executeReducer(next: AppState, state: AppState, action: AppAction): App
       if (!cat) return state;
 
       if (action.tempItemIds && action.tempItemIds.length > 0) {
-        cat.items = cat.items.filter((i) => !action.tempItemIds?.includes(i.id));
+        const tempSet = new Set(action.tempItemIds);
+        cat.items = cat.items.filter((i) => !tempSet.has(i.id));
       }
       for (const item of action.items) {
-        const idx = cat.items.findIndex(
-          (i) =>
-            i.id === item.id ||
-            (action.tempItemIds && action.tempItemIds.includes(i.id)) ||
-            (i.description?.trim().toLowerCase() === item.description?.trim().toLowerCase() &&
-              i.no?.trim() === item.no?.trim())
-        );
+        const idx = cat.items.findIndex((i) => i.id === item.id);
         if (idx !== -1) {
           cat.items[idx] = item;
         } else {
@@ -728,6 +740,15 @@ function executeReducer(next: AppState, state: AppState, action: AppAction): App
         jos: [],
       };
       next.projects.push(newProj);
+      return next;
+    }
+
+    case "UPDATE_PROJECT": {
+      const project = next.projects.find((p) => p.id === action.projectId);
+      if (!project) return state;
+      if (action.name !== undefined) project.name = action.name;
+      if (action.customer !== undefined) project.customer = action.customer;
+      if (action.company !== undefined) project.company = action.company;
       return next;
     }
 
@@ -1164,7 +1185,10 @@ function executeReducer(next: AppState, state: AppState, action: AppAction): App
             }
             const arrivalCtrl = item.controls.find((c) => c.process === "Arrival");
             if (arrivalCtrl) {
-              arrivalCtrl.status = "Not Started";
+              arrivalCtrl.status = "In Progress";
+              arrivalCtrl.inProgressAt = action.poDate
+                ? new Date(action.poDate).toISOString()
+                : new Date().toISOString();
               if (action.targetArrival) {
                 arrivalCtrl.targetDate = action.targetArrival.trim();
               }
@@ -1706,22 +1730,13 @@ function reducer(state: AppState, action: AppAction): AppState {
 const StateContext = createContext<AppState>(initialState);
 const DispatchContext = createContext<Dispatch<AppAction>>(() => {});
 
+const storeProviderInitialState: AppState = {
+  projects: [],
+  isHydrated: false,
+};
+
 export function StoreProvider({ children }: { children: ReactNode }) {
-  const [state, rawDispatch] = useReducer(
-    reducer,
-    initialState,
-    (init) => {
-      const cached = getCachedProjects();
-      if (cached && cached.length > 0) {
-        return { ...init, projects: cached };
-      }
-      // In browser: never fall back to old prototype mock data; show empty/loading until API loads
-      if (typeof window !== "undefined") {
-        return { ...init, projects: [] };
-      }
-      return init;
-    }
-  );
+  const [state, rawDispatch] = useReducer(reducer, storeProviderInitialState);
 
   const isHydratedRef = React.useRef(false);
 
@@ -1733,9 +1748,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const cached = getCachedProjects();
     if (cached && cached.length > 0) {
       rawDispatch({ type: "HYDRATE_PROJECTS", projects: cached });
+    } else {
+      rawDispatch({ type: "HYDRATE_PROJECTS", projects: [] });
     }
+    rawDispatch({ type: "HYDRATE_TRIAL_STORAGE" });
     isHydratedRef.current = true;
   }, []);
+
 
   // Save current projects to localStorage whenever state changes
   useEffect(() => {
@@ -1824,6 +1843,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           })
           .catch((err) => {
             // Keep silent or debug log
+          });
+        break;
+
+      case "UPDATE_PROJECT":
+        api
+          .updateProject(action.projectId, {
+            name: action.name,
+            customer: action.customer,
+            company: action.company,
+          })
+          .catch((err) => {
+            console.warn("Failed to update project in database:", err?.message || err);
           });
         break;
 
@@ -2032,6 +2063,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             console.warn("Failed to update control status in database:", err?.message || err);
           });
         }
+        if (action.status === "In Progress SC" && it?.id) {
+          api.updateItemSubcont(it.id, {
+            isSubcont: true,
+            subcontProcess: action.process,
+            subcontStatus: "In Progress",
+          }).catch((err) => {
+            console.warn("Failed to update item subcont in database:", err?.message || err);
+          });
+        }
         break;
       }
 
@@ -2060,6 +2100,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             .catch((err) => {
               console.warn("Failed to update PO tracking in database:", err?.message || err);
             });
+
+          const arrivalCtrl = it?.controls.find((c) => c.process === "Arrival");
+          if (arrivalCtrl?.id && action.status) {
+            api.updateControlStatus(arrivalCtrl.id, action.status, action.problemNotes).catch(() => {});
+          }
+          if (arrivalCtrl?.id && action.tracking.targetArrival) {
+            api.updateControlTargetDate(arrivalCtrl.id, action.tracking.targetArrival).catch(() => {});
+          }
         }
         break;
       }

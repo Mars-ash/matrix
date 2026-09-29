@@ -7,6 +7,7 @@ from dataclasses import replace
 
 from .config import LabConfig
 from .models import BomRow, RecognizedCell, Warning, _confidence
+from .normalization import normalize_sided_quantity
 
 _ITEM_NUMBER = re.compile(r"(?:[0-9]+[A-Za-z]*|S[0-9]+[A-Za-z]*|-)")
 _HRC = re.compile(r"([0-9]+(?:\.[0-9]+)?)(?:-([0-9]+(?:\.[0-9]+)?))?(?: HRC)?")
@@ -69,8 +70,18 @@ def validate_row(
                 field,
             )
         if field == "qty":
-            if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
-                flag("invalid_qty", "Quantity must be an unambiguous positive whole number.", field)
+            if isinstance(value, str) and normalize_sided_quantity(value) is not None:
+                flag(
+                    "sided_quantity",
+                    "Confirm the separate R/L quantities against the source.",
+                    field,
+                )
+            elif isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+                flag(
+                    "invalid_qty",
+                    "Quantity must be a positive integer or an explicit R/L pair.",
+                    field,
+                )
         elif empty:
             if field != "remark":
                 flag(

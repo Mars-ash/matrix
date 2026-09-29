@@ -9,6 +9,7 @@ import { SUBCONT_SUPPLIERS } from "@/lib/types";
 import { EmptyState } from "@/components/empty-state";
 import { Dialog } from "@/components/dialog";
 import { StatusSelect } from "@/components/status-select";
+import { TrackerTableSkeleton } from "@/components/skeleton-loader";
 import { useAuth } from "@/lib/auth";
 
 interface SubcontRow {
@@ -57,7 +58,7 @@ function formatDate(isoString?: string) {
 }
 
 function SubcontTrackingContent() {
-  const { projects } = useAppState();
+  const { projects, isHydrated } = useAppState();
   const dispatch = useAppDispatch();
   const searchParams = useSearchParams();
   const { isController, isViewer } = useAuth();
@@ -649,9 +650,16 @@ function SubcontTrackingContent() {
         </div>
       );
     }
-
     return null;
   };
+
+  if (isHydrated === false) {
+    return (
+      <AppShell breadcrumbs={[{ label: "Subcont Tracker" }]}>
+        <TrackerTableSkeleton title="Subcont Tracker" />
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell breadcrumbs={[{ label: "Subcont Tracker" }]}>
@@ -955,8 +963,15 @@ function SubcontTrackingContent() {
 
 export default function SubcontTrackingPage() {
   return (
-    <Suspense fallback={<div style={{ padding: 24, fontSize: 13, color: "var(--color-text-muted)" }}>Loading Subcont Tracker...</div>}>
+    <Suspense
+      fallback={
+        <AppShell breadcrumbs={[{ label: "Subcont Tracker" }]}>
+          <TrackerTableSkeleton title="Subcont Tracker" />
+        </AppShell>
+      }
+    >
       <SubcontTrackingContent />
     </Suspense>
   );
 }
+

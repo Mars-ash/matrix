@@ -11,6 +11,7 @@ import { JoItemSearch } from "@/components/jo-item-search";
 import { Dialog } from "@/components/dialog";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { ItemEditDialog } from "@/components/item-edit-dialog";
+import { JoDetailSkeleton } from "@/components/skeleton-loader";
 import { useAppState, useAppDispatch } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
 import { joProgress, joProblemCount, categoryProgress } from "@/lib/progress";
@@ -23,6 +24,9 @@ interface PageProps {
 }
 
 const BULK_PROCESS_OPTIONS = [
+  { value: "Material", label: "Material" },
+  { value: "PO", label: "PO" },
+  { value: "Arrival", label: "Arrival" },
   { value: "Machining", label: "Machining" },
   { value: "Hardening", label: "Hardening" },
   { value: "Grinding", label: "Grinding" },
@@ -58,6 +62,13 @@ export default function JoDetailPage({ params }: PageProps) {
   const [bulkSubcontProcess, setBulkSubcontProcess] = useState("Machining");
   const [bulkSubcontSupplier, setBulkSubcontSupplier] = useState("");
   const [bulkSubcontArrivalDate, setBulkSubcontArrivalDate] = useState("");
+
+  // Kirim Subcont states (for both bulk and single item trigger)
+  const [singleSubcontItem, setSingleSubcontItem] = useState<{
+    categoryId: string;
+    item: Item;
+    process: string;
+  } | null>(null);
 
   // Kirim PO states (for both bulk and single item trigger)
   const [singlePoItem, setSinglePoItem] = useState<{
@@ -154,12 +165,29 @@ export default function JoDetailPage({ params }: PageProps) {
     setActiveBulkModal("po");
   }, []);
 
+  const handleRequestSendSubcont = useCallback(
+    (payload: { categoryId: string; item: Item; process: string }) => {
+      const { item, process } = payload;
+      const arrivalCtrl = item.controls.find((c) => c.process === "Arrival");
+      setBulkSubcontProcess(process || "Machining");
+      setBulkSubcontSupplier(item.subcontSupplier || "");
+      setBulkSubcontArrivalDate(item.arrivalTargetDate || arrivalCtrl?.targetDate || "");
+      setSingleSubcontItem(payload);
+    },
+    []
+  );
+
+  const handleOpenBulkSubcontModal = useCallback(() => {
+    setBulkSubcontProcess("Machining");
+    setBulkSubcontSupplier("");
+    setBulkSubcontArrivalDate("");
+    setActiveBulkModal("subcont");
+  }, []);
+
   if (!project || !jo) {
     return (
       <AppShell breadcrumbs={[{ label: "Job Order" }]}>
-        <div style={{ padding: 40, textAlign: "center", color: "var(--color-text-muted)" }}>
-          <p>Loading Job Order...</p>
-        </div>
+        <JoDetailSkeleton />
       </AppShell>
     );
   }
@@ -429,6 +457,7 @@ export default function JoDetailPage({ params }: PageProps) {
               onToggleSelectItem={handleToggleSelectItem}
               onToggleSelectAllCategory={handleToggleSelectAllCategory}
               onRequestSendPo={handleRequestSendPo}
+              onRequestSendSubcont={handleRequestSendSubcont}
               onEditItem={(item) => setEditingItem({ item, categoryId: cat.id })}
               onDeleteItem={(item) => setDeletingItem({ item, categoryId: cat.id })}
             />
@@ -586,7 +615,7 @@ export default function JoDetailPage({ params }: PageProps) {
             <button
               type="button"
               className="btn btn-secondary btn-sm bulk-action-btn"
-              onClick={() => setActiveBulkModal("subcont")}
+              onClick={handleOpenBulkSubcontModal}
             >
               Kirim Subcont
             </button>
@@ -903,33 +932,62 @@ export default function JoDetailPage({ params }: PageProps) {
         </div>
       </Dialog>
 
-      {/* Bulk Subcont Dialog */}
+      {/* Subcont Dialog (Bulk & Single Item) */}
       <Dialog
-        open={activeBulkModal === "subcont"}
-        onClose={() => setActiveBulkModal(null)}
-        title="Kirim ke Subcont (Bulk Dispatch)"
+        open={activeBulkModal === "subcont" || singleSubcontItem !== null}
+        onClose={() => {
+          setActiveBulkModal(null);
+          setSingleSubcontItem(null);
+        }}
+        title={
+          singleSubcontItem
+            ? `Kirim ke Subcont — ${singleSubcontItem.item.description} (${singleSubcontItem.process})`
+            : `Kirim ke Subcont (Bulk — ${selectedItemIds.length} Part Terpilih)`
+        }
         footer={
           <>
-            <button className="btn btn-secondary" onClick={() => setActiveBulkModal(null)}>
+            <button
+              className="btn btn-secondary"
+              onClick={() => {
+                setActiveBulkModal(null);
+                setSingleSubcontItem(null);
+              }}
+            >
               Batal
             </button>
             <button
               className="btn btn-primary"
+              disabled={!bulkSubcontSupplier}
               onClick={() => {
-                dispatch({
-                  type: "BULK_SEND_SUBCONT",
-                  projectId,
-                  joId,
-                  itemIds: selectedItemIds,
-                  process: bulkSubcontProcess,
-                  supplier: bulkSubcontSupplier,
-                  arrivalTargetDate: bulkSubcontArrivalDate,
-                });
-                setActiveBulkModal(null);
-                setSelectedItemIds([]);
+                if (singleSubcontItem) {
+                  dispatch({
+                    type: "BULK_SEND_SUBCONT",
+                    projectId,
+                    joId,
+                    itemIds: [singleSubcontItem.item.id],
+                    process: bulkSubcontProcess,
+                    supplier: bulkSubcontSupplier,
+                    arrivalTargetDate: bulkSubcontArrivalDate,
+                  });
+                  setSingleSubcontItem(null);
+                } else if (activeBulkModal === "subcont") {
+                  dispatch({
+                    type: "BULK_SEND_SUBCONT",
+                    projectId,
+                    joId,
+                    itemIds: selectedItemIds,
+                    process: bulkSubcontProcess,
+                    supplier: bulkSubcontSupplier,
+                    arrivalTargetDate: bulkSubcontArrivalDate,
+                  });
+                  setActiveBulkModal(null);
+                  setSelectedItemIds([]);
+                }
               }}
             >
-              Kirim ke Subcont ({selectedItemIds.length} Part)
+              {singleSubcontItem
+                ? "Simpan & Kirim ke Subcont"
+                : `Kirim ke Subcont (${selectedItemIds.length} Part)`}
             </button>
           </>
         }
@@ -937,25 +995,41 @@ export default function JoDetailPage({ params }: PageProps) {
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <div>
             <label className="label">Proses Subcont</label>
-            <select
-              className="select"
-              value={bulkSubcontProcess}
-              onChange={(e) => setBulkSubcontProcess(e.target.value)}
-            >
-              <option value="Machining">Machining</option>
-              <option value="Hardening">Hardening</option>
-              <option value="Wirecut">Wirecut</option>
-            </select>
+            {singleSubcontItem ? (
+              <input
+                type="text"
+                className="input"
+                value={bulkSubcontProcess}
+                disabled
+                style={{ opacity: 0.85, cursor: "not-allowed", backgroundColor: "var(--color-bg-muted)" }}
+              />
+            ) : (
+              <select
+                className="select"
+                value={bulkSubcontProcess}
+                onChange={(e) => setBulkSubcontProcess(e.target.value)}
+              >
+                <option value="Machining">Machining</option>
+                <option value="Hardening">Hardening</option>
+                <option value="Wirecut">Wirecut</option>
+              </select>
+            )}
           </div>
 
           <div>
-            <label className="label">Pilih Supplier / Vendor</label>
+            <label className="label">
+              Pilih Supplier / Vendor <span style={{ color: "var(--color-status-problem)" }}>*</span>
+            </label>
             <select
               className="select"
               value={bulkSubcontSupplier}
               onChange={(e) => setBulkSubcontSupplier(e.target.value)}
+              autoFocus
             >
               <option value="">— Pilih Supplier —</option>
+              {bulkSubcontSupplier && !(SUBCONT_SUPPLIERS as readonly string[]).includes(bulkSubcontSupplier) && (
+                <option value={bulkSubcontSupplier}>{bulkSubcontSupplier}</option>
+              )}
               {SUBCONT_SUPPLIERS.map((sup) => (
                 <option key={sup} value={sup}>{sup}</option>
               ))}
@@ -963,7 +1037,7 @@ export default function JoDetailPage({ params }: PageProps) {
           </div>
 
           <div>
-            <label className="label">Estimasi Target Kembali (Arrival)</label>
+            <label className="label">Target Kembali (Arrival)</label>
             <input
               type="date"
               className="input"

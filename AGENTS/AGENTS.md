@@ -30,9 +30,10 @@ Use the smallest relevant set of skills.
 - Laravel: prefer Laravel Boost.
 - Next.js/React: use the relevant React/Next.js best-practices skills.
 - UI/UX: use `frontend-design` and `web-design-guidelines`.
+- OCR Lab / Python: use `python-testing-patterns`, `python-performance-optimization`, `python-packaging`, and `fastapi` when working on OCR extraction, benchmarking, packaging, or the internal service facade.
 - Planning: use `brainstorming` and `writing-plans`.
 - Debugging: use `systematic-debugging`.
-- Testing: use `test-driven-development`.
+- Testing: use `test-driven-development`, `python-testing-patterns`, and `playwright-best-practices` as appropriate.
 - Code review: use `requesting-code-review`.
 - API, Docker, and CI/CD skills: use when relevant.
 
@@ -53,6 +54,13 @@ Backend:
 - REST API
 - Eloquent ORM
 
+OCR Lab / Python (Local BOM Extraction & Service):
+
+- Python 3.11 (isolated `.venv`)
+- PaddleOCR / PaddlePaddle / OpenCV / Pillow
+- FastAPI / Uvicorn (internal service facade)
+- Pytest / Ruff
+
 Database:
 
 - PostgreSQL
@@ -62,7 +70,7 @@ Infrastructure:
 - Docker
 - CI/CD
 
-Do not introduce another backend framework or ORM unless explicitly requested.
+Do not introduce another backend framework or ORM for the primary web backend unless explicitly requested (Laravel is the primary web backend; FastAPI is strictly for the internal OCR Lab service facade).
 
 Do not introduce Prisma for the Laravel backend.
 
@@ -75,16 +83,19 @@ Next.js
     │
     │ HTTP / REST API
     ▼
-Laravel
-    │
+Laravel ────────────► OCR Lab (Python / FastAPI)
+    │     Internal    (Local CPU BOM Extraction)
+    │     HTTP API
     │ Eloquent
     ▼
 PostgreSQL
 ```
 
-Next.js must not connect directly to PostgreSQL.
+Next.js must not connect directly to PostgreSQL or the OCR Lab.
 
 Database access belongs to Laravel.
+
+OCR extraction requests pass through Laravel, which validates uploads, delegates to OCR Lab (or explicit fallback), and stores structured results for user review.
 
 Business logic and sensitive operations belong to the backend unless there is a clear architectural reason otherwise.
 
@@ -101,6 +112,9 @@ SSH private keys
 cloud credentials
 Docker credentials
 Git credentials
+ocr-lab/data/private/
+ocr-lab/model-cache/
+ocr-lab/.venv/
 ```
 
 Do not install or execute untrusted Agent Skills without following the security audit process in `AGENT_SKILLS.md`.

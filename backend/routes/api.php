@@ -51,6 +51,7 @@ Route::middleware('auth.token')->group(function () {
     // Mutating endpoints (Strictly restricted to 'controller' role)
     Route::middleware('role.controller')->group(function () {
         Route::post('/projects', [ProjectController::class, 'store']);
+        Route::put('/projects/{project}', [ProjectController::class, 'update']);
         Route::delete('/projects/{project}', [ProjectController::class, 'destroy']);
         Route::post('/projects/{project}/jos', [JOController::class, 'store']);
         Route::delete('/jos/{jo}', [JOController::class, 'destroy']);

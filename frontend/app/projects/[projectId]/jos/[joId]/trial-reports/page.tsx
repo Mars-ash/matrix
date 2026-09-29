@@ -14,6 +14,7 @@ import {
 } from "@/lib/trial-report";
 import type { TrialSession } from "@/lib/types";
 import { useAuth } from "@/lib/auth";
+import { TrialReportSkeleton } from "@/components/skeleton-loader";
 
 interface PageProps {
   params: Promise<{ projectId: string; joId: string }>;
@@ -21,7 +22,7 @@ interface PageProps {
 
 export default function TrialReportsPage({ params }: PageProps) {
   const { projectId, joId } = use(params);
-  const { projects } = useAppState();
+  const { projects, isHydrated } = useAppState();
   const dispatch = useAppDispatch();
   const { isController, isViewer } = useAuth();
 
@@ -37,13 +38,17 @@ export default function TrialReportsPage({ params }: PageProps) {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
 
-  // Keep selection valid
-  const selectedSession = sessions.find((s) => s.id === selectedId) ?? null;
-  useEffect(() => {
-    if ((!selectedId || !sessions.some((s) => s.id === selectedId)) && sessions.length > 0) {
-      setSelectedId(sessions[0].id);
+  // Active session ID: immediately fall back to sessions[0] without waiting for a re-render
+  const activeSessionId = useMemo(() => {
+    if (selectedId && sessions.some((s) => s.id === selectedId)) {
+      return selectedId;
     }
+    return sessions.length > 0 ? sessions[0].id : null;
   }, [selectedId, sessions]);
+
+  const selectedSession = useMemo(() => {
+    return sessions.find((s) => s.id === activeSessionId) ?? null;
+  }, [sessions, activeSessionId]);
 
   // Handle smart search jump to session and finding
   const handleSmartSearchSelect = useCallback(
@@ -132,12 +137,12 @@ export default function TrialReportsPage({ params }: PageProps) {
       // Clean up print selection
       setPrintSelectedIds((prev) => prev.filter((id) => id !== sessionId));
       // If we deleted the selected one, select another
-      if (selectedId === sessionId) {
+      if (activeSessionId === sessionId) {
         const remaining = sessions.filter((s) => s.id !== sessionId);
         setSelectedId(remaining.length > 0 ? remaining[0].id : null);
       }
     },
-    [dispatch, projectId, joId, selectedId, sessions]
+    [dispatch, projectId, joId, activeSessionId, sessions]
   );
 
   const handleTogglePrintSelect = useCallback((sessionId: string) => {
@@ -148,12 +153,10 @@ export default function TrialReportsPage({ params }: PageProps) {
     );
   }, []);
 
-  if (!project || !jo) {
+  if (isHydrated === false || !project || !jo) {
     return (
       <AppShell breadcrumbs={[{ label: "Trial Reports" }]}>
-        <div style={{ padding: 40, textAlign: "center", color: "var(--color-text-muted)" }}>
-          <p>Loading Trial Reports...</p>
-        </div>
+        <TrialReportSkeleton />
       </AppShell>
     );
   }
@@ -202,7 +205,7 @@ export default function TrialReportsPage({ params }: PageProps) {
           projectId={projectId}
           joId={joId}
           sessions={sessions}
-          selectedId={selectedId}
+          selectedId={activeSessionId}
           onSelectSession={setSelectedId}
           printSelectedIds={printSelectedIds}
           onTogglePrintSelect={handleTogglePrintSelect}

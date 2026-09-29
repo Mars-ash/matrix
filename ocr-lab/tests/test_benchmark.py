@@ -144,6 +144,23 @@ def test_normalized_field_accuracy_is_separate_for_each_critical_field(tmp_path)
     assert any(item["field"] == "qty" for item in report.mismatches)
 
 
+@pytest.mark.parametrize("actual", [None, 2, "1L / 1R", "2R / 1L"])
+def test_sided_quantity_cannot_disappear_from_benchmark_denominator(tmp_path, actual):
+    root = corpus(tmp_path, rows=[ROW | {"qty": "1R / 1L"}])
+    report = run(root, lambda path: result(path, [ROW | {"qty": actual}]))
+    assert report.metrics.raw_counts["fields"]["qty"]["expected"] == 1
+    assert report.metrics.field_accuracy["qty"] == 0
+    assert "qty_accuracy" in report.failures
+    assert any(m["field"] == "qty" for m in report.mismatches)
+
+
+def test_sided_quantity_spacing_is_equivalent_but_not_summed(tmp_path):
+    root = corpus(tmp_path, rows=[ROW | {"qty": "1R/1L"}])
+    report = run(root, lambda path: result(path, [ROW | {"qty": "1R / 1L"}]))
+    assert report.metrics.raw_counts["fields"]["qty"]["expected"] == 1
+    assert report.metrics.field_accuracy["qty"] == 1
+
+
 def test_rows_are_positional_with_duplicate_ids_and_empty_rows_excluded(tmp_path):
     second = ROW | {"description": "Different"}
     empty = dict.fromkeys(FIELDS, None)

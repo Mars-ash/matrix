@@ -24,6 +24,10 @@ warnings and an empty row list; it never substitutes demonstration rows.
   are crop bounds, never evidence for an invented internal separator. White
   margins, interrupted crossing rules, thin stubs and implausibly tall final rows
   remain rejected. Multiple plausible grids are rejected.
+  The conservative stub check can also reject rasterized tables whose crossing
+  rules bleed one or two pixels past an otherwise complete outer border. These
+  false rejections remain an open geometry limitation; do not remove the check
+  without tests distinguishing bleed from a genuinely truncated outer cell.
 
 The original image is unchanged. Cell bounds refer to the original resolution
 after EXIF orientation, before resizing or deskewing.
@@ -108,9 +112,11 @@ Each output directory contains:
 
 Both row statuses require a human decision. `ready_for_review` does not mean
 approved for import. Values are normalized conservatively: leading zeros in IDs
-remain, quantities must be unambiguous positive integers, and missing values stay
-null. Low confidence, missing fields, duplicate IDs, malformed quantities, and
-uncertain dimensions/HRC produce review warnings.
+remain, quantities may be positive integers or explicit positive R/L pairs, and
+missing values stay null. A pair such as `1R / 1L` stays text with its counts,
+labels, and side order intact; it is never summed and always carries the
+`sided_quantity` review warning. Low confidence, missing fields, duplicate IDs,
+malformed quantities, and uncertain dimensions/HRC produce review warnings.
 
 Observed limitation: the synthetic demo's `Ø30x58` can be recognized as `030x58`.
 Leading-zero measurements are therefore flagged for review while their raw and
@@ -235,8 +241,12 @@ Threshold defaults are in `BenchmarkThresholds` in `src/bom_ocr/config.py`.
 Changing a threshold or model profile requires a new report and an explicit
 decision on whether it still meets the approved integration requirements.
 
-**Current release state:** the private corpus has not been supplied or benchmarked.
-MATRIX integration remains gated until actual evidence and user sign-off exist.
+**Current release state:** a private corpus is present, but human verification is
+incomplete and diagnostic measurement fails the accuracy/detection gates. Keep
+recovered OCR or AI-transcribed references marked `humanChecked: false` until a
+person checks them. An OCR failure on a visible table is not an intentional
+negative case. MATRIX integration remains gated until the complete representative
+corpus, no-egress evidence, passing measurements, and user sign-off exist.
 
 ### Local verification snapshot — 2026-09-16
 

@@ -152,3 +152,11 @@ def test_duplicates_flag_all_occurrences_preserve_order_and_leave_dash_ids_alone
 def test_distinct_leading_zero_ids_are_not_collapsed_into_duplicate_numbers():
     rows = (warnings_for(cells_for(no="04")), replace(warnings_for(cells_for(no="4")), index=1))
     assert all(row.status == "ready_for_review" for row in mark_duplicate_item_numbers(rows))
+
+
+def test_sided_quantity_is_preserved_and_requires_explicit_review():
+    row = warnings_for(cells_for(qty="1R/1L"))
+    assert row.cells["qty"].raw == "1R/1L"
+    assert row.cells["qty"].value == "1R / 1L"
+    assert row.status == "needs_review"
+    assert [(w.code, w.field) for w in row.warnings] == [("sided_quantity", "qty")]

@@ -6,6 +6,7 @@ import { AppShell } from "@/components/app-shell";
 import { TrialReportPrintView } from "@/components/trial-report-print-view";
 import { useAppState } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
+import { TrialReportSkeleton } from "@/components/skeleton-loader";
 
 interface PageProps {
   params: Promise<{ projectId: string; joId: string }>;
@@ -15,7 +16,7 @@ export default function TrialReportPrintPage({ params }: PageProps) {
   const { projectId, joId } = use(params);
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { projects } = useAppState();
+  const { projects, isHydrated } = useAppState();
   const { isViewer } = useAuth();
 
   useEffect(() => {
@@ -28,13 +29,15 @@ export default function TrialReportPrintPage({ params }: PageProps) {
     || projects.find((p) => p.jos.some((j) => j.id === joId || j.joNumber === joId));
   const jo = project?.jos.find((j) => j.id === joId || j.joNumber === joId);
 
-  if (!project || !jo) {
+  if (isHydrated === false || !project || !jo) {
     return (
-      <div style={{ padding: 40, textAlign: "center", color: "var(--color-text-muted)" }}>
-        <p>Loading Trial Reports Print View...</p>
-      </div>
+      <AppShell breadcrumbs={[{ label: "Trial Reports", href: `/projects/${projectId}/jos/${joId}/trial-reports` }, { label: "Print" }]}>
+        <TrialReportSkeleton />
+      </AppShell>
     );
   }
+
+
 
   if (isViewer) {
     return (

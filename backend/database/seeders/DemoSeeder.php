@@ -22,16 +22,21 @@ class DemoSeeder extends Seeder
 {
     public function run(): void
     {
+        if (app()->isProduction() && !env('FORCE_DEMO_SEEDER_IN_PRODUCTION', false)) {
+            $this->command?->warn('DemoSeeder is skipped in production. Use `php artisan user:create` to create production accounts.');
+            return;
+        }
+
         DB::transaction(function () {
             $now = Carbon::now();
 
-            // Default production users
+            // Default development/demo users
             User::updateOrCreate(
                 ['email' => 'engineering@matrix.com'],
                 [
                     'username' => 'matrix',
                     'name' => 'Staff Engineering',
-                    'password' => Hash::make('eng#1'),
+                    'password' => Hash::make(env('DEMO_STAFF_PASSWORD', 'eng#1')),
                     'role' => 'controller',
                 ]
             );
@@ -41,7 +46,7 @@ class DemoSeeder extends Seeder
                 [
                     'username' => 'matrix#1',
                     'name' => 'Viewer',
-                    'password' => Hash::make('matrix#1'),
+                    'password' => Hash::make(env('DEMO_VIEWER_PASSWORD', 'matrix#1')),
                     'role' => 'viewer',
                 ]
             );

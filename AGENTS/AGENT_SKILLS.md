@@ -218,11 +218,66 @@ Do not install a PostgreSQL skill merely because it exists.
 
 Do not introduce another ORM.
 
-The application backend uses Laravel/Eloquent for database access.
+---
+
+# 7. Python & OCR Lab Skills
+
+## FastAPI
+Repository:
+
+https://github.com/fastapi/fastapi
+
+Priority: REQUIRED (for OCR Lab HTTP service)
+
+Relevant skill:
+
+```text
+fastapi
+```
+
+Use when implementing or maintaining the internal OCR Lab HTTP service facade (`ocr-lab/src/bom_ocr/service.py`), Pydantic models, request validation, and streaming responses.
 
 ---
 
-# 7. Skill Compatibility
+## Python Development Skills
+Repository:
+
+https://github.com/wshobson/agents
+
+Priority: REQUIRED (for OCR Lab development)
+
+Relevant skills:
+
+```text
+python-testing-patterns
+python-performance-optimization
+python-packaging
+```
+
+- `python-testing-patterns`: Pytest test suite architecture, fixtures, test doubles, and synthetic/parameterized testing.
+- `python-performance-optimization`: Profiling CPU/memory bottlenecks, image processing performance (PaddleOCR/OpenCV), and pipeline latency reduction.
+- `python-packaging`: Managing `pyproject.toml`, console scripts, packaging, and optional dependency sets.
+
+---
+
+## Playwright Best Practices
+Repository:
+
+https://github.com/currents-dev/playwright-best-practices-skill
+
+Priority: RECOMMENDED
+
+Relevant skill:
+
+```text
+playwright-best-practices
+```
+
+Use when developing and maintaining end-to-end integration tests between frontend, backend, and OCR verification flows.
+
+---
+
+# 8. Skill Compatibility
 
 Prefer skills following the Agent Skills standard.
 
@@ -248,7 +303,7 @@ For each skill:
 
 ---
 
-# 8. Installation Location
+# 9. Installation Location
 
 Do NOT blindly hard-code a single skill directory.
 
@@ -270,7 +325,7 @@ If using the Vercel Skills CLI, prefer its current agent-specific options instea
 
 ---
 
-# 9. Vercel Skills CLI
+# 10. Vercel Skills CLI
 
 When appropriate, inspect available skills first:
 
@@ -296,7 +351,7 @@ npx skills --help
 
 ---
 
-# 10. Discovery Process
+# 11. Discovery Process
 
 Before installing a skill:
 
@@ -322,7 +377,7 @@ Never skip the audit step for third-party skills.
 
 ---
 
-# 11. Security Audit
+# 12. Security Audit
 
 Treat every Agent Skill as potentially executable developer tooling.
 
@@ -362,7 +417,7 @@ Do not execute unknown scripts merely to determine what they do.
 
 ---
 
-# 12. Secrets
+# 13. Secrets
 
 Never expose secrets to a skill.
 
@@ -384,7 +439,7 @@ Skills must not upload project secrets or source code to external services unles
 
 ---
 
-# 13. Existing Skills
+# 14. Existing Skills
 
 Before installing:
 
@@ -401,7 +456,7 @@ If the same skill exists in multiple repositories:
 
 ---
 
-# 14. Deprecated Skills
+# 15. Deprecated Skills
 
 Do not install deprecated repositories when a current official replacement exists.
 
@@ -416,7 +471,7 @@ Do not assume an old repository remains authoritative.
 
 ---
 
-# 15. Updating Skills
+# 16. Updating Skills
 
 Before updating:
 
@@ -438,7 +493,7 @@ Before updating a skill that has been customized:
 
 ---
 
-# 16. Required Baseline
+# 17. Required Baseline
 
 For this project, the initial target is:
 
@@ -451,6 +506,12 @@ Frontend
 ├── web-design-guidelines
 └── frontend-design
 
+OCR Lab / Python
+├── python-testing-patterns
+├── python-performance-optimization
+├── python-packaging
+└── fastapi
+
 Development
 ├── brainstorming
 ├── writing-plans
@@ -459,21 +520,23 @@ Development
 ├── requesting-code-review
 └── verification-before-completion
 
-Optional
+Optional / Tooling
 ├── subagent-driven-development
 ├── api-tester
 ├── code-reviewer
 ├── docker-helper
 ├── cicd-pipeline
 ├── git-commit-pro
-└── laravel-best-practices
+├── laravel-best-practices
+├── playwright-best-practices
+└── using-git-worktrees
 ```
 
 This is a target list, not an instruction to install everything.
 
 ---
 
-# 17. Installation Report
+# 18. Installation Report
 
 After managing skills, report:
 
@@ -500,7 +563,7 @@ Security audit: Passed
 
 ---
 
-# 18. Final Rule
+# 19. Final Rule
 
 This file manages skills only.
 

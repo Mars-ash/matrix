@@ -79,6 +79,68 @@ class ApiTest extends TestCase
         $response->assertStatus(403);
     }
 
+    public function test_controller_can_update_project_name(): void
+    {
+        $project = Project::create([
+            'name' => 'Original Project Name',
+            'customer' => 'PT Astra Honda Motor',
+            'company' => 'BKP',
+        ]);
+
+        $response = $this->withHeader('Authorization', 'Bearer ' . $this->controllerToken)
+            ->putJson("/api/projects/{$project->id}", [
+                'name' => 'Updated Project Name 2026',
+            ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('data.id', $project->id)
+            ->assertJsonPath('data.name', 'Updated Project Name 2026')
+            ->assertJsonPath('data.customer', 'PT Astra Honda Motor');
+
+        $this->assertDatabaseHas('projects', [
+            'id' => $project->id,
+            'name' => 'Updated Project Name 2026',
+        ]);
+    }
+
+    public function test_viewer_cannot_update_project(): void
+    {
+        $project = Project::create([
+            'name' => 'Protected Project',
+            'customer' => 'Customer Safe',
+            'company' => 'BMI',
+        ]);
+
+        $response = $this->withHeader('Authorization', 'Bearer ' . $this->viewerToken)
+            ->putJson("/api/projects/{$project->id}", [
+                'name' => 'Hacked Project Name',
+            ]);
+
+        $response->assertStatus(403);
+
+        $this->assertDatabaseHas('projects', [
+            'id' => $project->id,
+            'name' => 'Protected Project',
+        ]);
+    }
+
+    public function test_update_project_validation(): void
+    {
+        $project = Project::create([
+            'name' => 'Valid Project',
+            'customer' => 'Customer Valid',
+            'company' => 'BKP',
+        ]);
+
+        $response = $this->withHeader('Authorization', 'Bearer ' . $this->controllerToken)
+            ->putJson("/api/projects/{$project->id}", [
+                'name' => '',
+            ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['name']);
+    }
+
     public function test_can_create_jo_with_categories_and_items(): void
     {
         $project = Project::create([
@@ -145,6 +207,7 @@ class ApiTest extends TestCase
         $cat = $jo->categories()->create(['label' => 'PARTS', 'kind' => 'Part']);
         $item = $cat->items()->create(['no' => '1', 'description' => 'Punch', 'material' => 'SKD11']);
         $ctrl = $item->controls()->create(['process' => 'Material', 'status' => 'Not Started']);
+        $arrival = $item->controls()->create(['process' => 'Arrival', 'status' => 'Not Started']);
 
         // 1. Update status
         $statusResponse = $this->withHeader('Authorization', 'Bearer ' . $this->controllerToken)
@@ -170,6 +233,20 @@ class ApiTest extends TestCase
         $poResponse->assertStatus(200)
             ->assertJsonPath('data.poTracking.supplier', 'PT Baja Raya')
             ->assertJsonPath('data.poTracking.poNo', 'PO-001');
+
+        $this->assertEquals('2026-09-15', $arrival->fresh()->target_date->format('Y-m-d'));
+
+        // 3. Mark PO tracking as Done -> syncs Arrival control to Done as well
+        $doneResponse = $this->withHeader('Authorization', 'Bearer ' . $this->controllerToken)
+            ->patchJson("/api/controls/{$ctrl->id}/po-tracking", [
+                'status' => 'Done',
+            ]);
+
+        $doneResponse->assertStatus(200)
+            ->assertJsonPath('data.status', 'Done')
+            ->assertJsonPath('data.poTracking.supplier', 'PT Baja Raya');
+
+        $this->assertEquals('Done', $arrival->fresh()->status);
     }
 
     public function test_bulk_status_update(): void
@@ -194,6 +271,38 @@ class ApiTest extends TestCase
 
         $this->assertEquals('Done', $c1->fresh()->status);
         $this->assertEquals('Done', $c2->fresh()->status);
+    }
+
+    public function test_bulk_send_po(): void
+    {
+        $project = Project::create(['name' => 'P PO', 'customer' => 'C PO']);
+        $jo = $project->jos()->create(['jo_number' => 'JO-PO', 'product' => 'P', 'type' => 'PROGRESSIVE']);
+        $cat = $jo->categories()->create(['label' => 'PARTS', 'kind' => 'Part']);
+        $item1 = $cat->items()->create(['no' => '1', 'description' => 'Item 1']);
+        $mtl = $item1->controls()->create(['process' => 'Material', 'status' => 'Not Started']);
+        $arr = $item1->controls()->create(['process' => 'Arrival', 'status' => 'Not Started']);
+
+        $response = $this->withHeader('Authorization', 'Bearer ' . $this->controllerToken)
+            ->postJson("/api/jos/{$jo->id}/bulk/send-po", [
+                'itemIds' => [$item1->id],
+                'supplier' => 'PT Baja Bersama',
+                'poNo' => 'PO-TEST-01',
+                'poDate' => '2026-09-01',
+                'targetArrival' => '2026-09-10',
+                'notes' => 'Urgent order',
+            ]);
+
+        $response->assertStatus(200);
+
+        // PO/Material control must be Done
+        $this->assertEquals('Done', $mtl->fresh()->status);
+        // Arrival control must be In Progress
+        $this->assertEquals('In Progress', $arr->fresh()->status);
+        $this->assertEquals('2026-09-10', $arr->fresh()->target_date->format('Y-m-d'));
+        // PoTracking created
+        $this->assertNotNull($mtl->fresh()->poTracking);
+        $this->assertEquals('PT Baja Bersama', $mtl->fresh()->poTracking->supplier);
+        $this->assertEquals('PO-TEST-01', $mtl->fresh()->poTracking->po_no);
     }
 
     public function test_trackers_subcont_and_po(): void

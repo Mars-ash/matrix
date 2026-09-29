@@ -94,22 +94,50 @@ class ControlController extends Controller
                 'in_progress_at' => $validated['status'] === 'In Progress' ? ($control->in_progress_at ?? Carbon::now()) : $control->in_progress_at,
             ]);
 
+            $item = $control->item;
+
+            // Sync Arrival process status to match PO tracking status
+            if ($validated['status'] === 'Done') {
+                $item->controls()->where('process', 'Arrival')->update([
+                    'status' => 'Done',
+                ]);
+            } elseif ($validated['status'] === 'Problem') {
+                $item->controls()->where('process', 'Arrival')->update([
+                    'status' => 'Problem',
+                    'notes' => $validated['problemNotes'] ?? $control->notes,
+                ]);
+            } elseif ($validated['status'] === 'In Progress') {
+                $item->controls()->where('process', 'Arrival')
+                    ->whereIn('status', ['Done', 'Problem'])
+                    ->update(['status' => 'In Progress']);
+            }
+
+            // Sync targetArrival to Arrival control and item if provided
+            if (!empty($validated['targetArrival'])) {
+                $item->controls()->where('process', 'Arrival')->update([
+                    'target_date' => $validated['targetArrival'],
+                ]);
+                $item->update(['arrival_target_date' => $validated['targetArrival']]);
+            }
+
+            $existing = $control->poTracking;
             $control->poTracking()->updateOrCreate(
                 ['control_id' => $control->id],
                 [
-                    'supplier' => $validated['supplier'] ?? null,
-                    'po_no' => $validated['poNo'] ?? null,
-                    'po_date' => $validated['poDate'] ?? null,
-                    'target_arrival' => $validated['targetArrival'] ?? null,
-                    'notes' => $validated['notes'] ?? ($validated['status'] === 'Problem' ? ($validated['problemNotes'] ?? null) : null),
+                    'supplier' => array_key_exists('supplier', $validated) ? $validated['supplier'] : $existing?->supplier,
+                    'po_no' => array_key_exists('poNo', $validated) ? $validated['poNo'] : $existing?->po_no,
+                    'po_date' => array_key_exists('poDate', $validated) ? $validated['poDate'] : $existing?->po_date,
+                    'target_arrival' => array_key_exists('targetArrival', $validated) ? $validated['targetArrival'] : $existing?->target_arrival,
+                    'notes' => array_key_exists('notes', $validated)
+                        ? $validated['notes']
+                        : ($validated['status'] === 'Problem' ? ($validated['problemNotes'] ?? $existing?->notes) : $existing?->notes),
                 ]
             );
 
             if (isset($validated['qty'])) {
-                $control->item->update(['qty' => $validated['qty']]);
+                $item->update(['qty' => $validated['qty']]);
             }
 
-            $item = $control->item;
             $joId = $item->category->jo_id;
             Activity::create([
                 'jo_id' => $joId,

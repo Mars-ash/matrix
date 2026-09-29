@@ -75,7 +75,7 @@ def _source_edge_bounds(
     radius: int,
     *,
     horizontal: bool,
-) -> tuple[tuple[int, ...], tuple[str, ...]]:
+) -> tuple[tuple[int, ...], tuple[str, ...]] | None:
     """Use a crop edge only when every observed crossing rule reaches it.
 
     No pixels or internal separators are synthesized. Right/bottom coordinates
@@ -94,8 +94,6 @@ def _source_edge_bounds(
         boundary = boundaries[0] if leading else boundaries[-1]
         edge_pixel = 0 if leading else size - 1
         distance = abs(edge_pixel - boundary)
-        if not minimum <= distance <= maximum:
-            continue
         start, end = sorted((edge_pixel, boundary))
         if not all(
             _coverage(perpendicular_mask, cross, start, end, radius, horizontal=not horizontal)
@@ -111,6 +109,23 @@ def _source_edge_bounds(
             > 0
             for cross in crossings
         ):
+            continue
+        if not minimum <= distance <= maximum:
+            # A thick intact outer rule may itself touch the source edge. But
+            # crossing rules extending past it indicate a truncated cell, even
+            # when only a few pixels remain inside the component margin.
+            if (
+                _coverage(
+                    source_binary,
+                    edge_pixel,
+                    crossings[0],
+                    crossings[-1],
+                    0,
+                    horizontal=horizontal,
+                )
+                < 0.98
+            ):
+                return None
             continue
         if leading:
             result.insert(0, 0)
@@ -149,7 +164,7 @@ def _grid_candidate(
     cropped_sides = ()
     # A deskewed canvas has padded edges that are not source-image crop edges.
     if not prepared.deskew_degrees:
-        horizontal, cropped_rows = _source_edge_bounds(
+        row_bounds = _source_edge_bounds(
             observed_horizontal,
             observed_vertical,
             prepared.vertical_mask,
@@ -157,7 +172,7 @@ def _grid_candidate(
             radius,
             horizontal=True,
         )
-        vertical, cropped_columns = _source_edge_bounds(
+        column_bounds = _source_edge_bounds(
             observed_vertical,
             observed_horizontal,
             prepared.horizontal_mask,
@@ -165,6 +180,10 @@ def _grid_candidate(
             radius,
             horizontal=False,
         )
+        if row_bounds is None or column_bounds is None:
+            return None
+        horizontal, cropped_rows = row_bounds
+        vertical, cropped_columns = column_bounds
         cropped_sides = (*cropped_rows, *cropped_columns)
     if _has_partial_separator(
         prepared.horizontal_mask, horizontal, vertical, radius, horizontal=True

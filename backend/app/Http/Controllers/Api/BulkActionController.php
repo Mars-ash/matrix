@@ -43,7 +43,8 @@ class BulkActionController extends Controller
 
                 if ($ctrl) {
                     $ctrl->update([
-                        'status' => 'In Progress',
+                        'status' => 'Done',
+                        'done_at' => $ctrl->done_at ?? $now,
                         'in_progress_at' => $ctrl->in_progress_at ?? $now,
                     ]);
 
@@ -59,12 +60,20 @@ class BulkActionController extends Controller
                     );
                 }
 
-                // If targetArrival supplied, set on Arrival control
-                if (!empty($validated['targetArrival'])) {
-                    $arrivalCtrl = $item->controls->first(fn ($c) => $c->process === 'Arrival');
-                    if ($arrivalCtrl) {
-                        $arrivalCtrl->update(['target_date' => $validated['targetArrival']]);
+                // When PO is sent, transition Arrival process to In Progress
+                $arrivalCtrl = $item->controls->first(fn ($c) => $c->process === 'Arrival');
+                if ($arrivalCtrl) {
+                    $arrivalData = [
+                        'status' => 'In Progress',
+                        'in_progress_at' => $arrivalCtrl->in_progress_at ?? $now,
+                    ];
+                    if (!empty($validated['targetArrival'])) {
+                        $arrivalData['target_date'] = $validated['targetArrival'];
                     }
+                    $arrivalCtrl->update($arrivalData);
+                }
+
+                if (!empty($validated['targetArrival'])) {
                     $item->update(['arrival_target_date' => $validated['targetArrival']]);
                 }
             }

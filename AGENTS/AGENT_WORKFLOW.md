@@ -173,6 +173,33 @@ when installed.
 
 ---
 
+## OCR Lab / Python
+
+Use:
+
+```text
+python-testing-patterns
+python-performance-optimization
+python-packaging
+fastapi
+```
+
+when developing, testing, profiling, packaging, or serving the local OCR Lab.
+
+---
+
+## E2E Testing
+
+Use:
+
+```text
+playwright-best-practices
+```
+
+when developing and maintaining browser-level end-to-end integration tests.
+
+---
+
 # 3. New Feature Workflow
 
 For a non-trivial feature:
@@ -433,7 +460,21 @@ Avoid generic AI-generated layouts when a more intentional design is appropriate
 
 ---
 
-# 11. Debugging Workflow
+# 11. OCR Lab / Python Workflow
+
+For changes in `ocr-lab/`:
+
+1. Target the approved Python 3.11 virtual environment (`ocr-lab/.venv/`). Do not use system Python 3.14.
+2. Adhere strictly to the gated private benchmark requirements; never commit private images, ground-truth data, or model caches.
+3. Apply `python-testing-patterns` for pytest architecture, synthetic image test fixtures, and deterministic unit/pipeline test design.
+4. Apply `python-performance-optimization` when analyzing image preprocessing, deskewing, line detection, or CPU model inference latency.
+5. Apply `python-packaging` when configuring `pyproject.toml`, console scripts (`bom-ocr`), or optional dependency groups (e.g. `service`, `dev`).
+6. Apply `fastapi` when developing or updating the internal HTTP service facade (`bom_ocr.service`), ensuring typed Pydantic contracts and proper error handling.
+7. Maintain strict privacy and review-only semantics: extraction failures produce warnings and empty row lists, never invented or hallucinated rows.
+
+---
+
+# 12. Debugging Workflow
 
 When something breaks, do not immediately change random code.
 
@@ -469,7 +510,7 @@ Do not hide errors merely to make tests pass.
 
 ---
 
-# 12. Testing Workflow
+# 13. Testing Workflow
 
 For new behavior:
 
@@ -499,7 +540,7 @@ Next.js integration
 
 ---
 
-# 13. Code Review Workflow
+# 14. Code Review Workflow
 
 Before declaring meaningful work complete:
 
@@ -522,7 +563,7 @@ when available.
 
 ---
 
-# 14. Docker Workflow
+# 15. Docker Workflow
 
 Before changing Docker:
 
@@ -547,7 +588,7 @@ unless explicitly designed as non-secret configuration.
 
 ---
 
-# 15. CI/CD Workflow
+# 16. CI/CD Workflow
 
 A healthy pipeline should generally perform:
 
@@ -575,7 +616,7 @@ Do not assume a hosting provider without project evidence.
 
 ---
 
-# 16. Security Workflow
+# 17. Security Workflow
 
 For backend/API/security-sensitive work, check:
 
@@ -603,7 +644,7 @@ For frontend:
 
 ---
 
-# 17. Completion Criteria
+# 18. Completion Criteria
 
 Do not say a task is complete until appropriate verification has happened.
 
@@ -635,7 +676,7 @@ Never claim tests/build/deployment succeeded if they were not actually run.
 
 ---
 
-# 18. Final Development Principle
+# 19. Final Development Principle
 
 Prefer:
 

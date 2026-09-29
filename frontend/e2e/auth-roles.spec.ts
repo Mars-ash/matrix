@@ -99,4 +99,18 @@ test.describe("Authentication and Role-Based UI", () => {
       await page.getByRole("button", { name: "Tutup" }).click();
     }
   });
+
+  test("Unauthenticated user is redirected to /login immediately when accessing protected routes", async ({ page, context }) => {
+    await context.clearCookies();
+
+    await page.goto("/");
+    await expect(page).toHaveURL(/.*\/login/);
+    await expect(page.getByRole("heading", { name: "MATRIX" })).toBeVisible();
+
+    await page.goto("/subcont");
+    await expect(page).toHaveURL(/.*\/login/);
+
+    await page.goto("/po-tracker");
+    await expect(page).toHaveURL(/.*\/login/);
+  });
 });

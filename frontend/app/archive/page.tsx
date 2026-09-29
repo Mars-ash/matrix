@@ -7,9 +7,10 @@ import { ConfirmDialog } from "@/components/confirm-dialog";
 import { useAppState, useAppDispatch } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
 import type { JO } from "@/lib/types";
+import { ArchiveSkeleton } from "@/components/skeleton-loader";
 
 export default function ArchivePage() {
-  const { projects } = useAppState();
+  const { projects, isHydrated } = useAppState();
   const dispatch = useAppDispatch();
   const { isController } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
@@ -76,6 +77,14 @@ export default function ArchivePage() {
     });
 
   const allArchivedJos = filteredArchivedProjects.flatMap((p) => p.jos);
+
+  if (isHydrated === false) {
+    return (
+      <AppShell breadcrumbs={[{ label: "Dashboard", href: "/" }, { label: "Archive" }]}>
+        <ArchiveSkeleton />
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell breadcrumbs={[{ label: "Dashboard", href: "/" }, { label: "Archive" }]}>

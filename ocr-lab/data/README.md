@@ -53,8 +53,10 @@ variants to satisfy the real-corpus gate.
 All row fields are required by the selected schema, even when the value is null.
 Six-column rows use `no, description, dimension, material, qty, hrc`; seven-column
 rows also include `remark`. Represent item IDs as strings (`"04B"`, `"S1"`, `"-"`)
-so leading zeros survive. Use a positive integer for a valid quantity. Empty cells
-are null. A literal dash remains `"-"`, not null. Use canonical dimension/HRC
+so leading zeros survive. Use a positive integer or an explicit positive R/L pair
+such as `"1R / 1L"` for a valid quantity. Preserve pair counts, labels, and side
+order; never replace it with a total. Expect `sided_quantity` for these pairs.
+Empty cells are null. A literal dash remains `"-"`, not null. Use canonical dimension/HRC
 notation, for example `"Ø30x58"`, `"45x250x330"`, and `"58-60"`.
 
 For deliberately malformed printed quantities, record the actual text and an
@@ -76,6 +78,13 @@ result-level warning expectations such as `[{"codes": ["no_table"]}]`. Its schem
 describes the intended layout (or six columns/absent for a no-table rejection
 probe). Correct rejection must return `success: false`, no rows, and warnings.
 These cases are scored separately from positive table-detection accuracy.
+
+An empty OCR result on a visible BOM is still a positive case. Recover its
+reference from the original drawing, not by setting `expectedFailure: true`.
+New OCR or AI visual transcriptions are drafts, never evidence of human review.
+Preserve the original reviewed workbook and source hashes, retain before/after
+reference backups, and record any formula or ambiguous cell that needs renewed
+confirmation before attesting to the entire image.
 
 Fully empty rows are excluded from comparison. Do not add empty padding rows in
 truth files that use `rowIndex` warning expectations; index the actual data rows.

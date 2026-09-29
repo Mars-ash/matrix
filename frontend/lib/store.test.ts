@@ -53,6 +53,46 @@ describe("CREATE_PROJECT", () => {
   });
 });
 
+describe("UPDATE_PROJECT", () => {
+  it("updates the project name", () => {
+    const next = reducer(state, {
+      type: "UPDATE_PROJECT",
+      projectId,
+      name: "New Custom Project Name",
+    });
+
+    const project = next.projects.find((p) => p.id === projectId);
+    expect(project).toBeDefined();
+    expect(project!.name).toBe("New Custom Project Name");
+  });
+
+  it("updates customer or company when provided", () => {
+    const next = reducer(state, {
+      type: "UPDATE_PROJECT",
+      projectId,
+      name: "New Name",
+      customer: "New Customer",
+      company: "BMI",
+    });
+
+    const project = next.projects.find((p) => p.id === projectId);
+    expect(project).toBeDefined();
+    expect(project!.name).toBe("New Name");
+    expect(project!.customer).toBe("New Customer");
+    expect(project!.company).toBe("BMI");
+  });
+
+  it("does not crash if project not found", () => {
+    const next = reducer(state, {
+      type: "UPDATE_PROJECT",
+      projectId: "non-existent-id",
+      name: "Ghost Project",
+    });
+
+    expect(next.projects).toHaveLength(state.projects.length);
+  });
+});
+
 describe("CREATE_JO", () => {
   it("adds a new JO with empty categories", () => {
     const next = reducer(state, {
@@ -343,6 +383,48 @@ describe("SYNC_ITEMS_BATCH", () => {
     const matching = finalItems.filter((i) => i.description === "Optimistic Part");
     expect(matching).toHaveLength(1);
   });
+
+  it("handles multi-item batches without overwriting preceding items", () => {
+    const jo = state.projects[0].jos[0];
+    const cat = jo.categories[0];
+    const initialCount = cat.items.length;
+
+    const tempIds = ["temp-multi-1", "temp-multi-2", "temp-multi-3"];
+    const stateAfterAdd = reducer(state, {
+      type: "ADD_ITEMS_BATCH",
+      projectId,
+      joId: jo.id,
+      categoryId: cat.id,
+      items: [
+        { id: tempIds[0], no: "101", description: "Part A", dimension: "", material: "", qty: 1, hrc: "" },
+        { id: tempIds[1], no: "102", description: "Part B", dimension: "", material: "", qty: 1, hrc: "" },
+        { id: tempIds[2], no: "103", description: "Part C", dimension: "", material: "", qty: 1, hrc: "" },
+      ],
+      kind: "Part",
+    });
+
+    expect(stateAfterAdd.projects[0].jos[0].categories[0].items).toHaveLength(initialCount + 3);
+
+    const serverIds = ["server-multi-1", "server-multi-2", "server-multi-3"];
+    const syncedState = reducer(stateAfterAdd, {
+      type: "SYNC_ITEMS_BATCH",
+      projectId,
+      joId: jo.id,
+      categoryId: cat.id,
+      tempItemIds: tempIds,
+      items: [
+        { id: serverIds[0], no: "101", description: "Part A", dimension: "", material: "", qty: 1, hrc: "", controls: [] },
+        { id: serverIds[1], no: "102", description: "Part B", dimension: "", material: "", qty: 1, hrc: "", controls: [] },
+        { id: serverIds[2], no: "103", description: "Part C", dimension: "", material: "", qty: 1, hrc: "", controls: [] },
+      ],
+    });
+
+    const items = syncedState.projects[0].jos[0].categories[0].items;
+    expect(items).toHaveLength(initialCount + 3);
+    expect(items.some((i) => i.id === serverIds[0])).toBe(true);
+    expect(items.some((i) => i.id === serverIds[1])).toBe(true);
+    expect(items.some((i) => i.id === serverIds[2])).toBe(true);
+  });
 });
 
 describe("UPDATE_STATUS", () => {
@@ -605,7 +687,7 @@ describe("UPDATE_PO_TRACKING", () => {
 });
 
 describe("BULK_SEND_PO", () => {
-  it("bulk dispatches PO for selected items and updates status to Done, Arrival to Not Started, poTracking, and Arrival targetDate", () => {
+  it("bulk dispatches PO for selected items and updates status to Done, Arrival to In Progress, poTracking, and Arrival targetDate", () => {
     const jo = state.projects[0].jos[0];
     const cat = jo.categories[0];
     const itemIds = [cat.items[0].id, cat.items[1].id];
@@ -631,14 +713,14 @@ describe("BULK_SEND_PO", () => {
     const arr2 = item2.controls.find((c) => c.process === "Arrival")!;
 
     expect(mtl1.status).toBe("Done");
-    expect(arr1.status).toBe("Not Started");
+    expect(arr1.status).toBe("In Progress");
     expect(mtl1.poTracking?.poNo).toBe("PO-BULK-001");
     expect(mtl1.poTracking?.supplier).toBe("PT Baja Makmur");
     expect(mtl1.poTracking?.targetArrival).toBe("2026-09-08");
     expect(arr1.targetDate).toBe("2026-09-08");
 
     expect(mtl2.status).toBe("Done");
-    expect(arr2.status).toBe("Not Started");
+    expect(arr2.status).toBe("In Progress");
     expect(mtl2.poTracking?.poNo).toBe("PO-BULK-001");
     expect(arr2.targetDate).toBe("2026-09-08");
 
@@ -1071,6 +1153,34 @@ describe("BULK OPERATIONS", () => {
     expect(uItem2.isSubcont).toBe(true);
     expect(uItem2.subcontSupplier).toBe("CHIYODA");
     expect(next.projects[0].jos[0].activities[0].message).toContain("Bulk dispatched 2 parts to Subcont");
+  });
+
+  it("BULK_SEND_SUBCONT dispatches single item with vendor and target arrival", () => {
+    const jo = state.projects[0].jos[0];
+    const cat = jo.categories[0];
+    const item = cat.items[0];
+
+    const next = reducer(state, {
+      type: "BULK_SEND_SUBCONT",
+      projectId,
+      joId: jo.id,
+      itemIds: [item.id],
+      process: "Wirecut",
+      supplier: "PUTRA",
+      arrivalTargetDate: "2026-09-25",
+    });
+
+    const updatedCat = next.projects[0].jos[0].categories[0];
+    const uItem = updatedCat.items.find((i) => i.id === item.id)!;
+
+    expect(uItem.isSubcont).toBe(true);
+    expect(uItem.subcontProcess).toBe("Wirecut");
+    expect(uItem.subcontSupplier).toBe("PUTRA");
+    expect(uItem.arrivalTargetDate).toBe("2026-09-25");
+    expect(uItem.subcontStatus).toBe("In Progress");
+
+    const ctrl = uItem.controls.find((c) => c.process === "Wirecut")!;
+    expect(ctrl.status).toBe("In Progress SC");
   });
 });
 

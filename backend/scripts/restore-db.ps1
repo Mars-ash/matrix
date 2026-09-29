@@ -1,12 +1,16 @@
-# MATRIX - Windows PowerShell PostgreSQL Restore Script
+[CmdletBinding()]
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingPlainTextForPassword', '')]
 param(
     [Parameter(Mandatory=$true)]
     [string]$BackupFile,
-    [string]$HostName = "127.0.0.1",
-    [int]$Port = 5432,
-    [string]$Database = "matrix",
-    [string]$User = "postgres",
-    [string]$Password = "marsx"
+    [string]$HostName = $(if ($env:DB_HOST) { $env:DB_HOST } else { "127.0.0.1" }),
+    [int]$Port = $(if ($env:DB_PORT) { [int]$env:DB_PORT } else { 5432 }),
+    [string]$Database = $(if ($env:DB_DATABASE) { $env:DB_DATABASE } else { "matrix" }),
+    [string]$User = $(if ($env:DB_USERNAME) { $env:DB_USERNAME } else { "postgres" }),
+    [Parameter()]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingPlainTextForPassword', '')]
+    [Alias('Password', 'Pwd')]
+    [object]$DbPassword = $(if ($env:DB_PASSWORD) { $env:DB_PASSWORD } else { "" })
 )
 
 if (!(Test-Path $BackupFile)) {
@@ -14,7 +18,13 @@ if (!(Test-Path $BackupFile)) {
     exit 1
 }
 
-$env:PGPASSWORD = $Password
+$PlainPassword = if ($DbPassword -is [System.Security.SecureString]) {
+    [System.Net.NetworkCredential]::new('', $DbPassword).Password
+} else {
+    [string]$DbPassword
+}
+
+$env:PGPASSWORD = $PlainPassword
 
 # Locate psql in Laragon or PATH
 $Psql = "psql"

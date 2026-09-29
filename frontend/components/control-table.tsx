@@ -21,6 +21,11 @@ interface ControlTableProps {
     item: Category["items"][number];
     process: "Material" | "PO";
   }) => void;
+  onRequestSendSubcont?: (payload: {
+    categoryId: string;
+    item: Category["items"][number];
+    process: string;
+  }) => void;
   onEditItem?: (item: Category["items"][number]) => void;
   onDeleteItem?: (item: Category["items"][number]) => void;
 }
@@ -35,6 +40,7 @@ export function ControlTable({
   onToggleSelectItem,
   onToggleSelectAllCategory,
   onRequestSendPo,
+  onRequestSendSubcont,
   onEditItem,
   onDeleteItem,
 }: ControlTableProps) {
@@ -284,6 +290,10 @@ export function ControlTable({
                               onRequestSendPo
                             ) {
                               onRequestSendPo({ categoryId: category.id, item, process: processName });
+                              return;
+                            }
+                            if (newStatus === "In Progress SC" && onRequestSendSubcont) {
+                              onRequestSendSubcont({ categoryId: category.id, item, process: processName });
                               return;
                             }
                             dispatch({

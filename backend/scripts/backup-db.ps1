@@ -1,10 +1,14 @@
-# MATRIX - Windows PowerShell PostgreSQL Backup Script
+[CmdletBinding()]
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingPlainTextForPassword', '')]
 param(
-    [string]$HostName = "127.0.0.1",
-    [int]$Port = 5432,
-    [string]$Database = "matrix",
-    [string]$User = "postgres",
-    [string]$Password = "marsx"
+    [string]$HostName = $(if ($env:DB_HOST) { $env:DB_HOST } else { "127.0.0.1" }),
+    [int]$Port = $(if ($env:DB_PORT) { [int]$env:DB_PORT } else { 5432 }),
+    [string]$Database = $(if ($env:DB_DATABASE) { $env:DB_DATABASE } else { "matrix" }),
+    [string]$User = $(if ($env:DB_USERNAME) { $env:DB_USERNAME } else { "postgres" }),
+    [Parameter()]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingPlainTextForPassword', '')]
+    [Alias('Password', 'Pwd')]
+    [object]$DbPassword = $(if ($env:DB_PASSWORD) { $env:DB_PASSWORD } else { "" })
 )
 
 $BackupDir = Join-Path $PSScriptRoot "..\storage\backups"
@@ -15,7 +19,13 @@ if (!(Test-Path $BackupDir)) {
 $Timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
 $BackupFile = Join-Path $BackupDir "matrix_backup_$Timestamp.sql"
 
-$env:PGPASSWORD = $Password
+$PlainPassword = if ($DbPassword -is [System.Security.SecureString]) {
+    [System.Net.NetworkCredential]::new('', $DbPassword).Password
+} else {
+    [string]$DbPassword
+}
+
+$env:PGPASSWORD = $PlainPassword
 
 Write-Host "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] Starting backup for database '$Database' on port $Port..." -ForegroundColor Cyan
 

@@ -3,20 +3,28 @@
 namespace App\Services;
 
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class OcrService
 {
     private string $apiKey;
+    private array $apiKeys;
     private string $model;
     private string $baseUrl;
 
     public function __construct()
     {
         $this->apiKey = (string) config('ocr.gemini_api_key', '');
-        $this->model = (string) config('ocr.model', 'gemini-3.5-flash-lite');
+        $this->model = (string) config('ocr.model', 'gemini-3.7-flash');
         $this->baseUrl = (string) config('ocr.base_url', 'https://generativelanguage.googleapis.com/v1beta');
+
+        $configuredKeys = config('ocr.api_keys', []);
+        $this->apiKeys = array_values(array_unique(array_filter(array_merge(
+            !empty($this->apiKey) ? [$this->apiKey] : [],
+            is_array($configuredKeys) ? $configuredKeys : []
+        ))));
     }
 
     /**
@@ -32,7 +40,14 @@ class OcrService
         $filePath = is_string($file) ? $file : $file->getRealPath();
         $mime = is_string($file) ? mime_content_type($file) : $file->getMimeType();
 
-        if (empty($this->apiKey)) {
+        $configuredKeys = config('ocr.api_keys', []);
+        $singleKey = (string) config('ocr.gemini_api_key', $this->apiKey);
+        $allKeys = array_values(array_unique(array_filter(array_merge(
+            !empty($singleKey) ? [$singleKey] : [],
+            is_array($configuredKeys) ? $configuredKeys : $this->apiKeys
+        ))));
+
+        if (empty($allKeys)) {
             return $this->fallbackParse($categoryKind, 'Gemini API Key tidak disetel. Menggunakan parser offline simulasi.');
         }
 
@@ -96,42 +111,92 @@ PROMPT;
 
             $modelsToTry = array_values(array_unique([
                 $this->model,
+                'gemini-3.7-flash',
+                'gemini-3.8-flash',
                 'gemini-3.5-flash-lite',
                 'gemini-3.1-flash-lite',
+                'gemini-2.5-flash-lite',
+                'gemini-flash-latest',
             ]));
 
             $response = null;
             $lastError = '';
 
-            foreach ($modelsToTry as $m) {
-                $endpoint = "{$this->baseUrl}/models/{$m}:generateContent";
+            // Terapkan strategi Round-Robin antar-request agar beban terbagi rata
+            $totalKeys = count($allKeys);
+            $startIndex = 0;
+            if ($totalKeys > 1) {
                 try {
-                    $res = Http::withHeaders([
-                        'x-goog-api-key' => $this->apiKey,
-                    ])->timeout(45)->connectTimeout(10)->post($endpoint, $payload);
-
-                    if ($res->successful()) {
-                        $response = $res;
-                        break;
+                    if (!Cache::has('gemini_ocr_rr_counter')) {
+                        Cache::forever('gemini_ocr_rr_counter', 0);
+                        $counter = 0;
+                    } else {
+                        $counter = Cache::increment('gemini_ocr_rr_counter');
+                        if ($counter === false) {
+                            $counter = (int) Cache::get('gemini_ocr_rr_counter', 0) + 1;
+                            Cache::forever('gemini_ocr_rr_counter', $counter);
+                        }
                     }
+                    $startIndex = abs((int) $counter) % $totalKeys;
+                } catch (\Throwable) {
+                    $startIndex = 0;
+                }
+            }
 
-                    $status = $res->status();
-                    $lastError = "status {$status}";
-                    Log::warning("Gemini OCR error for model {$m} ({$status}): " . substr($res->body(), 0, 200));
+            // Susun urutan key dimulai dari index round-robin
+            $orderedKeys = [];
+            for ($i = 0; $i < $totalKeys; $i++) {
+                $idx = ($startIndex + $i) % $totalKeys;
+                $orderedKeys[] = [
+                    'index' => $idx,
+                    'key' => $allKeys[$idx],
+                ];
+            }
 
-                    // If quota exceeded or temporary model error, proceed to fallback model
-                    if (in_array($status, [429, 503])) {
+            foreach ($orderedKeys as $attemptNum => $keyInfo) {
+                $keyIndex = $keyInfo['index'];
+                $currentApiKey = $keyInfo['key'];
+                $keyLabel = 'API Key #' . ($keyIndex + 1) . ' (' . substr($currentApiKey, 0, 8) . '...)';
+
+                foreach ($modelsToTry as $m) {
+                    $endpoint = "{$this->baseUrl}/models/{$m}:generateContent";
+                    try {
+                        $res = Http::withHeaders([
+                            'x-goog-api-key' => $currentApiKey,
+                        ])->timeout(45)->connectTimeout(10)->post($endpoint, $payload);
+
+                        if ($res->successful()) {
+                            $response = $res;
+                            if ($attemptNum > 0) {
+                                Log::info("Gemini OCR berhasil menggunakan cadangan {$keyLabel} (rotasi ke-" . ($attemptNum + 1) . ").");
+                            }
+                            break 2; // Success! Break out of both models and keys loops
+                        }
+
+                        $status = $res->status();
+                        $lastError = "{$keyLabel} status {$status}";
+                        Log::warning("Gemini OCR error for {$keyLabel} on model {$m} ({$status}): " . substr($res->body(), 0, 200));
+
+                        // If quota exceeded (429), switch immediately to the next key in the round-robin sequence
+                        if ($status === 429) {
+                            Log::warning("Gemini OCR limit kuota tercapai (429) untuk {$keyLabel}. Beralih ke API key berikutnya dalam rotasi round-robin.");
+                            break; // break model loop to try next API key
+                        }
+
+                        // If 503 (model overloaded), continue to next model on same key
+                        if ($status === 503) {
+                            continue;
+                        }
+                    } catch (\Throwable $attemptEx) {
+                        $lastError = "{$keyLabel}: " . $attemptEx->getMessage();
+                        Log::warning("Gemini OCR connection attempt failed for {$keyLabel} on {$m}: " . $attemptEx->getMessage());
                         continue;
                     }
-                } catch (\Throwable $attemptEx) {
-                    $lastError = $attemptEx->getMessage();
-                    Log::warning("Gemini OCR connection attempt failed for {$m}: " . $attemptEx->getMessage());
-                    continue;
                 }
             }
 
             if (!$response || !$response->successful()) {
-                return $this->fallbackParse($categoryKind, 'Layanan Gemini sedang sibuk atau batas kuota tercapai (' . $lastError . ').');
+                return $this->fallbackParse($categoryKind, 'Layanan Gemini sedang sibuk atau batas kuota seluruh API key tercapai (' . $lastError . ').');
             }
 
             $json = $response->json();
@@ -164,8 +229,10 @@ PROMPT;
         } catch (\Throwable $e) {
             $msg = $e->getMessage();
             $cleanMsg = preg_replace('/key=[^\s&"\'<>]+/i', 'key=[REDACTED]', $msg);
-            if (!empty($this->apiKey)) {
-                $cleanMsg = str_replace($this->apiKey, '[REDACTED]', $cleanMsg);
+            foreach ($allKeys as $k) {
+                if (!empty($k)) {
+                    $cleanMsg = str_replace($k, '[REDACTED]', $cleanMsg);
+                }
             }
             Log::error('Gemini OCR exception: ' . $cleanMsg);
 

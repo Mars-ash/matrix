@@ -65,7 +65,12 @@ export function collectPoTrackingRows(projects: Project[]): PoTrackingRow[] {
               supplier: tracking?.supplier ?? "",
               poNo: tracking?.poNo ?? "",
               poDate: tracking?.poDate ?? "",
-              targetArrival: tracking?.targetArrival ?? control.targetDate ?? "",
+              targetArrival:
+                tracking?.targetArrival ??
+                arrivalControl?.targetDate ??
+                item.arrivalTargetDate ??
+                control.targetDate ??
+                "",
               notes:
                 (control.status === "Problem" && control.notes?.trim())
                   ? control.notes.trim()

@@ -188,4 +188,39 @@ class AuthTest extends TestCase
         $this->assertTrue($policy->delete($controller, $project));
         $this->assertFalse($policy->delete($viewer, $project));
     }
+
+    public function test_demo_tokens_work_in_non_production_environment(): void
+    {
+        User::create([
+            'name' => 'Staff Engineering',
+            'username' => 'matrix',
+            'email' => 'engineering@matrix.com',
+            'password' => Hash::make('eng#1'),
+            'role' => 'controller',
+        ]);
+
+        $res = $this->withHeader('Authorization', 'Bearer demo-prototype-token')
+            ->getJson('/api/projects');
+
+        $res->assertStatus(200);
+    }
+
+    public function test_demo_tokens_are_rejected_in_production_environment(): void
+    {
+        $this->app['env'] = 'production';
+
+        User::create([
+            'name' => 'Staff Engineering',
+            'username' => 'matrix',
+            'email' => 'engineering@matrix.com',
+            'password' => Hash::make('eng#1'),
+            'role' => 'controller',
+        ]);
+
+        $res = $this->withHeader('Authorization', 'Bearer demo-prototype-token')
+            ->getJson('/api/projects');
+
+        $res->assertStatus(401)
+            ->assertJson(['message' => 'Unauthenticated.']);
+    }
 }
