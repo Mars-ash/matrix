@@ -334,17 +334,4 @@ PROMPT;
             'message' => $message,
         ];
     }
-
-    /**
-     * Fallback parsing when offline or without Gemini API key.
-     * Note: Fails cleanly without inventing fake BOM items to protect manufacturing data integrity.
-     *
-     * @param string|null $categoryKind
-     * @param string $reason
-     * @return array{success: bool, provider: string, items: array<int, array{no: string, description: string, dimension: string, material: string, qty: int, hrc: string}>, message: string}
-     */
-    public function fallbackParse(?string $categoryKind = 'Part', string $reason = ''): array
-    {
-        return $this->failureResponse($reason ?: 'Ekstraksi OCR tidak tersedia.');
-    }
 }

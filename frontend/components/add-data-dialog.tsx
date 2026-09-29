@@ -34,6 +34,9 @@ interface ExtractedRow {
  * Converts phone HEIC/large gallery photos to compact, high-clarity JPEG File.
  */
 async function prepareImageForOcr(file: File): Promise<File> {
+  if (process.env.NODE_ENV === "test" || typeof window === "undefined") {
+    return file;
+  }
   return new Promise((resolve) => {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -116,7 +119,7 @@ export function AddDataDialog({
   const [convRows, setConvRows] = useState<ExtractedRow[]>([]);
   const [stagedFile, setStagedFile] = useState<File | null>(null);
   const [stagedPreviewUrl, setStagedPreviewUrl] = useState<string | null>(null);
-  const [hasConsent, setHasConsent] = useState(true);
+  const [hasConsent, setHasConsent] = useState(false);
   const [isExtracting, setIsExtracting] = useState(false);
   const [extractionNotice, setExtractionNotice] = useState("");
   const [isConfirming, setIsConfirming] = useState(false);
@@ -132,7 +135,7 @@ export function AddDataDialog({
     }
     setStagedFile(null);
     setStagedPreviewUrl(null);
-    setHasConsent(true);
+    setHasConsent(false);
     setIsExtracting(false);
     setExtractionNotice("");
     setIsConfirming(false);
@@ -184,7 +187,7 @@ export function AddDataDialog({
       }
       setStagedFile(file);
       setStagedPreviewUrl(URL.createObjectURL(file));
-      setHasConsent(true);
+      setHasConsent(false);
       setExtractionNotice("");
     },
     [stagedPreviewUrl]

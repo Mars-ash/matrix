@@ -70,12 +70,18 @@ class OcrSecurityTest extends TestCase
             'consent' => true,
         ]);
         $res1->assertStatus(401);
+    }
 
-        $res2 = $this->postJson("/api/ocr/{$this->category->id}/upload", [
-            'image' => $file,
-            'consent' => true,
-        ]);
-        $res2->assertStatus(401);
+    public function test_retired_ocr_upload_alias_returns_404(): void
+    {
+        $file = UploadedFile::fake()->image('table.png', 400, 200);
+
+        $res = $this->withHeader('Authorization', 'Bearer ' . $this->controllerToken)
+            ->postJson("/api/ocr/{$this->category->id}/upload", [
+                'image' => $file,
+                'consent' => true,
+            ]);
+        $res->assertStatus(404);
     }
 
     public function test_ocr_endpoints_forbidden_for_viewer_role(): void
@@ -184,5 +190,40 @@ class OcrSecurityTest extends TestCase
             ->assertJsonPath('success', true)
             ->assertJsonPath('provider', 'gemini')
             ->assertJsonPath('items.0.description', 'Punch Plate');
+    }
+
+    public function test_ocr_endpoints_are_rate_limited(): void
+    {
+        $mockOcrService = Mockery::mock(OcrService::class);
+        $mockOcrService->shouldReceive('extractItems')->andReturn([
+            'success' => true,
+            'provider' => 'gemini',
+            'items' => [],
+            'message' => 'ok',
+        ]);
+        $this->app->instance(OcrService::class, $mockOcrService);
+
+        // Send 11 valid requests (limit is 10/min)
+        for ($i = 0; $i < 11; $i++) {
+            $file = UploadedFile::fake()->image("table_{$i}.png", 100, 100);
+            $res = $this->withHeader('Authorization', 'Bearer ' . $this->controllerToken)
+                ->postJson('/api/ocr/extract', [
+                    'image' => $file,
+                    'consent' => true,
+                ]);
+            if ($i < 10) {
+                $res->assertStatus(200);
+            }
+        }
+
+        // Subsequent request must receive 429 Too Many Requests
+        $fileNext = UploadedFile::fake()->image('table_next.png', 100, 100);
+        $response = $this->withHeader('Authorization', 'Bearer ' . $this->controllerToken)
+            ->postJson('/api/ocr/extract', [
+                'image' => $fileNext,
+                'consent' => true,
+            ]);
+
+        $response->assertStatus(429);
     }
 }

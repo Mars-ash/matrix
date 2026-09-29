@@ -64,7 +64,6 @@ Route::middleware('auth.token')->group(function () {
         Route::middleware('throttle:ocr')->group(function () {
             Route::post('/ocr/extract', [\App\Http\Controllers\Api\OcrController::class, 'extract']);
             Route::post('/categories/{category}/ocr-upload', [\App\Http\Controllers\Api\OcrController::class, 'upload']);
-            Route::post('/ocr/{category}/upload', [\App\Http\Controllers\Api\OcrController::class, 'upload']);
         });
         Route::put('/items/{item}', [ItemController::class, 'update']);
         Route::delete('/items/{item}', [ItemController::class, 'destroy']);
