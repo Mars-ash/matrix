@@ -27,10 +27,10 @@ class PoTrackerController extends Controller
             $project = $jo?->project;
             $poTracking = $ctrl->poTracking;
             $arrivalControl = $item?->controls->firstWhere('process', 'Arrival');
-            $trackingStatus = match ($arrivalControl?->status) {
-                'Done' => 'Done',
-                'Problem' => 'Problem',
-                default => ($ctrl->status === 'Done' || !empty($poTracking?->po_no)) ? 'In Progress' : $ctrl->status,
+            $trackingStatus = match (true) {
+                $ctrl->status === 'Problem' || $arrivalControl?->status === 'Problem' => 'Problem',
+                $arrivalControl ? $arrivalControl->status === 'Done' : $ctrl->status === 'Done' => 'Done',
+                default => 'In Progress',
             };
 
             return [

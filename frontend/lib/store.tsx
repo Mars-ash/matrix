@@ -224,8 +224,8 @@ export type AppAction =
       categoryId: string;
       itemId: string;
       process: "Material" | "PO";
-      status: ControlStatus;
-      problemNotes: string;
+      status?: ControlStatus;
+      problemNotes?: string;
       tracking: PoTracking;
       qty?: number;
     }
@@ -989,13 +989,37 @@ function executeReducer(next: AppState, state: AppState, action: AppAction): App
       const control = item.controls.find((c) => c.process === action.process);
       if (!control) return state;
 
-      if (action.status === "Problem" && !action.problemNotes.trim()) {
+      if (action.status === "Problem" && !action.problemNotes?.trim()) {
         return state;
       }
 
-      const prevStatus = control.status;
-      control.status = action.status;
-      control.notes = action.status === "Problem" ? action.problemNotes.trim() : "";
+      if (action.status !== undefined) {
+        control.status = action.status;
+        control.notes = action.status === "Problem" ? (action.problemNotes?.trim() || "") : "";
+        const arrivalCtrl = item.controls.find((c) => c.process === "Arrival");
+
+        if (action.status === "Done") {
+          if (arrivalCtrl) {
+            arrivalCtrl.status = "Done";
+          }
+        } else if (action.status === "Problem") {
+          if (arrivalCtrl) {
+            arrivalCtrl.status = "Problem";
+            arrivalCtrl.notes = action.problemNotes?.trim() || "";
+          }
+        } else if (action.status === "In Progress") {
+          control.inProgressAt = action.tracking.poDate
+            ? new Date(action.tracking.poDate).toISOString()
+            : new Date().toISOString();
+          if (arrivalCtrl && (arrivalCtrl.status === "Problem" || arrivalCtrl.status === "Done")) {
+            if (arrivalCtrl.status === "Problem") {
+              arrivalCtrl.notes = "";
+            }
+            arrivalCtrl.status = "In Progress";
+          }
+        }
+      }
+
       const effectiveNotes = action.status === "Problem"
         ? (action.problemNotes?.trim() || action.tracking.notes?.trim() || "")
         : (action.tracking.notes?.trim() ?? control.poTracking?.notes ?? "");
@@ -1016,37 +1040,16 @@ function executeReducer(next: AppState, state: AppState, action: AppAction): App
         }
       }
 
-      if (action.status === "Done") {
-        const arrivalCtrl = item.controls.find((c) => c.process === "Arrival");
-        if (arrivalCtrl) {
-          arrivalCtrl.status = "Done";
-        }
-      } else if (action.status === "Problem") {
-        const arrivalCtrl = item.controls.find((c) => c.process === "Arrival");
-        if (arrivalCtrl) {
-          arrivalCtrl.status = "Problem";
-          arrivalCtrl.notes = action.problemNotes.trim();
-        }
-      } else if (action.status === "In Progress") {
-        const arrivalCtrl = item.controls.find((c) => c.process === "Arrival");
-        if (arrivalCtrl && (arrivalCtrl.status === "Problem" || arrivalCtrl.status === "Done")) {
-          arrivalCtrl.status = "In Progress";
-        }
-      }
-
-      if (action.status === "In Progress") {
-        control.inProgressAt = action.tracking.poDate
-          ? new Date(action.tracking.poDate).toISOString()
-          : new Date().toISOString();
-      }
-
       if (action.qty !== undefined && action.qty > 0) {
         item.qty = action.qty;
       }
 
+      const joRef = jo!;
+      const rowLabel = poTrackingLabel(action.process);
+      const statusText = action.status ? ` (Status: ${action.status})` : "";
       addActivity(
-        jo!,
-        `${item.description} → ${poTrackingLabel(action.process)}: ${prevStatus} → ${action.status}`
+        joRef,
+        `${item.description} → ${rowLabel} procurement updated${statusText}.`
       );
       return next;
     }

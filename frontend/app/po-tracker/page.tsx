@@ -144,8 +144,8 @@ function PoTrackerContent() {
       categoryId: row.category.id,
       itemId: row.item.id,
       process: row.process,
-      status: options.status ?? row.control.status,
-      problemNotes: isProblem ? problemNotes : (options.problemNotes ?? row.control.notes),
+      status: options.status,
+      problemNotes: isProblem ? problemNotes : options.problemNotes,
       qty: options.qty,
       tracking: {
         supplier: row.supplier,

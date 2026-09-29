@@ -264,7 +264,7 @@ export const api = {
   async updatePoTracking(
     controlId: string,
     payload: {
-      status: ControlStatus;
+      status?: ControlStatus;
       problemNotes?: string;
       supplier?: string;
       poNo?: string;

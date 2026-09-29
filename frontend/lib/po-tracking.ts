@@ -47,7 +47,7 @@ export function collectPoTrackingRows(projects: Project[]): PoTrackingRow[] {
             const trackingStatus: ControlStatus =
               control.status === "Problem" || arrivalControl?.status === "Problem"
                 ? "Problem"
-                : control.status === "Done" || arrivalControl?.status === "Done"
+                : (arrivalControl ? arrivalControl.status === "Done" : control.status === "Done")
                 ? "Done"
                 : "In Progress";
 

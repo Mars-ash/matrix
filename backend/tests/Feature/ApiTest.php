@@ -303,6 +303,21 @@ class ApiTest extends TestCase
         $this->assertNotNull($mtl->fresh()->poTracking);
         $this->assertEquals('PT Baja Bersama', $mtl->fresh()->poTracking->supplier);
         $this->assertEquals('PO-TEST-01', $mtl->fresh()->poTracking->po_no);
+
+        // Verify PO tracker endpoint returns status as In Progress (not Done)
+        $poResponse = $this->withHeader('Authorization', 'Bearer ' . $this->viewerToken)
+            ->getJson('/api/trackers/po');
+        $poResponse->assertStatus(200)
+            ->assertJsonPath('data.0.status', 'In Progress')
+            ->assertJsonPath('data.0.poStatus', 'Done')
+            ->assertJsonPath('data.0.arrivalStatus', 'In Progress');
+
+        // Once arrival is marked Done, PO tracker returns Done
+        $arr->fresh()->update(['status' => 'Done']);
+        $poResponseDone = $this->withHeader('Authorization', 'Bearer ' . $this->viewerToken)
+            ->getJson('/api/trackers/po');
+        $poResponseDone->assertStatus(200)
+            ->assertJsonPath('data.0.status', 'Done');
     }
 
     public function test_trackers_subcont_and_po(): void

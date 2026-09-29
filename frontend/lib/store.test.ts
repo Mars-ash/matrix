@@ -684,6 +684,64 @@ describe("UPDATE_PO_TRACKING", () => {
     expect(mtlCtrl.notes).toBe("Supplier delay due to raw stock shortage");
     expect(mtlCtrl.poTracking?.notes).toBe("Supplier delay due to raw stock shortage");
   });
+
+  it("preserves control status and arrival status if status is not specified", () => {
+    const jo = state.projects[0].jos[0];
+    const cat = jo.categories[0];
+    const item = cat.items[0];
+    const mtlBefore = item.controls.find((c) => c.process === "Material")!;
+    const arrBefore = item.controls.find((c) => c.process === "Arrival")!;
+    mtlBefore.status = "Done";
+    arrBefore.status = "In Progress";
+
+    const next = reducer(state, {
+      type: "UPDATE_PO_TRACKING",
+      projectId,
+      joId: jo.id,
+      categoryId: cat.id,
+      itemId: item.id,
+      process: "Material",
+      tracking: {
+        supplier: "PT Baru",
+        poNo: "PO-NEW-01",
+      },
+    });
+
+    const updatedItem = next.projects[0].jos[0].categories[0].items[0];
+    const updatedMtl = updatedItem.controls.find((c) => c.process === "Material")!;
+    const updatedArr = updatedItem.controls.find((c) => c.process === "Arrival")!;
+    expect(updatedMtl.status).toBe("Done");
+    expect(updatedArr.status).toBe("In Progress");
+    expect(updatedMtl.poTracking?.supplier).toBe("PT Baru");
+    expect(updatedMtl.poTracking?.poNo).toBe("PO-NEW-01");
+  });
+
+  it("sets both control and arrival to In Progress when status is set to In Progress", () => {
+    const jo = state.projects[0].jos[0];
+    const cat = jo.categories[0];
+    const item = cat.items[0];
+    const mtlBefore = item.controls.find((c) => c.process === "Material")!;
+    const arrBefore = item.controls.find((c) => c.process === "Arrival")!;
+    mtlBefore.status = "Done";
+    arrBefore.status = "Done";
+
+    const next = reducer(state, {
+      type: "UPDATE_PO_TRACKING",
+      projectId,
+      joId: jo.id,
+      categoryId: cat.id,
+      itemId: item.id,
+      process: "Material",
+      status: "In Progress",
+      tracking: {},
+    });
+
+    const updatedItem = next.projects[0].jos[0].categories[0].items[0];
+    const updatedMtl = updatedItem.controls.find((c) => c.process === "Material")!;
+    const updatedArr = updatedItem.controls.find((c) => c.process === "Arrival")!;
+    expect(updatedMtl.status).toBe("In Progress");
+    expect(updatedArr.status).toBe("In Progress");
+  });
 });
 
 describe("BULK_SEND_PO", () => {

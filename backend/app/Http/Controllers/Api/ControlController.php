@@ -77,7 +77,7 @@ class ControlController extends Controller
         }
 
         $validated = $request->validate([
-            'status' => ['required', 'string', 'in:-,Not Started,In Progress,In Progress SC,Done,Problem'],
+            'status' => ['nullable', 'string', 'in:-,Not Started,In Progress,In Progress SC,Done,Problem'],
             'problemNotes' => ['nullable', 'string'],
             'supplier' => ['nullable', 'string', 'max:255'],
             'poNo' => ['nullable', 'string', 'max:255'],
@@ -88,28 +88,42 @@ class ControlController extends Controller
         ]);
 
         DB::transaction(function () use ($validated, $control) {
-            $control->update([
-                'status' => $validated['status'],
-                'notes' => $validated['problemNotes'] ?? $control->notes,
-                'in_progress_at' => $validated['status'] === 'In Progress' ? ($control->in_progress_at ?? Carbon::now()) : $control->in_progress_at,
-            ]);
-
             $item = $control->item;
 
-            // Sync Arrival process status to match PO tracking status
-            if ($validated['status'] === 'Done') {
-                $item->controls()->where('process', 'Arrival')->update([
-                    'status' => 'Done',
-                ]);
-            } elseif ($validated['status'] === 'Problem') {
-                $item->controls()->where('process', 'Arrival')->update([
-                    'status' => 'Problem',
-                    'notes' => $validated['problemNotes'] ?? $control->notes,
-                ]);
-            } elseif ($validated['status'] === 'In Progress') {
-                $item->controls()->where('process', 'Arrival')
-                    ->whereIn('status', ['Done', 'Problem'])
-                    ->update(['status' => 'In Progress']);
+            if (!empty($validated['status'])) {
+                $status = $validated['status'];
+                if ($status === 'Done') {
+                    $control->update([
+                        'status' => 'Done',
+                        'done_at' => $control->done_at ?? Carbon::now(),
+                    ]);
+                    $item->controls()->where('process', 'Arrival')->update([
+                        'status' => 'Done',
+                    ]);
+                } elseif ($status === 'Problem') {
+                    $hasArrival = $item->controls()->where('process', 'Arrival')->exists();
+                    if ($hasArrival) {
+                        $item->controls()->where('process', 'Arrival')->update([
+                            'status' => 'Problem',
+                            'notes' => $validated['problemNotes'] ?? $control->notes,
+                        ]);
+                    } else {
+                        $control->update([
+                            'status' => 'Problem',
+                            'notes' => $validated['problemNotes'] ?? $control->notes,
+                        ]);
+                    }
+                } elseif ($status === 'In Progress') {
+                    if ($control->status !== 'Done') {
+                        $control->update([
+                            'status' => 'In Progress',
+                            'in_progress_at' => $control->in_progress_at ?? Carbon::now(),
+                        ]);
+                    }
+                    $item->controls()->where('process', 'Arrival')
+                        ->whereIn('status', ['Done', 'Problem'])
+                        ->update(['status' => 'In Progress']);
+                }
             }
 
             // Sync targetArrival to Arrival control and item if provided

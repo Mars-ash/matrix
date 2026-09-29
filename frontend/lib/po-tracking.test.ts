@@ -237,4 +237,30 @@ describe("PO tracking helpers", () => {
     expect(row.status).toBe("Problem");
     expect(row.notes).toBe("Supplier stock kosong");
   });
+
+  it("shows In Progress in tracker when PO is Done but Arrival is In Progress (Kirim PO)", () => {
+    const testProjects = structuredClone(projects);
+    const part = testProjects[0].jos[0].categories[0].items[0];
+    const mtlCtrl = part.controls.find((c) => c.process === "Material")!;
+    const arrCtrl = part.controls.find((c) => c.process === "Arrival")!;
+    mtlCtrl.status = "Done";
+    arrCtrl.status = "In Progress";
+
+    const [row] = collectPoTrackingRows(testProjects);
+    expect(row.status).toBe("In Progress");
+    expect(row.control.status).toBe("Done");
+    expect(row.arrivalStatus).toBe("In Progress");
+  });
+
+  it("shows Done in tracker only when Arrival is Done", () => {
+    const testProjects = structuredClone(projects);
+    const part = testProjects[0].jos[0].categories[0].items[0];
+    const mtlCtrl = part.controls.find((c) => c.process === "Material")!;
+    const arrCtrl = part.controls.find((c) => c.process === "Arrival")!;
+    mtlCtrl.status = "Done";
+    arrCtrl.status = "Done";
+
+    const [row] = collectPoTrackingRows(testProjects);
+    expect(row.status).toBe("Done");
+  });
 });

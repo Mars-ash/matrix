@@ -1,11 +1,12 @@
 "use client";
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import type { Category } from "@/lib/types";
 import { PART_PROCESSES, COMPONENT_PROCESSES } from "@/lib/types";
 import { useAppDispatch } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
 import { ProcessControlCell } from "./process-control-cell";
 import { EmptyState } from "./empty-state";
+import { MobileItemList } from "./mobile-item-list";
 
 interface ControlTableProps {
   category: Category;
@@ -28,6 +29,7 @@ interface ControlTableProps {
   }) => void;
   onEditItem?: (item: Category["items"][number]) => void;
   onDeleteItem?: (item: Category["items"][number]) => void;
+  defaultMobileView?: "list" | "table";
 }
 
 export function ControlTable({
@@ -43,10 +45,23 @@ export function ControlTable({
   onRequestSendSubcont,
   onEditItem,
   onDeleteItem,
+  defaultMobileView = "list",
 }: ControlTableProps) {
   const dispatch = useAppDispatch();
   const { isController } = useAuth();
   const processes = category.kind === "Part" ? PART_PROCESSES : COMPONENT_PROCESSES;
+
+  const [isMobile, setIsMobile] = useState(false);
+  const [mobileView, setMobileView] = useState<"list" | "table">(defaultMobileView);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(typeof window !== "undefined" && window.innerWidth <= 768);
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   const headerCheckboxRef = useRef<HTMLInputElement>(null);
   const categoryItemIds = category.items.map((i) => i.id);
@@ -78,8 +93,48 @@ export function ControlTable({
 
   return (
     <div>
-      <div className="table-scroll">
-        <table className={`control-table ${!isController ? "table-viewer" : ""}`}>
+      {/* Mobile view switcher (hidden on desktop screens >= 769px via CSS) */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "flex-end",
+          marginBottom: 8,
+        }}
+      >
+        <div className="mobile-view-toggle">
+          <button
+            type="button"
+            className={mobileView === "list" ? "active" : ""}
+            onClick={() => setMobileView("list")}
+          >
+            List
+          </button>
+          <button
+            type="button"
+            className={mobileView === "table" ? "active" : ""}
+            onClick={() => setMobileView("table")}
+          >
+            Matriks
+          </button>
+        </div>
+      </div>
+
+      {isMobile && mobileView === "list" ? (
+        <MobileItemList
+          category={category}
+          projectId={projectId}
+          joId={joId}
+          highlightedItemId={highlightedItemId}
+          selectedItemIds={selectedItemIds}
+          onToggleSelectItem={onToggleSelectItem}
+          onRequestSendPo={onRequestSendPo}
+          onRequestSendSubcont={onRequestSendSubcont}
+          onEditItem={onEditItem}
+          onDeleteItem={onDeleteItem}
+        />
+      ) : (
+        <div className="table-scroll">
+          <table className={`control-table ${!isController ? "table-viewer" : ""}`}>
           <thead>
             <tr>
               {/* Sticky NO column with integrated bulk select checkbox for controllers */}
@@ -317,6 +372,7 @@ export function ControlTable({
           </tbody>
         </table>
       </div>
+      )}
     </div>
   );
 }

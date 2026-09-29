@@ -487,5 +487,5 @@ export default function DashboardPage() {
         confirmText="Hapus"
       />
     </AppShell>
-  );
+  )
 }
