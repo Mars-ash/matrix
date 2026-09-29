@@ -48,7 +48,7 @@ class OcrService
         ))));
 
         if (empty($allKeys)) {
-            return $this->fallbackParse($categoryKind, 'Gemini API Key tidak disetel. Menggunakan parser offline simulasi.');
+            return $this->failureResponse('Gemini API Key tidak disetel. Harap hubungi administrator.');
         }
 
         try {
@@ -196,7 +196,7 @@ PROMPT;
             }
 
             if (!$response || !$response->successful()) {
-                return $this->fallbackParse($categoryKind, 'Layanan Gemini sedang sibuk atau batas kuota seluruh API key tercapai (' . $lastError . ').');
+                return $this->failureResponse('Layanan OCR Vision AI sedang sibuk atau batas kuota API key tercapai (' . $lastError . ').');
             }
 
             $json = $response->json();
@@ -206,7 +206,7 @@ PROMPT;
             $items = json_decode($cleanText, true);
 
             if (!is_array($items) || count($items) === 0) {
-                return $this->fallbackParse($categoryKind, 'No items detected by OCR.');
+                return $this->failureResponse('Tidak ada baris data atau tabel yang terdeteksi dari gambar.');
             }
 
             $sanitized = array_map(function ($item, $index) {
@@ -237,10 +237,10 @@ PROMPT;
             Log::error('Gemini OCR exception: ' . $cleanMsg);
 
             if (str_contains(strtolower($msg), 'timed out') || str_contains(strtolower($msg), 'curl error 28')) {
-                return $this->fallbackParse($categoryKind, 'Koneksi ke Gemini AI timeout saat memproses gambar.');
+                return $this->failureResponse('Koneksi ke OCR Vision AI timeout saat memproses gambar.');
             }
 
-            return $this->fallbackParse($categoryKind, 'Koneksi OCR terputus: ' . substr($cleanMsg, 0, 100));
+            return $this->failureResponse('Koneksi OCR terputus: ' . substr($cleanMsg, 0, 100));
         }
     }
 
@@ -325,8 +325,19 @@ PROMPT;
         ];
     }
 
+    public function failureResponse(string $message): array
+    {
+        return [
+            'success' => false,
+            'provider' => 'none',
+            'items' => [],
+            'message' => $message,
+        ];
+    }
+
     /**
      * Fallback parsing when offline or without Gemini API key.
+     * Note: Fails cleanly without inventing fake BOM items to protect manufacturing data integrity.
      *
      * @param string|null $categoryKind
      * @param string $reason
@@ -334,26 +345,6 @@ PROMPT;
      */
     public function fallbackParse(?string $categoryKind = 'Part', string $reason = ''): array
     {
-        $items = match ($categoryKind) {
-            'Component' => [
-                ['no' => '1', 'description' => 'Gas Spring Kaller R19-050', 'dimension' => 'D19 x 50mm', 'material' => 'Standard', 'qty' => 4, 'hrc' => '-'],
-                ['no' => '2', 'description' => 'Guide Post Misumi GP25-150', 'dimension' => 'D25 x 150mm', 'material' => 'SUJ2', 'qty' => 4, 'hrc' => 'HRC 60'],
-                ['no' => '3', 'description' => 'Punch Heade Misumi PH10-80', 'dimension' => 'D10 x 80mm', 'material' => 'SKD11', 'qty' => 8, 'hrc' => '58-60'],
-            ],
-            default => [
-                ['no' => '1', 'description' => 'Upper Die Plate', 'dimension' => '450 x 300 x 45', 'material' => 'S50C', 'qty' => 1, 'hrc' => '-'],
-                ['no' => '2', 'description' => 'Punch Holder Plate', 'dimension' => '400 x 260 x 35', 'material' => 'SS400', 'qty' => 1, 'hrc' => '-'],
-                ['no' => '3', 'description' => 'Stripper Plate', 'dimension' => '400 x 260 x 25', 'material' => 'SKD11', 'qty' => 1, 'hrc' => '58-60'],
-                ['no' => '4', 'description' => 'Die Plate Lower', 'dimension' => '450 x 300 x 50', 'material' => 'SLD / SKD11', 'qty' => 1, 'hrc' => '60-62'],
-                ['no' => '5', 'description' => 'Bending Insert R5', 'dimension' => '80 x 60 x 40', 'material' => 'DC53', 'qty' => 2, 'hrc' => '60-62'],
-            ],
-        };
-
-        return [
-            'success' => true,
-            'provider' => 'offline_fallback',
-            'items' => $items,
-            'message' => 'Simulasi ekstraksi offline aktif (' . $reason . '). Silakan tinjau dan edit data sebelum disimpan.',
-        ];
+        return $this->failureResponse($reason ?: 'Ekstraksi OCR tidak tersedia.');
     }
 }

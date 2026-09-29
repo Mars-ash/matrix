@@ -65,13 +65,13 @@ Dokumen pelacakan progress per fase implementasi. Setiap item harus dicentang se
 
 ---
 
-### Fase 5: OCR Vision AI (Gemini 2.0 Flash)
-- [x] **5.1** Setup `backend/config/ocr.php` & simpan Google Gemini API key di `.env`
-- [x] **5.2** Implementasi `OcrService.php` dengan prompt Gemini 2.0 Flash + Structured JSON output schema
-- [x] **5.3** Buat API endpoint `POST /api/ocr/extract` dengan rate-limiting & validasi gambar
-- [x] **5.4** Modifikasi `add-data-dialog.tsx` untuk menangkap paste clipboard / drag-drop gambar asli
-- [x] **5.5** Tampilkan hasil ekstraksi BOM ke tabel editable preview sebelum konfirmasi import
-- [x] **5.6** **Verification Gate 5**: Upload contoh gambar BOM aktual → data terisi otomatis dan tersimpan ke JO
+### Fase 5: OCR Vision AI (Gemini 2.0 Flash — Sole Production Path)
+- [x] **5.1** Setup `backend/config/ocr.php` & simpan Google Gemini API key di `.env` (primary `GEMINI_API_KEY` + optional `GEMINI_API_KEYS` rotation; `ocr-lab/` retained as inactive research archive only)
+- [x] **5.2** Implementasi `OcrService.php` dengan prompt Gemini 2.0 Flash + Structured JSON output schema, serta fail-loud error handling (zero-fabrication: tidak memalsukan data BOM saat API gagal/offline)
+- [x] **5.3** Buat API endpoint `POST /api/ocr/extract` & `/api/categories/{category}/ocr-upload` terlindungi `auth.token` + `role.controller` dengan rate-limiting (`throttle:ocr` 10 req/min), magic-bytes MIME allowlist (`image/jpeg`, `image/png`, `image/webp`), batas ukuran 15MB, dan validasi explicit consent
+- [x] **5.4** Modifikasi `add-data-dialog.tsx` untuk staging preview lokal gambar asli & mewajibkan explicit consent user sebelum upload dikirim ke jaringan (zero silent upload)
+- [x] **5.5** Tampilkan hasil ekstraksi BOM ke tabel editable preview sebelum konfirmasi import, tanpa data dummy
+- [x] **5.6** **Verification Gate 5**: Automated Feature tests (`OcrSecurityTest` & `OcrTest`) memvalidasi 401 unauthenticated, 403 viewer role, 422 missing consent / invalid MIME / oversize, dan ekstraksi sukses dengan token & consent. Upload contoh gambar BOM aktual terisi dan tersimpan ke JO.
 
 ---
 

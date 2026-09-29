@@ -530,10 +530,12 @@ export const api = {
   // OCR Vision AI
   async uploadOcrImage(
     categoryId: string,
-    file: File
+    file: File,
+    consent: boolean = true
   ): Promise<{ success: boolean; provider: string; items: any[]; message: string }> {
     const formData = new FormData();
     formData.append("image", file);
+    formData.append("consent", consent ? "1" : "0");
 
     const token =
       (typeof window !== "undefined" && localStorage.getItem("matrix_auth_token")) ||

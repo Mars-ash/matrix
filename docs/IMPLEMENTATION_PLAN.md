@@ -154,19 +154,20 @@ php artisan test --filter=Trial
 
 ---
 
-### Fase 5: OCR Vision AI (Gemini 2.0 Flash)
+### Fase 5: OCR Vision AI (Gemini 2.0 Flash — Sole Production Path)
 
-**Tujuan**: Implementasi auto-input part list dari paste/upload gambar tabel BOM menggunakan Gemini 2.0 Flash.
+**Tujuan**: Implementasi auto-input part list dari paste/upload gambar tabel BOM menggunakan Google Gemini 2.0 Flash sebagai jalur tunggal produksi (arsip `ocr-lab/` dipertahankan terisolasi sebagai offline benchmark/riset dan tidak dihubungkan ke produksi).
 
 #### File Changes:
-- `backend/config/ocr.php`: Konfigurasi provider, Gemini API key, rate limits.
-- `backend/app/Services/OcrService.php`: Gemini Vision client dengan *Structured JSON Schema* prompt.
-- `backend/app/Http/Controllers/Api/OcrController.php`: Endpoint `POST /api/ocr/extract`.
-- `frontend/components/add-data-dialog.tsx`: Tangkap clipboard paste gambar -> panggil API `/api/ocr/extract` -> tampilkan di tabel preview editable -> batch confirm import.
+- `backend/config/ocr.php`: Konfigurasi provider, single primary `GEMINI_API_KEY` + opsional `GEMINI_API_KEYS` rotation.
+- `backend/app/Services/OcrService.php`: Gemini Vision client dengan *Structured JSON Schema* prompt, fail-loud error handling (zero-fabrication: tidak memalsukan data BOM saat API gagal/offline).
+- `backend/app/Http/Controllers/Api/OcrController.php`: Endpoint `POST /api/ocr/extract` & `/api/categories/{category}/ocr-upload` terlindungi `auth.token`, `role.controller`, rate limiting `throttle:ocr`, validasi ukuran (max 15MB), magic-bytes MIME check (`image/jpeg`, `image/png`, `image/webp`), dan explicit user consent.
+- `frontend/components/add-data-dialog.tsx`: Tangkap clipboard paste / drag-drop gambar -> staging thumbnail preview & explicit consent gating (zero silent upload) -> panggil API `/api/ocr/extract` -> tampilkan di tabel preview editable -> batch confirm import.
+- `backend/tests/Feature/OcrSecurityTest.php` & `OcrTest.php`: Automated test suite memvalidasi autentikasi (401 unauthenticated), otorisasi (403 viewer), validasi consent & magic bytes (422), dan ekstraksi sukses.
 
 #### Verification Gate:
 ```bash
-php artisan test --filter=OcrTest
+php artisan test --filter=Ocr
 ```
 
 ---

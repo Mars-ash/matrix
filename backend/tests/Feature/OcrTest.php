@@ -90,6 +90,7 @@ class OcrTest extends TestCase
         $response = $this->withHeader('Authorization', 'Bearer ' . $this->controllerToken)
             ->post("/api/categories/{$this->category->id}/ocr-upload", [
                 'image' => $fakeImage,
+                'consent' => true,
             ], ['Accept' => 'application/json']);
 
         $response->assertStatus(200)
@@ -100,21 +101,23 @@ class OcrTest extends TestCase
             ->assertJsonPath('items.1.material', 'SUJ2');
     }
 
-    public function test_ocr_falls_back_gracefully_when_no_api_key(): void
+    public function test_ocr_fails_loudly_when_no_api_key_without_fabricating_data(): void
     {
         Config::set('ocr.gemini_api_key', '');
+        Config::set('ocr.api_keys', []);
 
         $fakeImage = UploadedFile::fake()->image('table.png', 400, 300);
 
         $response = $this->withHeader('Authorization', 'Bearer ' . $this->controllerToken)
             ->post("/api/categories/{$this->category->id}/ocr-upload", [
                 'image' => $fakeImage,
+                'consent' => true,
             ], ['Accept' => 'application/json']);
 
-        $response->assertStatus(200)
-            ->assertJsonPath('success', true)
-            ->assertJsonPath('provider', 'offline_fallback')
-            ->assertJsonStructure(['items' => [['no', 'description', 'dimension', 'material', 'qty', 'hrc']]]);
+        $response->assertStatus(422)
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('provider', 'none')
+            ->assertJsonPath('items', []);
     }
 
     public function test_viewer_cannot_upload_ocr(): void
@@ -124,6 +127,7 @@ class OcrTest extends TestCase
         $response = $this->withHeader('Authorization', 'Bearer ' . $this->viewerToken)
             ->post("/api/categories/{$this->category->id}/ocr-upload", [
                 'image' => $fakeImage,
+                'consent' => true,
             ], ['Accept' => 'application/json']);
 
         $response->assertStatus(403);
@@ -180,6 +184,7 @@ class OcrTest extends TestCase
         $response = $this->withHeader('Authorization', 'Bearer ' . $this->controllerToken)
             ->post("/api/categories/{$this->category->id}/ocr-upload", [
                 'image' => $fakeImage,
+                'consent' => true,
             ], ['Accept' => 'application/json']);
 
         $response->assertStatus(200)
@@ -189,4 +194,3 @@ class OcrTest extends TestCase
             ->assertJsonPath('items.0.description', 'Backup Key Part');
     }
 }
-

@@ -43,23 +43,22 @@ Use the smallest relevant set of skills.
 
 Frontend:
 
-- Next.js
-- React
+- Next.js 16
+- React 19
 - Tailwind CSS
 
 Backend:
 
-- Laravel
-- PHP
-- REST API
+- Laravel 13
+- PHP 8.3
+- REST API (Sanctum token authentication)
 - Eloquent ORM
 
-OCR Lab / Python (Local BOM Extraction & Service):
+Vision AI / OCR (Production):
 
-- Python 3.11 (isolated `.venv`)
-- PaddleOCR / PaddlePaddle / OpenCV / Pillow
-- FastAPI / Uvicorn (internal service facade)
-- Pytest / Ruff
+- Google Gemini Vision AI (via `backend/app/Services/OcrService.php`)
+- Protected by `auth.token`, `role.controller`, `throttle:ocr`, explicit consent gating, and magic-bytes validation
+- *(Note: `ocr-lab/` is retained as an inactive research archive only; it is not part of the active production pipeline)*
 
 Database:
 
@@ -70,7 +69,7 @@ Infrastructure:
 - Docker
 - CI/CD
 
-Do not introduce another backend framework or ORM for the primary web backend unless explicitly requested (Laravel is the primary web backend; FastAPI is strictly for the internal OCR Lab service facade).
+Do not introduce another backend framework or ORM for the primary web backend.
 
 Do not introduce Prisma for the Laravel backend.
 
@@ -79,23 +78,23 @@ Do not introduce Prisma for the Laravel backend.
 The intended architecture is:
 
 ```text
-Next.js
+Next.js 16 (Frontend)
     │
-    │ HTTP / REST API
+    │ HTTP / REST API (Sanctum auth.token)
     ▼
-Laravel ────────────► OCR Lab (Python / FastAPI)
-    │     Internal    (Local CPU BOM Extraction)
-    │     HTTP API
-    │ Eloquent
+Laravel 13 (Backend API) ──────► Google Gemini Vision AI
+    │ Eloquent                   (Structured JSON Extraction)
     ▼
-PostgreSQL
+PostgreSQL (Database)
 ```
 
-Next.js must not connect directly to PostgreSQL or the OCR Lab.
+Next.js must not connect directly to PostgreSQL or external AI APIs (no Gemini API keys or credentials reach the client).
 
-Database access belongs to Laravel.
+Database access belongs strictly to Laravel.
 
-OCR extraction requests pass through Laravel, which validates uploads, delegates to OCR Lab (or explicit fallback), and stores structured results for user review.
+OCR extraction requests pass through Laravel, which validates uploads with strict magic-bytes MIME checks and explicit user consent gating, communicates with Google Gemini Vision AI, and stores structured results for user review without fabricating simulated data on failure.
+
+`ocr-lab/` is retained as an offline research/benchmark archive and is not wired into production routes or services.
 
 Business logic and sensitive operations belong to the backend unless there is a clear architectural reason otherwise.
 

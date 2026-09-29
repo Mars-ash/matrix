@@ -1,5 +1,11 @@
 # Local BOM OCR Lab
 
+> [!IMPORTANT]
+> **RETAINED-BUT-INACTIVE RESEARCH ARCHIVE**
+> This local OCR lab workspace is retained as an experimental / offline benchmark artifact only.
+> It is **NOT** part of the active MATRIX production pipeline. Production OCR extraction is handled exclusively by **Google Gemini Vision AI** via `backend/app/Services/OcrService.php` behind Sanctum authentication (`auth.token`).
+> Do **NOT** wire this directory, its Python runtime, or any local service facade into production backend routes or deployment containers.
+
 Standalone, CPU-only extraction of ruled PNG/JPEG BOM tables. All results require
 human review. MATRIX integration remains gated by the approved private benchmark.
 

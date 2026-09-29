@@ -28,8 +28,6 @@ Route::prefix('auth')->group(function () {
     });
 });
 
-// OCR Vision AI Standalone Extraction
-Route::post('/ocr/extract', [\App\Http\Controllers\Api\OcrController::class, 'extract']);
 
 /*
 |--------------------------------------------------------------------------
@@ -61,7 +59,13 @@ Route::middleware('auth.token')->group(function () {
         Route::post('/jos/{jo}/categories', [CategoryController::class, 'store']);
         Route::post('/categories/{category}/items', [ItemController::class, 'store']);
         Route::post('/categories/{category}/items/batch', [ItemController::class, 'batchStore']);
-        Route::post('/categories/{category}/ocr-upload', [\App\Http\Controllers\Api\OcrController::class, 'upload']);
+
+        // OCR Vision AI (Protected & Rate-limited)
+        Route::middleware('throttle:ocr')->group(function () {
+            Route::post('/ocr/extract', [\App\Http\Controllers\Api\OcrController::class, 'extract']);
+            Route::post('/categories/{category}/ocr-upload', [\App\Http\Controllers\Api\OcrController::class, 'upload']);
+            Route::post('/ocr/{category}/upload', [\App\Http\Controllers\Api\OcrController::class, 'upload']);
+        });
         Route::put('/items/{item}', [ItemController::class, 'update']);
         Route::delete('/items/{item}', [ItemController::class, 'destroy']);
         Route::post('/items/batch-delete', [ItemController::class, 'batchDestroy']);
