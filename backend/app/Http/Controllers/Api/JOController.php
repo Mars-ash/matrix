@@ -124,6 +124,10 @@ class JOController extends Controller
 
     public function destroy(JO $jo): JsonResponse
     {
+        if ($jo->project?->is_system || $jo->jo_number === \App\Services\TrackerItemService::UNASSIGNED_JO_NUMBER) {
+            return response()->json(['message' => 'System project cannot be deleted.'], 422);
+        }
+
         $jo->delete();
 
         return response()->json([

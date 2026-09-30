@@ -438,6 +438,13 @@ export type AppAction =
   | {
       type: "HYDRATE_TRIAL_STORAGE";
       stored?: Record<string, TrialSession[]>;
+    }
+  | {
+      type: "INSERT_TRACKER_ITEM";
+      project: Pick<Project, "id" | "name" | "customer" | "company" | "isSystem">;
+      jo: Pick<JO, "id" | "joNumber" | "product" | "type">;
+      category: Pick<Category, "id" | "label" | "kind" | "isCustom">;
+      item: Item;
     };
 
 // ---------------------------------------------------------------------------
@@ -871,6 +878,56 @@ function executeReducer(next: AppState, state: AppState, action: AppAction): App
           `${action.items.length} items added to ${cat.label} via image conversion.`
         );
       }
+      return next;
+    }
+
+    case "INSERT_TRACKER_ITEM": {
+      let project = next.projects.find((p) => p.id === action.project.id);
+      if (!project) {
+        project = {
+          id: action.project.id,
+          name: action.project.name,
+          customer: action.project.customer,
+          company: action.project.company,
+          isSystem: action.project.isSystem,
+          jos: [],
+        };
+        next.projects.push(project);
+      }
+
+      let jo = project.jos.find((j) => j.id === action.jo.id);
+      if (!jo) {
+        jo = {
+          id: action.jo.id,
+          joNumber: action.jo.joNumber,
+          product: action.jo.product,
+          type: action.jo.type,
+          categories: [],
+          activities: [],
+        };
+        project.jos.push(jo);
+      }
+
+      let category = jo.categories.find((c) => c.id === action.category.id);
+      if (!category) {
+        category = {
+          id: action.category.id,
+          label: action.category.label,
+          kind: action.category.kind,
+          isCustom: action.category.isCustom,
+          items: [],
+        };
+        jo.categories.push(category);
+      }
+
+      const existingItem = category.items.find((i) => i.id === action.item.id);
+      if (!existingItem) {
+        category.items.push({
+          ...action.item,
+          controls: action.item.controls ?? [],
+        });
+      }
+
       return next;
     }
 
@@ -1944,6 +2001,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           });
         break;
       }
+
+      case "INSERT_TRACKER_ITEM":
+        break;
 
       case "ADD_ITEMS_BATCH": {
         const tempItemIds = action.items.map((i) => i.id).filter(Boolean) as string[];

@@ -2501,4 +2501,119 @@ describe("Trial sessions storage persistence and hydration", () => {
       expect(updatedJo.activities[0].message).toContain("JO restored to active");
     });
   });
+
+  describe("INSERT_TRACKER_ITEM", () => {
+    it("inserts an item into an existing project, JO, and category", () => {
+      const p = state.projects[0];
+      const jo = p.jos[0];
+      const cat = jo.categories[0];
+      const initialCount = cat.items.length;
+
+      const item = {
+        id: "new-tracker-item-1",
+        no: "99",
+        description: "Inserted Tracker Item",
+        dimension: "10x10",
+        material: "SKD11",
+        qty: 1,
+        hrc: "",
+        controls: [],
+      };
+
+      const next = reducer(state, {
+        type: "INSERT_TRACKER_ITEM",
+        project: { id: p.id, name: p.name, customer: p.customer, company: p.company },
+        jo: { id: jo.id, joNumber: jo.joNumber, product: jo.product, type: jo.type },
+        category: { id: cat.id, label: cat.label, kind: cat.kind, isCustom: cat.isCustom },
+        item,
+      });
+
+      const updatedCat = next.projects[0].jos[0].categories[0];
+      expect(updatedCat.items).toHaveLength(initialCount + 1);
+      expect(updatedCat.items.find((i) => i.id === "new-tracker-item-1")).toBeDefined();
+    });
+
+    it("is idempotent when inserting the same item twice", () => {
+      const p = state.projects[0];
+      const jo = p.jos[0];
+      const cat = jo.categories[0];
+
+      const item = {
+        id: "new-tracker-item-idempotent",
+        no: "100",
+        description: "Idempotent Item",
+        dimension: "",
+        material: "",
+        qty: 1,
+        hrc: "",
+        controls: [],
+      };
+
+      const action = {
+        type: "INSERT_TRACKER_ITEM" as const,
+        project: { id: p.id, name: p.name, customer: p.customer, company: p.company },
+        jo: { id: jo.id, joNumber: jo.joNumber, product: jo.product, type: jo.type },
+        category: { id: cat.id, label: cat.label, kind: cat.kind, isCustom: cat.isCustom },
+        item,
+      };
+
+      const first = reducer(state, action);
+      const second = reducer(first, action);
+
+      const targetCat = second.projects[0].jos[0].categories[0];
+      const matches = targetCat.items.filter((i) => i.id === "new-tracker-item-idempotent");
+      expect(matches).toHaveLength(1);
+    });
+
+    it("creates project, JO, and category containers if they do not exist", () => {
+      const item = {
+        id: "unassigned-item-1",
+        no: "-",
+        description: "Standalone Item",
+        dimension: "20x20",
+        material: "S50C",
+        qty: 2,
+        hrc: "",
+        controls: [],
+      };
+
+      const next = reducer(state, {
+        type: "INSERT_TRACKER_ITEM",
+        project: {
+          id: "sys-proj-1",
+          name: "Tanpa JO",
+          customer: "-",
+          company: "BKP",
+          isSystem: true,
+        },
+        jo: {
+          id: "sys-jo-1",
+          joNumber: "TANPA-JO",
+          product: "Item tanpa JO",
+          type: "MACHINING SERVICE",
+        },
+        category: {
+          id: "sys-cat-1",
+          label: "PART",
+          kind: "Part",
+          isCustom: false,
+        },
+        item,
+      });
+
+      const sysProj = next.projects.find((p) => p.id === "sys-proj-1");
+      expect(sysProj).toBeDefined();
+      expect(sysProj!.isSystem).toBe(true);
+
+      const sysJo = sysProj!.jos.find((j) => j.id === "sys-jo-1");
+      expect(sysJo).toBeDefined();
+      expect(sysJo!.joNumber).toBe("TANPA-JO");
+
+      const sysCat = sysJo!.categories.find((c) => c.id === "sys-cat-1");
+      expect(sysCat).toBeDefined();
+      expect(sysCat!.label).toBe("PART");
+      expect(sysCat!.items).toHaveLength(1);
+      expect(sysCat!.items[0].id).toBe("unassigned-item-1");
+    });
+  });
 });

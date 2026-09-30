@@ -11,10 +11,14 @@ import { TrackerTableSkeleton } from "@/components/skeleton-loader";
 import { useAppDispatch, useAppState } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
 import { PO_SUPPLIERS, type ControlStatus, type PoTracking } from "@/lib/types";
+import { TrackerAddItemDialog } from "@/components/tracker-add-item-dialog";
+import { UNASSIGNED_JO_LABEL } from "@/lib/tracker-items";
 import {
   collectPoTrackingRows,
   filterPoTrackingRows,
   getPoTrackingDeadline,
+  isPoRowArchived,
+  poRowKey,
   sortPoTrackingRows,
   type PoTrackingRow,
   type PoTrackingSortMode,
@@ -60,10 +64,16 @@ function PoTrackerContent() {
   const [bulkStatus, setBulkStatus] = useState<ControlStatus>("Done");
   const [bulkProblemNotes, setBulkProblemNotes] = useState("");
 
-  const getRowKey = (row: PoTrackingRow) => `${row.item.id}-${row.process}`;
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [recentlyDone, setRecentlyDone] = useState<Record<string, number>>({});
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 10000);
+    return () => clearInterval(t);
+  }, []);
 
   const toggleSelectRow = (row: PoTrackingRow) => {
-    const key = getRowKey(row);
+    const key = poRowKey(row);
     setSelectedKeys((prev) => {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
@@ -73,7 +83,7 @@ function PoTrackerContent() {
   };
 
   const toggleSelectAll = (tableRows: PoTrackingRow[]) => {
-    const tableKeys = tableRows.map(getRowKey);
+    const tableKeys = tableRows.map(poRowKey);
     const allSelected = tableKeys.length > 0 && tableKeys.every((k) => selectedKeys.has(k));
     setSelectedKeys((prev) => {
       const next = new Set(prev);
@@ -97,10 +107,15 @@ function PoTrackerContent() {
   }, [targetItemId]);
 
   const rows = useMemo(() => collectPoTrackingRows(projects), [projects]);
-  const visibleRows = useMemo(
-    () => sortPoTrackingRows(filterPoTrackingRows(rows, searchQuery), sortMode),
-    [rows, searchQuery, sortMode]
+  const activeRows = useMemo(
+    () => rows.filter((r) => !isPoRowArchived(r, recentlyDone, now)),
+    [rows, recentlyDone, now]
   );
+  const visibleRows = useMemo(
+    () => sortPoTrackingRows(filterPoTrackingRows(activeRows, searchQuery), sortMode),
+    [activeRows, searchQuery, sortMode]
+  );
+  const doneCount = useMemo(() => rows.filter((r) => r.status === "Done").length, [rows]);
 
   const stats = useMemo(() => {
     let active = 0;
@@ -128,6 +143,16 @@ function PoTrackerContent() {
     trackingUpdates: PoTracking,
     options: { status?: ControlStatus; problemNotes?: string; qty?: number } = {}
   ) => {
+    if (options.status === "Done") {
+      setRecentlyDone((prev) => ({ ...prev, [poRowKey(row)]: Date.now() }));
+    } else if (options.status !== undefined) {
+      setRecentlyDone((prev) => {
+        const next = { ...prev };
+        delete next[poRowKey(row)];
+        return next;
+      });
+    }
+
     const isProblem = options.status === "Problem";
     const problemNotes = options.problemNotes?.trim() || "";
     const resolvedNotes =
@@ -159,7 +184,7 @@ function PoTrackerContent() {
   };
 
   const renderTable = (tableRows: PoTrackingRow[]) => {
-    const isAllSelected = tableRows.length > 0 && tableRows.every((r) => selectedKeys.has(getRowKey(r)));
+    const isAllSelected = tableRows.length > 0 && tableRows.every((r) => selectedKeys.has(poRowKey(r)));
 
     return (
       <div className="table-scroll">
@@ -192,7 +217,7 @@ function PoTrackerContent() {
             {tableRows.map((row) => {
               const deadline = getPoTrackingDeadline(row.targetArrival, row.arrivalStatus);
               const warningColor = deadline ? deadlineColor(deadline.state) : "";
-              const isSelected = selectedKeys.has(getRowKey(row));
+              const isSelected = selectedKeys.has(poRowKey(row));
 
               return (
                 <tr
@@ -212,12 +237,16 @@ function PoTrackerContent() {
                     </td>
                   )}
                   <td className="td-tracker-jo">
-                    <Link
-                      href={`/projects/${row.project.id}/jos/${row.jo.id}?item=${row.item.id}#item-${row.item.id}`}
-                      style={{ color: "var(--color-accent)", textDecoration: "none", fontWeight: 600, fontSize: 13 }}
-                    >
-                      {row.jo.joNumber}
-                    </Link>
+                    {row.project.isSystem ? (
+                      <span style={{ fontSize: 13, color: "var(--color-text-muted)" }}>{UNASSIGNED_JO_LABEL}</span>
+                    ) : (
+                      <Link
+                        href={`/projects/${row.project.id}/jos/${row.jo.id}?item=${row.item.id}#item-${row.item.id}`}
+                        style={{ color: "var(--color-accent)", textDecoration: "none", fontWeight: 600, fontSize: 13 }}
+                      >
+                        {row.jo.joNumber}
+                      </Link>
+                    )}
                   </td>
                   <td className="td-tracker-item">
                     <div style={{ display: "flex", flexDirection: "column" }}>
@@ -447,8 +476,12 @@ function PoTrackerContent() {
     if (visibleRows.length === 0) {
       return (
         <EmptyState
-          title="No PO rows"
-          description={searchQuery ? "Try adjusting your search." : "PO rows appear from existing PO Mtl and PO controls."}
+          title={searchQuery ? "No PO rows" : "Belum ada PO aktif"}
+          description={
+            searchQuery
+              ? "Try adjusting your search."
+              : "Belum ada PO aktif. Item yang sudah Done ada di Riwayat Done."
+          }
         />
       );
     }
@@ -502,6 +535,16 @@ function PoTrackerContent() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 12 }}>
         <div>
           <h1>PO Tracker</h1>
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <Link href="/po-tracker/done" className="btn btn-secondary">
+            Riwayat Done ({doneCount})
+          </Link>
+          {isController && (
+            <button type="button" className="btn btn-primary" onClick={() => setIsAddOpen(true)}>
+              + Tambah Item
+            </button>
+          )}
         </div>
       </div>
 
@@ -685,7 +728,7 @@ function PoTrackerContent() {
               className="btn btn-primary"
               disabled={bulkStatus === "Problem" && !bulkProblemNotes.trim()}
               onClick={() => {
-                const selectedRows = rows.filter((r) => selectedKeys.has(getRowKey(r)));
+                const selectedRows = activeRows.filter((r) => selectedKeys.has(poRowKey(r)));
                 for (const row of selectedRows) {
                   updateRow(
                     row,
@@ -740,6 +783,12 @@ function PoTrackerContent() {
           )}
         </div>
       </Dialog>
+
+      <TrackerAddItemDialog
+        open={isAddOpen}
+        onClose={() => setIsAddOpen(false)}
+        tracker="po"
+      />
     </AppShell>
   );
 }

@@ -175,6 +175,25 @@ export const api = {
     });
   },
 
+  async createTrackerItem(payload: {
+    tracker: "po" | "subcont";
+    categoryId?: string;
+    kind?: CategoryKind;
+    no?: string;
+    description: string;
+    dimension?: string;
+    material?: string;
+    qty?: number;
+    hrc?: string;
+    targetArrival?: string;
+    subcontNotes?: string;
+  }): Promise<{ data: { project: Project; jo: JO; category: Category; item: Item }; message: string }> {
+    return request<{ data: { project: Project; jo: JO; category: Category; item: Item }; message: string }>(
+      `/trackers/items`,
+      { method: "POST", body: JSON.stringify(payload) }
+    );
+  },
+
   async batchAddItems(
     categoryId: string,
     items: Array<{

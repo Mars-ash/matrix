@@ -172,3 +172,20 @@ export function getPoTrackingDeadline(
   }
   return null;
 }
+
+export const PO_DONE_GRACE_MS = 5 * 60 * 1000;
+
+export function poRowKey(row: PoTrackingRow): string {
+  return `${row.item.id}-${row.process}`;
+}
+
+/** Done rows are archived unless the user marked them Done moments ago in this session. */
+export function isPoRowArchived(
+  row: PoTrackingRow,
+  recentlyDone: Record<string, number>,
+  now: number
+): boolean {
+  if (row.status !== "Done") return false;
+  const t = recentlyDone[poRowKey(row)];
+  return !(t !== undefined && now - t <= PO_DONE_GRACE_MS);
+}

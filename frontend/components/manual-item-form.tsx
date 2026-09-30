@@ -21,6 +21,7 @@ interface ManualItemFormProps {
   /** If true, Enter key submits (skips when focus is on textarea). */
   onSubmit?: () => void;
   autoFocusDescription?: boolean;
+  mode?: "default" | "po" | "subcont";
 }
 
 export function ManualItemForm({
@@ -30,6 +31,7 @@ export function ManualItemForm({
   onClearError,
   onSubmit,
   autoFocusDescription = true,
+  mode = "default",
 }: ManualItemFormProps) {
   const update = <K extends keyof ManualItemData>(key: K, value: ManualItemData[K]) => {
     onChange({ ...data, [key]: value });
@@ -59,8 +61,9 @@ export function ManualItemForm({
           />
         </div>
         <div>
-          <label className="label">Description *</label>
+          <label className="label" htmlFor="manual-description">Description *</label>
           <input
+            id="manual-description"
             className="input"
             value={data.description}
             onChange={(e) => update("description", e.target.value)}
@@ -108,33 +111,77 @@ export function ManualItemForm({
         </div>
       </div>
 
-      {/* Subcont fields */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          padding: "8px 0 0",
-          borderTop: "1px solid var(--color-border-subtle)",
-        }}
-      >
-        <input
-          type="checkbox"
-          id="manual-subcont"
-          checked={data.isSubcont}
-          onChange={(e) => update("isSubcont", e.target.checked)}
-          style={{ width: 16, height: 16, accentColor: "var(--color-accent)" }}
-        />
-        <label
-          htmlFor="manual-subcont"
-          style={{ fontSize: 13, fontWeight: 500, cursor: "pointer" }}
-        >
-          Subcont
-        </label>
-      </div>
+      {/* Subcont / Tracker fields */}
+      {mode === "default" && (
+        <>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "8px 0 0",
+              borderTop: "1px solid var(--color-border-subtle)",
+            }}
+          >
+            <input
+              type="checkbox"
+              id="manual-subcont"
+              checked={data.isSubcont}
+              onChange={(e) => update("isSubcont", e.target.checked)}
+              style={{ width: 16, height: 16, accentColor: "var(--color-accent)" }}
+            />
+            <label
+              htmlFor="manual-subcont"
+              style={{ fontSize: 13, fontWeight: 500, cursor: "pointer" }}
+            >
+              Subcont
+            </label>
+          </div>
 
-      {data.isSubcont && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {data.isSubcont && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <div>
+                <label className="label">Keterangan Subcont</label>
+                <textarea
+                  className="input"
+                  value={data.subcontNotes}
+                  onChange={(e) => update("subcontNotes", e.target.value)}
+                  rows={2}
+                  placeholder="Catatan subcont..."
+                />
+              </div>
+              <div>
+                <label className="label">Target Arrival</label>
+                <input
+                  type="date"
+                  className="input"
+                  value={data.arrivalTargetDate}
+                  onChange={(e) => update("arrivalTargetDate", e.target.value)}
+                  style={{ maxWidth: 200 }}
+                />
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {mode === "po" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, borderTop: "1px solid var(--color-border-subtle)", paddingTop: 8 }}>
+          <div>
+            <label className="label">Target Arrival</label>
+            <input
+              type="date"
+              className="input"
+              value={data.arrivalTargetDate}
+              onChange={(e) => update("arrivalTargetDate", e.target.value)}
+              style={{ maxWidth: 200 }}
+            />
+          </div>
+        </div>
+      )}
+
+      {mode === "subcont" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, borderTop: "1px solid var(--color-border-subtle)", paddingTop: 8 }}>
           <div>
             <label className="label">Keterangan Subcont</label>
             <textarea

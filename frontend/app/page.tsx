@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { JoCard } from "@/components/jo-card";
@@ -15,9 +15,11 @@ import { joProblemCount } from "@/lib/progress";
 import type { Project, JO } from "@/lib/types";
 import { DashboardSkeleton } from "@/components/skeleton-loader";
 import { GlobalItemSearch } from "@/components/global-item-search";
+import { visibleProjects } from "@/lib/tracker-items";
 
 export default function DashboardPage() {
-  const { projects, isHydrated } = useAppState();
+  const { projects: allProjects, isHydrated } = useAppState();
+  const projects = useMemo(() => visibleProjects(allProjects), [allProjects]);
   const dispatch = useAppDispatch();
   const { isController } = useAuth();
   const [createOpen, setCreateOpen] = useState(false);

@@ -351,6 +351,7 @@ export interface Project {
   name: string;
   customer: string;
   company?: CompanyEntity;
+  isSystem?: boolean;
   jos: JO[];
 }
 

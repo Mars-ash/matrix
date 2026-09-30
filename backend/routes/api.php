@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\OcrController;
 use App\Http\Controllers\Api\PoTrackerController;
 use App\Http\Controllers\Api\ProjectController;
 use App\Http\Controllers\Api\SubcontTrackerController;
+use App\Http\Controllers\Api\TrackerItemController;
 use App\Http\Controllers\Api\TrialSessionController;
 use App\Http\Controllers\Auth\AuthController;
 use Illuminate\Support\Facades\Route;
@@ -60,6 +61,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/jos/{jo}/categories', [CategoryController::class, 'store']);
         Route::post('/categories/{category}/items', [ItemController::class, 'store']);
         Route::post('/categories/{category}/items/batch', [ItemController::class, 'batchStore']);
+        Route::post('/trackers/items', [TrackerItemController::class, 'store']);
 
         // OCR Vision AI (Protected & Rate-limited)
         Route::post('/categories/{category}/ocr-upload', [OcrController::class, 'upload'])->middleware('throttle:ocr');

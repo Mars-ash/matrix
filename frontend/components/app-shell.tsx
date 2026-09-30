@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAppState } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
 import type { Project } from "@/lib/types";
+import { UNASSIGNED_JO_LABEL } from "@/lib/tracker-items";
 
 interface AppShellProps {
   children: ReactNode;
@@ -29,6 +30,7 @@ function buildNotifications(projects: Project[]): NotifItem[] {
 
   for (const project of projects) {
     for (const jo of project.jos) {
+      const joLabel = project.isSystem || jo.joNumber === "TANPA-JO" ? UNASSIGNED_JO_LABEL : `JO ${jo.joNumber}`;
       for (const cat of jo.categories) {
         for (const item of cat.items) {
           // 1. Subcont notifications
@@ -44,34 +46,34 @@ function buildNotifications(projects: Project[]): NotifItem[] {
               results.push({
                 id: `${item.id}-subcont`,
                 label: item.description,
-                joNumber: jo.joNumber,
+                joNumber: project.isSystem ? UNASSIGNED_JO_LABEL : jo.joNumber,
                 type: "overdue",
                 daysText: `Overdue ${Math.abs(diffDays)}d`,
                 category: "subcont",
                 href,
-                subText: `JO ${jo.joNumber} · Subcont${supplierLabel}`,
+                subText: `${joLabel} · Subcont${supplierLabel}`,
               });
             } else if (diffDays === 0) {
               results.push({
                 id: `${item.id}-subcont`,
                 label: item.description,
-                joNumber: jo.joNumber,
+                joNumber: project.isSystem ? UNASSIGNED_JO_LABEL : jo.joNumber,
                 type: "hday",
                 daysText: "Hari H",
                 category: "subcont",
                 href,
-                subText: `JO ${jo.joNumber} · Subcont${supplierLabel}`,
+                subText: `${joLabel} · Subcont${supplierLabel}`,
               });
             } else if (diffDays <= 3) {
               results.push({
                 id: `${item.id}-subcont`,
                 label: item.description,
-                joNumber: jo.joNumber,
+                joNumber: project.isSystem ? UNASSIGNED_JO_LABEL : jo.joNumber,
                 type: "h3",
                 daysText: `H-${diffDays}`,
                 category: "subcont",
                 href,
-                subText: `JO ${jo.joNumber} · Subcont${supplierLabel}`,
+                subText: `${joLabel} · Subcont${supplierLabel}`,
               });
             }
           }
@@ -89,34 +91,34 @@ function buildNotifications(projects: Project[]): NotifItem[] {
                 results.push({
                   id: `${item.id}-${ctrl.process}`,
                   label: item.description,
-                  joNumber: jo.joNumber,
+                  joNumber: project.isSystem ? UNASSIGNED_JO_LABEL : jo.joNumber,
                   type: "overdue",
                   daysText: `Overdue ${Math.abs(diffDays)}d`,
                   category: "po",
                   href,
-                  subText: `JO ${jo.joNumber} · PO / Material${supplierInfo}`,
+                  subText: `${joLabel} · PO / Material${supplierInfo}`,
                 });
               } else if (diffDays === 0) {
                 results.push({
                   id: `${item.id}-${ctrl.process}`,
                   label: item.description,
-                  joNumber: jo.joNumber,
+                  joNumber: project.isSystem ? UNASSIGNED_JO_LABEL : jo.joNumber,
                   type: "hday",
                   daysText: "Hari H",
                   category: "po",
                   href,
-                  subText: `JO ${jo.joNumber} · PO / Material${supplierInfo}`,
+                  subText: `${joLabel} · PO / Material${supplierInfo}`,
                 });
               } else if (diffDays <= 3) {
                 results.push({
                   id: `${item.id}-${ctrl.process}`,
                   label: item.description,
-                  joNumber: jo.joNumber,
+                  joNumber: project.isSystem ? UNASSIGNED_JO_LABEL : jo.joNumber,
                   type: "h3",
                   daysText: `H-${diffDays}`,
                   category: "po",
                   href,
-                  subText: `JO ${jo.joNumber} · PO / Material${supplierInfo}`,
+                  subText: `${joLabel} · PO / Material${supplierInfo}`,
                 });
               }
             }

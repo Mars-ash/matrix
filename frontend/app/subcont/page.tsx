@@ -10,22 +10,19 @@ import { EmptyState } from "@/components/empty-state";
 import { Dialog } from "@/components/dialog";
 import { StatusSelect } from "@/components/status-select";
 import { TrackerTableSkeleton } from "@/components/skeleton-loader";
+import { TrackerAddItemDialog } from "@/components/tracker-add-item-dialog";
+import { UNASSIGNED_JO_LABEL } from "@/lib/tracker-items";
 import { useAuth } from "@/lib/auth";
-
-interface SubcontRow {
-  project: Project;
-  jo: JO;
-  category: Category;
-  item: Item;
-  arrivalControl?: Control;
-  originalIndex: number;
-}
+import {
+  type SubcontRow,
+  collectSubcontRows,
+  isSubcontArchived,
+} from "@/lib/subcont-tracking";
 
 type GroupMode = "none" | "jo" | "supplier";
 type SortMode = "newest" | "oldest" | "deadline" | "jo" | "supplier" | "qty";
 
 const SUBCONT_STATUSES: ControlStatus[] = ["In Progress", "Done", "Problem"];
-const FIVE_MINUTES_MS = 5 * 60 * 1000;
 
 function getNotification(targetDate?: string, subcontStatus?: string): { text: string; color: string; diffDays: number } | null {
   if (!targetDate || subcontStatus === "Done") return null;
@@ -63,6 +60,7 @@ function SubcontTrackingContent() {
   const searchParams = useSearchParams();
   const { isController, isViewer } = useAuth();
 
+  const [isAddOpen, setIsAddOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [groupMode, setGroupMode] = useState<GroupMode>("none");
   const [sortMode, setSortMode] = useState<SortMode>("newest");
@@ -135,41 +133,11 @@ function SubcontTrackingContent() {
   };
 
   // Collect all items marked as Subcont
-  const rawSubcontRows = useMemo(() => {
-    const rows: SubcontRow[] = [];
-    let itemCounter = 0;
-
-    for (const project of projects) {
-      for (const jo of project.jos) {
-        for (const category of jo.categories) {
-          for (const item of category.items) {
-            if (item.isSubcont) {
-              rows.push({
-                project,
-                jo,
-                category,
-                item,
-                arrivalControl: item.controls.find((c) => c.process === "Arrival"),
-                originalIndex: itemCounter++,
-              });
-            }
-          }
-        }
-      }
-    }
-    return rows;
-  }, [projects]);
+  const rawSubcontRows = useMemo(() => collectSubcontRows(projects), [projects]);
+  const doneCount = useMemo(() => rawSubcontRows.filter((r) => r.item.subcontStatus === "Done").length, [rawSubcontRows]);
 
   // Filter 1: Exclude items marked "Done" that are older than 5 minutes
-  const activeSubcontRows = rawSubcontRows.filter((row) => {
-    if (row.item.subcontStatus === "Done" && row.item.subcontDoneAt) {
-      const doneAge = currentTime - new Date(row.item.subcontDoneAt).getTime();
-      if (doneAge > FIVE_MINUTES_MS) {
-        return false;
-      }
-    }
-    return true;
-  });
+  const activeSubcontRows = rawSubcontRows.filter((row) => !isSubcontArchived(row.item, currentTime));
 
   // Calculate KPI Counts from active list
   let totalActive = 0;
@@ -303,12 +271,16 @@ function SubcontTrackingContent() {
                   )}
                   {/* JO */}
                   <td className="td-tracker-jo">
-                    <Link
-                      href={`/projects/${row.project.id}/jos/${row.jo.id}`}
-                      style={{ color: "var(--color-accent)", textDecoration: "none", fontWeight: 600, fontSize: 13 }}
-                    >
-                      {row.jo.joNumber}
-                    </Link>
+                    {row.project.isSystem ? (
+                      <span style={{ fontSize: 13, color: "var(--color-text-muted)" }}>{UNASSIGNED_JO_LABEL}</span>
+                    ) : (
+                      <Link
+                        href={`/projects/${row.project.id}/jos/${row.jo.id}`}
+                        style={{ color: "var(--color-accent)", textDecoration: "none", fontWeight: 600, fontSize: 13 }}
+                      >
+                        {row.jo.joNumber}
+                      </Link>
+                    )}
                   </td>
 
                   {/* Item */}
@@ -599,10 +571,14 @@ function SubcontTrackingContent() {
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ fontWeight: 700, fontSize: 13, color: "var(--color-accent)" }}>{grp.jo.joNumber}</span>
-                  <span style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>
-                    {grp.project.name} &bull; {grp.jo.product}
+                  <span style={{ fontWeight: 700, fontSize: 13, color: grp.project.isSystem ? "var(--color-text-muted)" : "var(--color-accent)" }}>
+                    {grp.project.isSystem ? UNASSIGNED_JO_LABEL : grp.jo.joNumber}
                   </span>
+                  {!grp.project.isSystem && (
+                    <span style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>
+                      {grp.project.name} &bull; {grp.jo.product}
+                    </span>
+                  )}
                 </div>
                 <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>{grp.rows.length} part</span>
               </div>
@@ -667,6 +643,16 @@ function SubcontTrackingContent() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 12 }}>
         <div>
           <h1>Subcont Tracker</h1>
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <Link href="/subcont/done" className="btn btn-secondary">
+            Riwayat Done ({doneCount})
+          </Link>
+          {isController && (
+            <button type="button" className="btn btn-primary" onClick={() => setIsAddOpen(true)}>
+              + Tambah Item
+            </button>
+          )}
         </div>
       </div>
 
@@ -957,6 +943,12 @@ function SubcontTrackingContent() {
           )}
         </div>
       </Dialog>
+
+      <TrackerAddItemDialog
+        open={isAddOpen}
+        onClose={() => setIsAddOpen(false)}
+        tracker="subcont"
+      />
     </AppShell>
   );
 }

@@ -64,6 +64,10 @@ class ProjectController extends Controller
 
     public function destroy(Project $project): JsonResponse
     {
+        if ($project->is_system) {
+            return response()->json(['message' => 'System project cannot be deleted.'], 422);
+        }
+
         $project->delete();
 
         return response()->json([

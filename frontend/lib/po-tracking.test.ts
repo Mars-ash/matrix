@@ -4,7 +4,9 @@ import {
   collectPoTrackingRows,
   filterPoTrackingRows,
   getPoTrackingDeadline,
+  isPoRowArchived,
   isPoTrackingProcess,
+  poRowKey,
   poTrackingLabel,
   sortPoTrackingRows,
 } from "./po-tracking";
@@ -262,5 +264,34 @@ describe("PO tracking helpers", () => {
 
     const [row] = collectPoTrackingRows(testProjects);
     expect(row.status).toBe("Done");
+  });
+
+  describe("isPoRowArchived", () => {
+    const rows = collectPoTrackingRows(projects);
+    const doneRow = rows.find((r) => r.status === "Done")!;
+    const inProgressRow = rows.find((r) => r.status === "In Progress")!;
+    const now = 1000000000000;
+
+    it("returns false for non-Done rows", () => {
+      expect(isPoRowArchived(inProgressRow, {}, now)).toBe(false);
+    });
+
+    it("returns true for Done row not in recentlyDone map", () => {
+      expect(isPoRowArchived(doneRow, {}, now)).toBe(true);
+    });
+
+    it("returns false for Done row marked Done 1 minute ago in recentlyDone", () => {
+      const recentlyDone = {
+        [poRowKey(doneRow)]: now - 1 * 60 * 1000,
+      };
+      expect(isPoRowArchived(doneRow, recentlyDone, now)).toBe(false);
+    });
+
+    it("returns true for Done row marked Done 6 minutes ago in recentlyDone", () => {
+      const recentlyDone = {
+        [poRowKey(doneRow)]: now - 6 * 60 * 1000,
+      };
+      expect(isPoRowArchived(doneRow, recentlyDone, now)).toBe(true);
+    });
   });
 });

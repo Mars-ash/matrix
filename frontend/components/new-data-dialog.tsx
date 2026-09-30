@@ -1,8 +1,9 @@
 "use client";
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import { Dialog } from "./dialog";
 import { AddDataDialog } from "./add-data-dialog";
 import { useAppState } from "@/lib/store";
+import { visibleProjects } from "@/lib/tracker-items";
 
 interface NewDataDialogProps {
   open: boolean;
@@ -10,7 +11,8 @@ interface NewDataDialogProps {
 }
 
 export function NewDataDialog({ open, onClose }: NewDataDialogProps) {
-  const { projects } = useAppState();
+  const { projects: allProjects } = useAppState();
+  const projects = useMemo(() => visibleProjects(allProjects), [allProjects]);
 
   const [selectedProjectId, setSelectedProjectId] = useState("");
   const [selectedJoId, setSelectedJoId] = useState("");

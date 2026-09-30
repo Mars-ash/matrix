@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useMemo } from "react";
 import { Dialog } from "./dialog";
 import {
   JO_TYPES,
@@ -9,6 +9,7 @@ import {
   type CategoryKind,
 } from "@/lib/types";
 import { useAppDispatch, useAppState } from "@/lib/store";
+import { visibleProjects } from "@/lib/tracker-items";
 import { useRouter } from "next/navigation";
 import { uid } from "@/lib/format";
 
@@ -27,7 +28,8 @@ interface SelectedCategory {
 
 export function JoCreateDialog({ open, onClose, projectId, onCreated }: JoCreateDialogProps) {
   const dispatch = useAppDispatch();
-  const { projects } = useAppState();
+  const { projects: allProjects } = useAppState();
+  const projects = useMemo(() => visibleProjects(allProjects), [allProjects]);
   const router = useRouter();
 
   const [selectedProjectId, setSelectedProjectId] = useState(projectId || "");

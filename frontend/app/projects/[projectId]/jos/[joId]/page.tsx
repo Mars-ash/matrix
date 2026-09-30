@@ -194,6 +194,10 @@ export default function JoDetailPage({ params }: PageProps) {
     setActiveBulkModal("subcont");
   }, []);
 
+  if (project?.isSystem) {
+    notFound();
+  }
+
   if (!project || !jo) {
     return (
       <AppShell breadcrumbs={[{ label: "Job Order" }]}>

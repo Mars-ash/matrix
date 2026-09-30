@@ -14,6 +14,7 @@ class ProjectResource extends JsonResource
             'name' => $this->name,
             'customer' => $this->customer,
             'company' => $this->company ?? 'BKP',
+            'isSystem' => (bool) $this->is_system,
             'jos' => JOResource::collection($this->whenLoaded('jos')),
         ];
     }
