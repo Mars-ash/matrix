@@ -193,4 +193,76 @@ class OcrTest extends TestCase
             ->assertJsonCount(1, 'items')
             ->assertJsonPath('items.0.description', 'Backup Key Part');
     }
+
+    public function test_extract_requires_authentication(): void
+    {
+        $image = UploadedFile::fake()->image('table.png', 400, 300);
+
+        $this->post('/api/ocr/extract', ['image' => $image, 'consent' => true], ['Accept' => 'application/json'])
+            ->assertStatus(401);
+    }
+
+    public function test_viewer_cannot_use_extract(): void
+    {
+        $image = UploadedFile::fake()->image('table.png', 400, 300);
+
+        $this->withHeader('Authorization', 'Bearer ' . $this->viewerToken)
+            ->post('/api/ocr/extract', ['image' => $image, 'consent' => true], ['Accept' => 'application/json'])
+            ->assertStatus(403);
+    }
+
+    public function test_controller_can_use_extract(): void
+    {
+        Config::set('ocr.gemini_api_key', 'test-key');
+        Http::fake([
+            'generativelanguage.googleapis.com/*' => Http::response([
+                'candidates' => [
+                    [
+                        'content' => [
+                            'parts' => [
+                                ['text' => json_encode([['no' => '1', 'description' => 'Test Part', 'qty' => 1]])],
+                            ],
+                        ],
+                    ],
+                ],
+            ], 200),
+        ]);
+
+        $image = UploadedFile::fake()->image('table.png', 400, 300);
+
+        $this->withHeader('Authorization', 'Bearer ' . $this->controllerToken)
+            ->post('/api/ocr/extract', ['image' => $image, 'consent' => true], ['Accept' => 'application/json'])
+            ->assertStatus(200)
+            ->assertJsonPath('success', true);
+    }
+
+    public function test_ocr_routes_are_rate_limited(): void
+    {
+        Config::set('ocr.gemini_api_key', 'test-key');
+        Http::fake([
+            'generativelanguage.googleapis.com/*' => Http::response([
+                'candidates' => [
+                    [
+                        'content' => [
+                            'parts' => [
+                                ['text' => json_encode([['no' => '1', 'description' => 'Test Part', 'qty' => 1]])],
+                            ],
+                        ],
+                    ],
+                ],
+            ], 200),
+        ]);
+
+        for ($i = 0; $i < 10; $i++) {
+            $image = UploadedFile::fake()->image("t{$i}.png", 100, 100);
+            $this->withHeader('Authorization', 'Bearer ' . $this->controllerToken)
+                ->post('/api/ocr/extract', ['image' => $image, 'consent' => true], ['Accept' => 'application/json'])
+                ->assertStatus(200);
+        }
+
+        $image = UploadedFile::fake()->image('over.png', 100, 100);
+        $this->withHeader('Authorization', 'Bearer ' . $this->controllerToken)
+            ->post('/api/ocr/extract', ['image' => $image, 'consent' => true], ['Accept' => 'application/json'])
+            ->assertStatus(429);
+    }
 }
