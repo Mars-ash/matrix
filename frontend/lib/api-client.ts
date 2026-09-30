@@ -5,16 +5,13 @@ import type {
   Category,
   Control,
   ControlStatus,
-  PoTracking,
   JoType,
   CategoryKind,
   CompanyEntity,
   ProcessPhoto,
 } from "./types";
-
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  (typeof window !== "undefined" ? "/api/backend" : "http://127.0.0.1:8000/api");
+import { API_BASE_URL } from "./config";
+import { getAuthToken, clearAuthStorage } from "./auth-storage";
 
 class ApiError extends Error {
   status: number;
@@ -28,15 +25,17 @@ class ApiError extends Error {
   }
 }
 
+function handleUnauthorized(): void {
+  if (typeof window === "undefined") return;
+  if (window.location.pathname === "/login") return; // avoid a redirect loop
+  clearAuthStorage();
+  window.location.href = "/login";
+}
+
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_BASE_URL}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
 
-  let token: string | null = null;
-  if (typeof window !== "undefined") {
-    token =
-      localStorage.getItem("matrix_auth_token") ||
-      (process.env.NODE_ENV !== "production" ? "demo-prototype-token" : null);
-  }
+  const token = getAuthToken();
 
   const headers: HeadersInit = {
     "Content-Type": "application/json",
@@ -49,6 +48,8 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     ...options,
     headers,
   });
+
+  if (response.status === 401) handleUnauthorized();
 
   if (!response.ok) {
     let errorData = null;
@@ -501,9 +502,7 @@ export const api = {
     const formData = new FormData();
     formData.append("photo", file);
 
-    const token =
-      (typeof window !== "undefined" && localStorage.getItem("matrix_auth_token")) ||
-      (process.env.NODE_ENV !== "production" ? "demo-prototype-token" : null);
+    const token = getAuthToken();
     const res = await fetch(`${API_BASE_URL}/controls/${controlId}/photos`, {
       method: "POST",
       headers: {
@@ -512,6 +511,8 @@ export const api = {
       },
       body: formData,
     });
+
+    if (res.status === 401) handleUnauthorized();
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
@@ -537,9 +538,7 @@ export const api = {
     formData.append("image", file);
     formData.append("consent", consent ? "1" : "0");
 
-    const token =
-      (typeof window !== "undefined" && localStorage.getItem("matrix_auth_token")) ||
-      (process.env.NODE_ENV !== "production" ? "demo-prototype-token" : null);
+    const token = getAuthToken();
     const res = await fetch(`${API_BASE_URL}/categories/${categoryId}/ocr-upload`, {
       method: "POST",
       headers: {
@@ -548,6 +547,8 @@ export const api = {
       },
       body: formData,
     });
+
+    if (res.status === 401) handleUnauthorized();
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));

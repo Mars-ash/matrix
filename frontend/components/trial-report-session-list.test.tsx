@@ -38,7 +38,6 @@ describe("TrialReportSessionList", () => {
       isLoading: false,
       login: vi.fn(),
       logout: vi.fn(),
-      switchRoleDemo: vi.fn(),
     });
 
     render(
@@ -71,7 +70,6 @@ describe("TrialReportSessionList", () => {
       isLoading: false,
       login: vi.fn(),
       logout: vi.fn(),
-      switchRoleDemo: vi.fn(),
     });
 
     render(

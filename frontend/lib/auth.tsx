@@ -2,6 +2,8 @@
 
 import React, { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { AuthUser, UserRole } from "./types";
+import { API_BASE_URL } from "./config";
+import { AUTH_TOKEN_KEY, AUTH_USER_KEY, clearAuthStorage } from "./auth-storage";
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -12,12 +14,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (username: string, pass: string) => Promise<boolean>;
   logout: () => void;
-  switchRoleDemo: (role: UserRole) => void;
 }
-
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  (typeof window !== "undefined" ? "/api/backend" : "http://127.0.0.1:8000/api");
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -28,8 +25,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     try {
-      const storedToken = localStorage.getItem("matrix_auth_token");
-      const storedUser = localStorage.getItem("matrix_auth_user");
+      const storedToken = localStorage.getItem(AUTH_TOKEN_KEY);
+      const storedUser = localStorage.getItem(AUTH_USER_KEY);
 
       if (storedToken && storedUser) {
         setToken(storedToken);
@@ -68,60 +65,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setToken(data.token);
       setUser(data.user);
 
-      localStorage.setItem("matrix_auth_token", data.token);
-      localStorage.setItem("matrix_auth_user", JSON.stringify(data.user));
+      localStorage.setItem(AUTH_TOKEN_KEY, data.token);
+      localStorage.setItem(AUTH_USER_KEY, JSON.stringify(data.user));
       document.cookie = `matrix_token=${data.token}; path=/; max-age=86400; SameSite=Lax`;
 
       return true;
     } catch {
-      // Offline / network failure fallback
-      const cleanUser = username.trim().toLowerCase();
-      if (
-        cleanUser === "viewer" ||
-        cleanUser === "matrix#1" ||
-        cleanUser === "viewer@matrix.com" ||
-        (cleanUser === "matrix" && pass === "matrix#1")
-      ) {
-        const viewerUser: AuthUser = {
-          id: 2,
-          name: "Viewer",
-          username: "matrix#1",
-          email: "viewer@matrix.com",
-          role: "viewer",
-        };
-        setUser(viewerUser);
-        setToken("demo-viewer-token");
-        localStorage.setItem("matrix_auth_token", "demo-viewer-token");
-        localStorage.setItem("matrix_auth_user", JSON.stringify(viewerUser));
-        document.cookie = "matrix_token=demo-viewer-token; path=/; max-age=86400; SameSite=Lax";
-        return true;
-      } else if (
-        cleanUser === "matrix" ||
-        cleanUser === "controller" ||
-        cleanUser === "controller@matrix.com" ||
-        cleanUser === "engineering"
-      ) {
-        const staffUser: AuthUser = {
-          id: 1,
-          name: "Staff Engineering",
-          username: "matrix",
-          email: "engineering@matrix.com",
-          role: "controller",
-        };
-        setUser(staffUser);
-        setToken("demo-controller-token");
-        localStorage.setItem("matrix_auth_token", "demo-controller-token");
-        localStorage.setItem("matrix_auth_user", JSON.stringify(staffUser));
-        document.cookie = "matrix_token=demo-controller-token; path=/; max-age=86400; SameSite=Lax";
-        return true;
-      }
       return false;
     }
   };
 
   const logout = () => {
     try {
-      if (token && (token.startsWith("1|") || token?.startsWith("2|") || token.includes("|"))) {
+      if (token) {
         fetch(`${API_BASE_URL}/auth/logout`, {
           method: "POST",
           headers: {
@@ -131,31 +87,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }).catch(() => {});
       }
     } finally {
-      localStorage.removeItem("matrix_auth_token");
-      localStorage.removeItem("matrix_auth_user");
-      document.cookie = "matrix_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax";
       setUser(null);
       setToken(null);
+      clearAuthStorage();
       if (typeof window !== "undefined") {
-        window.location.replace("/login");
+        window.location.href = "/login";
       }
     }
-  };
-
-  const switchRoleDemo = (newRole: UserRole) => {
-    const updated: AuthUser = {
-      id: newRole === "controller" ? 1 : 2,
-      name: newRole === "controller" ? "Staff Engineering" : "Viewer",
-      username: newRole === "controller" ? "matrix" : "matrix#1",
-      email: newRole === "controller" ? "engineering@matrix.com" : "viewer@matrix.com",
-      role: newRole,
-    };
-    const newToken = newRole === "controller" ? "demo-controller-token" : "demo-viewer-token";
-    setUser(updated);
-    setToken(newToken);
-    localStorage.setItem("matrix_auth_user", JSON.stringify(updated));
-    localStorage.setItem("matrix_auth_token", newToken);
-    document.cookie = `matrix_token=${newToken}; path=/; max-age=86400; SameSite=Lax`;
   };
 
   const role: UserRole = user?.role || "viewer";
@@ -173,7 +111,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoading,
         login,
         logout,
-        switchRoleDemo,
       }}
     >
       {children}
@@ -190,7 +127,6 @@ const FALLBACK_AUTH_CONTEXT: AuthContextType = {
   isLoading: false,
   login: async () => true,
   logout: () => {},
-  switchRoleDemo: () => {},
 };
 
 export function useAuth(): AuthContextType {

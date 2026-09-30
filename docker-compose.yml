@@ -57,13 +57,14 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile.frontend
+      args:
+        BACKEND_INTERNAL_URL: http://backend:80
     container_name: matrix-frontend
     restart: unless-stopped
     depends_on:
       backend:
         condition: service_started
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:8000/api
       NODE_ENV: production
     ports:
       - "3000:3000"

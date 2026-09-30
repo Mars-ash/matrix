@@ -12,6 +12,7 @@ import React, {
   type Dispatch,
 } from "react";
 import { api } from "./api-client";
+import { useAuth } from "./auth";
 import type {
   Project,
   JO,
@@ -1740,6 +1741,7 @@ const storeProviderInitialState: AppState = {
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [state, rawDispatch] = useReducer(reducer, storeProviderInitialState);
+  const { token } = useAuth();
 
   const isHydratedRef = React.useRef(false);
 
@@ -1803,8 +1805,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  // Sync initial state from backend on mount
+  // Sync state from backend once we have a token (mount with a stored token, or right after login)
   useEffect(() => {
+    if (!token) return;
     let active = true;
     api
       .getProjects()
@@ -1817,13 +1820,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         }
       })
       .catch(() => {
-        // Keep initial mock projects if API is unreachable
+        // Keep cached projects if the API is unreachable
       });
 
     return () => {
       active = false;
     };
-  }, []);
+  }, [token]);
 
   // Async API synchronization wrapper
   const dispatch: Dispatch<AppAction> = (action: AppAction) => {
