@@ -52,7 +52,7 @@ describe("JoPicker Component", () => {
     render(<JoPicker projects={mockProjects} value="" onChange={onChange} />);
 
     const input = screen.getByRole("combobox");
-    expect(input).toHaveAttribute("placeholder", "Cari nomor JO / produk / project...");
+    expect(input).toHaveAttribute("placeholder", "Cari nomor JO / project...");
     expect(input).toHaveValue("");
     expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
   });

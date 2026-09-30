@@ -36,7 +36,7 @@ export function JoPicker({
   projects,
   value,
   onChange,
-  placeholder = "Cari nomor JO / produk / project...",
+  placeholder = "Cari nomor JO / project...",
   disabled = false,
   id,
 }: JoPickerProps) {

@@ -7,7 +7,6 @@ import { ManualItemForm, emptyManualItemData, type ManualItemData } from "@/comp
 import { useAppState, useAppDispatch } from "@/lib/store";
 import { visibleProjects } from "@/lib/tracker-items";
 import { api } from "@/lib/api-client";
-import type { CategoryKind } from "@/lib/types";
 
 export interface TrackerAddItemDialogProps {
   open: boolean;
@@ -25,7 +24,6 @@ export function TrackerAddItemDialog({
 
   const [joId, setJoId] = useState("");
   const [categoryId, setCategoryId] = useState("");
-  const [kind, setKind] = useState<CategoryKind>("Part");
   const [formData, setFormData] = useState<ManualItemData>(emptyManualItemData());
   const [error, setError] = useState("");
   const [submitError, setSubmitError] = useState("");
@@ -47,7 +45,6 @@ export function TrackerAddItemDialog({
   const reset = useCallback(() => {
     setJoId("");
     setCategoryId("");
-    setKind("Part");
     setFormData(emptyManualItemData());
     setError("");
     setSubmitError("");
@@ -97,7 +94,7 @@ export function TrackerAddItemDialog({
       const res = await api.createTrackerItem({
         tracker,
         categoryId: joId ? categoryId : undefined,
-        kind: joId ? undefined : (tracker === "po" ? kind : "Part"),
+        kind: joId ? undefined : "Part",
         no: formData.no.trim() || "-",
         description: formData.description.trim(),
         dimension: formData.dimension.trim() || undefined,
@@ -155,16 +152,13 @@ export function TrackerAddItemDialog({
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         {/* JO selection */}
         <div>
-          <label className="label">JO (opsional)</label>
+          <label className="label">JO</label>
           <JoPicker
             projects={visible}
             value={joId}
             onChange={handleJoChange}
             disabled={submitting}
           />
-          <p style={{ margin: "4px 0 0", fontSize: 11, color: "var(--color-text-muted)" }}>
-            Kosongkan jika item belum punya JO.
-          </p>
         </div>
 
         {/* Category selection when JO is selected */}
@@ -188,31 +182,6 @@ export function TrackerAddItemDialog({
                 </option>
               ))}
             </select>
-          </div>
-        )}
-
-        {/* Kind toggle when no JO and tracker === "po" */}
-        {!joId && tracker === "po" && (
-          <div>
-            <label className="label">Jenis *</label>
-            <div style={{ display: "inline-flex", gap: 6 }}>
-              <button
-                type="button"
-                className={`btn btn-sm ${kind === "Part" ? "btn-primary" : "btn-secondary"}`}
-                onClick={() => setKind("Part")}
-                disabled={submitting}
-              >
-                Part (PO Mtl)
-              </button>
-              <button
-                type="button"
-                className={`btn btn-sm ${kind === "Component" ? "btn-primary" : "btn-secondary"}`}
-                onClick={() => setKind("Component")}
-                disabled={submitting}
-              >
-                Component (PO)
-              </button>
-            </div>
           </div>
         )}
 

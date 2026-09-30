@@ -71,7 +71,7 @@ describe("TrackerAddItemDialog", () => {
     expect(mockDispatch).not.toHaveBeenCalled();
   });
 
-  it("submitting with no JO calls createTrackerItem with categoryId: undefined and the right kind", async () => {
+  it("submitting with no JO calls createTrackerItem with categoryId: undefined and default kind Part", async () => {
     const user = userEvent.setup();
     const onClose = vi.fn();
     (api.createTrackerItem as any).mockResolvedValueOnce({
@@ -86,10 +86,6 @@ describe("TrackerAddItemDialog", () => {
 
     render(<TrackerAddItemDialog open={true} onClose={onClose} tracker="po" />);
 
-    // Click Component toggle
-    const compToggle = screen.getByRole("button", { name: "Component (PO)" });
-    await user.click(compToggle);
-
     // Type description
     const descInput = screen.getByRole("textbox", { name: /Description \*/i });
     await user.type(descInput, "Guide Pin");
@@ -102,7 +98,7 @@ describe("TrackerAddItemDialog", () => {
         expect.objectContaining({
           tracker: "po",
           categoryId: undefined,
-          kind: "Component",
+          kind: "Part",
           description: "Guide Pin",
         })
       );
@@ -164,13 +160,13 @@ describe("TrackerAddItemDialog", () => {
     });
   });
 
-  it("PO tracker with no JO shows the Part/Component toggle; subcont does not", () => {
+  it("does not render kind toggle in the form", () => {
     const { rerender } = render(
       <TrackerAddItemDialog open={true} onClose={vi.fn()} tracker="po" />
     );
 
-    expect(screen.getByRole("button", { name: "Part (PO Mtl)" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Component (PO)" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Part (PO Mtl)" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Component (PO)" })).not.toBeInTheDocument();
 
     rerender(<TrackerAddItemDialog open={true} onClose={vi.fn()} tracker="subcont" />);
 
