@@ -1,5 +1,13 @@
 <?php
 
+// Environment variable: MATRIX_PERF_TOKEN
+
+$perfToken = getenv('MATRIX_PERF_TOKEN') ?: ($_ENV['MATRIX_PERF_TOKEN'] ?? null);
+if (empty($perfToken)) {
+    echo "Set MATRIX_PERF_TOKEN to a valid Sanctum token (php artisan tinker: User::where('role','controller')->first()->createToken('perf')->plainTextToken)\n";
+    exit(1);
+}
+
 /**
  * MATRIX Performance Audit Script
  * Measures:
@@ -44,7 +52,7 @@ foreach ($testRoutes as $route) {
     for ($i = 0; $i < 10; $i++) {
         $req = Request::create($route['uri'], 'GET');
         $req->headers->set('Accept', 'application/json');
-        $req->headers->set('Authorization', 'Bearer demo-prototype-token');
+        $req->headers->set('Authorization', "Bearer {$perfToken}");
 
         $t0 = microtime(true);
         $res = $kernel->handle($req);

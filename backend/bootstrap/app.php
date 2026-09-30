@@ -13,8 +13,8 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->redirectGuestsTo(fn () => null);
         $middleware->alias([
-            'auth.token' => \App\Http\Middleware\AuthenticateTokenOrDemo::class,
             'role.controller' => \App\Http\Middleware\EnsureControllerRole::class,
         ]);
     })

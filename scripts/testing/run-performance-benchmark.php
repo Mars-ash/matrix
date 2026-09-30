@@ -1,5 +1,13 @@
 <?php
 
+// Environment variable: MATRIX_PERF_TOKEN
+
+$perfToken = getenv('MATRIX_PERF_TOKEN') ?: ($_ENV['MATRIX_PERF_TOKEN'] ?? null);
+if (empty($perfToken)) {
+    echo "Set MATRIX_PERF_TOKEN to a valid Sanctum token (php artisan tinker: User::where('role','controller')->first()->createToken('perf')->plainTextToken)\n";
+    exit(1);
+}
+
 /**
  * MATRIX Performance & SLO Benchmark
  * Inspired by k6-perf-test-website skill:
@@ -40,7 +48,9 @@ if ($joId) {
 
 $results = [];
 
-function measureRequest(string $url, string $token = 'demo-prototype-token'): array {
+function measureRequest(string $url, ?string $token = null): array {
+    global $perfToken;
+    $token = $token ?? $perfToken;
     $ch = curl_init($url);
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,

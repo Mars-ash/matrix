@@ -189,38 +189,45 @@ class AuthTest extends TestCase
         $this->assertFalse($policy->delete($viewer, $project));
     }
 
-    public function test_demo_tokens_work_in_non_production_environment(): void
+    public function test_demo_tokens_are_rejected(): void
     {
         User::create([
-            'name' => 'Staff Engineering',
-            'username' => 'matrix',
-            'email' => 'engineering@matrix.com',
-            'password' => Hash::make('eng#1'),
+            'name' => 'Controller',
+            'email' => 'ctl@test.com',
+            'password' => Hash::make('secret'),
             'role' => 'controller',
         ]);
+        User::create([
+            'name' => 'Viewer',
+            'email' => 'vwr@test.com',
+            'password' => Hash::make('secret'),
+            'role' => 'viewer',
+        ]);
 
-        $res = $this->withHeader('Authorization', 'Bearer demo-prototype-token')
-            ->getJson('/api/projects');
-
-        $res->assertStatus(200);
+        foreach (['demo-prototype-token', 'demo-controller-token', 'demo-viewer-token'] as $token) {
+            $this->withHeader('Authorization', "Bearer {$token}")
+                ->getJson('/api/projects')
+                ->assertStatus(401);
+        }
     }
 
-    public function test_demo_tokens_are_rejected_in_production_environment(): void
+    public function test_request_without_token_is_rejected(): void
     {
-        $this->app['env'] = 'production';
+        $this->getJson('/api/projects')->assertStatus(401);
+    }
 
-        User::create([
-            'name' => 'Staff Engineering',
-            'username' => 'matrix',
-            'email' => 'engineering@matrix.com',
-            'password' => Hash::make('eng#1'),
+    public function test_real_sanctum_token_is_accepted(): void
+    {
+        $user = User::create([
+            'name' => 'Controller',
+            'email' => 'real@test.com',
+            'password' => Hash::make('secret'),
             'role' => 'controller',
         ]);
+        $token = $user->createToken('test')->plainTextToken;
 
-        $res = $this->withHeader('Authorization', 'Bearer demo-prototype-token')
-            ->getJson('/api/projects');
-
-        $res->assertStatus(401)
-            ->assertJson(['message' => 'Unauthenticated.']);
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->getJson('/api/projects')
+            ->assertStatus(200);
     }
 }

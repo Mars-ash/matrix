@@ -25,5 +25,11 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('ocr', function (Request $request) {
             return Limit::perMinute(10)->by($request->user()?->id ?: $request->ip());
         });
+
+        $this->app->rebinding('request', function ($app, $request) {
+            if ($app->bound('auth')) {
+                $app['auth']->forgetGuards();
+            }
+        });
     }
 }

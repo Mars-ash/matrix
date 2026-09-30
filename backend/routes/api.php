@@ -34,7 +34,7 @@ Route::prefix('auth')->group(function () {
 | Protected Domain REST API Routes
 |--------------------------------------------------------------------------
 */
-Route::middleware('auth.token')->group(function () {
+Route::middleware('auth:sanctum')->group(function () {
     // Read-only endpoints (Accessible to all authenticated users: controller & viewer)
     Route::get('/projects', [ProjectController::class, 'index']);
     Route::get('/projects/{project}', [ProjectController::class, 'show']);
