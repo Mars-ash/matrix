@@ -107,21 +107,31 @@ export default function JoDetailPage({ params }: PageProps) {
     return () => clearTimeout(timer);
   }, [highlightedItemId]);
 
-  // Handle direct item jump from URL or notification link
+  // Handle direct item jump from URL (?item=<id> or #item-<id>) — used by global search and notification links.
+  // Waits until the JO is in the store, then retries briefly until the row exists in the DOM.
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const urlParams = new URLSearchParams(window.location.search);
-    const targetItemId = urlParams.get("item") || window.location.hash.replace("#item-", "").replace("#", "");
-    if (targetItemId) {
-      setHighlightedItemId(targetItemId);
-      setTimeout(() => {
-        const el = document.getElementById(`item-${targetItemId}`);
-        if (el) {
-          el.scrollIntoView({ behavior: "smooth", block: "center" });
-        }
-      }, 150);
-    }
-  }, []);
+    if (typeof window === "undefined" || !jo) return;
+    const params = new URLSearchParams(window.location.search);
+    const targetItemId = params.get("item") || window.location.hash.replace("#item-", "").replace("#", "");
+    if (!targetItemId) return;
+
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setHighlightedItemId(targetItemId);
+    let attempts = 0;
+    let timer: ReturnType<typeof setTimeout>;
+    const tryScroll = () => {
+      const el = document.getElementById(`item-${targetItemId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+      } else if (attempts < 20) {
+        attempts += 1;
+        timer = setTimeout(tryScroll, 100);
+      }
+    };
+    timer = setTimeout(tryScroll, 50);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [jo?.id]);
 
   // Bulk selection handlers
   const handleToggleSelectItem = useCallback((itemId: string) => {

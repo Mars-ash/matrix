@@ -14,6 +14,7 @@ import { useAuth } from "@/lib/auth";
 import { joProblemCount } from "@/lib/progress";
 import type { Project, JO } from "@/lib/types";
 import { DashboardSkeleton } from "@/components/skeleton-loader";
+import { GlobalItemSearch } from "@/components/global-item-search";
 
 export default function DashboardPage() {
   const { projects, isHydrated } = useAppState();
@@ -176,7 +177,7 @@ export default function DashboardPage() {
           )}
           <input
             className="input"
-            placeholder="Search..."
+            placeholder="Filter project / JO..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             style={{ width: 240, minWidth: 140, flex: "1 1 140px", maxWidth: 300 }}
@@ -190,6 +191,9 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
+
+      {/* Global cross-JO part search */}
+      <GlobalItemSearch projects={projects} />
 
       {/* Project sections */}
       {filteredProjects.map((project) => {

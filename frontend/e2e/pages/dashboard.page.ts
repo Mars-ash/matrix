@@ -9,7 +9,12 @@ export class DashboardPage {
   }
 
   async search(query: string) {
-    const input = this.page.getByPlaceholder("Search projects or JOs...");
+    const input = this.page.getByPlaceholder("Filter project / JO...");
+    await input.fill(query);
+  }
+
+  async globalSearch(query: string) {
+    const input = this.page.getByRole("searchbox", { name: "Cari part di semua JO" });
     await input.fill(query);
   }
 
