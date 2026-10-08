@@ -17,7 +17,7 @@ class ProjectController extends Controller
         $projects = Project::with([
             'jos.categories.items.controls.poTracking',
             'jos.categories.items.controls.photos',
-            'jos.trialSessions',
+            'jos.trialSessions.findings.entries.photos',
         ])->oldest()->get();
 
         return ProjectResource::collection($projects);

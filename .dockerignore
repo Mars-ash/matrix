@@ -1,0 +1,50 @@
+# ---------------------------------------------------------------------------
+# Docker Ignore for MATRIX Application (Frontend + Backend + Database)
+# ---------------------------------------------------------------------------
+
+# Version control & tooling
+.git
+.gitignore
+.agents
+.codex
+.context
+.github
+.vscode
+.idea
+*.md
+!README.md
+docs/
+ocr-lab/
+scripts/
+
+# Frontend (prevent sending Windows node_modules & local build to Docker)
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/build/
+frontend/test-results/
+frontend/*.tsbuildinfo
+frontend/.env*.local
+
+# Backend (prevent sending local vendor, cached configs & logs to Docker)
+backend/vendor/
+backend/node_modules/
+backend/.env
+backend/.env.*
+!backend/.env.example
+backend/storage/logs/*.log
+backend/storage/framework/cache/data/*
+backend/storage/framework/sessions/*
+backend/storage/framework/views/*
+backend/bootstrap/cache/*.php
+!backend/bootstrap/cache/.gitignore
+backend/.phpunit.result.cache
+backend/.phpunit.cache
+
+# Python & Temporary
+.ruff_cache
+__pycache__
+*.pyc
+*.pyo
+.DS_Store
+Thumbs.db

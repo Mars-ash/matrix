@@ -5,7 +5,7 @@ export class PoTrackerPage {
 
   async goto() {
     await this.page.goto("/po-tracker");
-    await expect(this.page.getByRole("heading", { name: "PO Tracker" })).toBeVisible();
+    await expect(this.page.getByRole("heading", { name: "Pre Order Tracker" })).toBeVisible();
   }
 
   async verifyKpisVisible() {

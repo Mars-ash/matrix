@@ -1,0 +1,42 @@
+services:
+  backend:
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+    volumes:
+      # 1. Bind mount seluruh folder backend lokal ke container
+      - ./backend:/var/www/html
+      # 2. Lindungi vendor container (agar dependency Linux tidak tertimpa Windows)
+      - /var/www/html/vendor
+      # 3. Storage foto tetap terhubung
+      - matrix-storage:/var/www/html/storage/app/public
+    develop:
+      watch:
+        - action: sync
+          path: ./backend
+          target: /var/www/html
+          ignore:
+            - vendor/
+            - storage/
+
+  frontend:
+    # Ubah CMD dari produksi ("node server.js") menjadi development server
+    command: npm run dev -- --hostname 0.0.0.0
+    environment:
+      NODE_ENV: development
+      # Wajib untuk Windows/WSL2 agar deteksi perubahan file Next.js instan:
+      WATCHPACK_POLLING: "true"
+    volumes:
+      # 1. Bind mount seluruh source code frontend
+      - ./frontend:/app
+      # 2. Lindungi node_modules dan cache .next di dalam container
+      - /app/node_modules
+      - /app/.next
+    develop:
+      watch:
+        - action: sync
+          path: ./frontend
+          target: /app
+          ignore:
+            - node_modules/
+            - .next/

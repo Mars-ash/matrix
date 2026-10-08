@@ -335,6 +335,32 @@ class DemoSeeder extends Seeder
                 'status' => 'Close',
             ]);
 
+            $finding1_2 = TrialFinding::create([
+                'trial_session_id' => $trial1->id,
+                'order' => 2,
+            ]);
+            TrialEntry::create([
+                'trial_finding_id' => $finding1_2->id,
+                'section' => 'problems',
+                'order' => 1,
+                'text' => 'Dimensi flange bending panjang 45.3mm (standar drawing: 45.0 ± 0.1mm).',
+            ]);
+            TrialEntry::create([
+                'trial_finding_id' => $finding1_2->id,
+                'section' => 'causes',
+                'order' => 1,
+                'text' => 'Stopper positioning bergeser 0.2mm karena getaran saat continuous stroke.',
+            ]);
+            TrialEntry::create([
+                'trial_finding_id' => $finding1_2->id,
+                'section' => 'correctiveActions',
+                'order' => 1,
+                'text' => 'Tambah dowel pin pengunci pada stopper block dan kalibrasi ulang positioner.',
+                'target_date' => '2026-08-30',
+                'pic' => 'Budi Santoso',
+                'status' => 'Close',
+            ]);
+
             $trial2 = TrialSession::create([
                 'jo_id' => $jo110->id,
                 'name' => 'Upper 250826',
@@ -369,6 +395,32 @@ class DemoSeeder extends Seeder
                 'text' => 'Tambah shim menjadi 0.08mm total, poles permukaan die plate.',
                 'target_date' => '2026-09-05',
                 'pic' => 'Andi',
+                'status' => 'On Process',
+            ]);
+
+            $finding2_2 = TrialFinding::create([
+                'trial_session_id' => $trial2->id,
+                'order' => 2,
+            ]);
+            TrialEntry::create([
+                'trial_finding_id' => $finding2_2->id,
+                'section' => 'problems',
+                'order' => 1,
+                'text' => 'Goresan halus (scoring mark) pada permukaan part hasil forming dekat radius OP 20.',
+            ]);
+            TrialEntry::create([
+                'trial_finding_id' => $finding2_2->id,
+                'section' => 'causes',
+                'order' => 1,
+                'text' => 'Pelumasan tidak merata pada blank holder dan permukaan die belum mirror finish.',
+            ]);
+            TrialEntry::create([
+                'trial_finding_id' => $finding2_2->id,
+                'section' => 'correctiveActions',
+                'order' => 1,
+                'text' => 'Poles ulang area draw radius dengan diamond paste grit 3000 dan bersihkan lubang pelumasan.',
+                'target_date' => '2026-09-10',
+                'pic' => 'Andi Prasetyo',
                 'status' => 'On Process',
             ]);
 
@@ -471,6 +523,70 @@ class DemoSeeder extends Seeder
                     ]);
                 }
             }
+
+            // Trial Session for JO 126.111
+            $trial111 = TrialSession::create([
+                'jo_id' => $jo111->id,
+                'name' => 'Trial T0 - Forming Die 050926',
+                'trial_date' => '2026-09-05',
+                'update_date' => '2026-09-15',
+                'customer' => 'PT Astra Daihatsu Motor',
+                'job_no' => '126.111',
+                'pic_name' => 'Andi Prasetyo',
+                'approved_by_name' => 'Pak Hendra',
+            ]);
+
+            $finding111_1 = TrialFinding::create([
+                'trial_session_id' => $trial111->id,
+                'order' => 1,
+            ]);
+            TrialEntry::create([
+                'trial_finding_id' => $finding111_1->id,
+                'section' => 'problems',
+                'order' => 1,
+                'text' => 'Springback sudut bending OP 20 aktual 92.5° melebihi toleransi drawing (90° ± 0.5°).',
+            ]);
+            TrialEntry::create([
+                'trial_finding_id' => $finding111_1->id,
+                'section' => 'causes',
+                'order' => 1,
+                'text' => 'Material high-tensile sheet 1.6mm memiliki yield strength lebih tinggi dari spesifikasi awal.',
+            ]);
+            TrialEntry::create([
+                'trial_finding_id' => $finding111_1->id,
+                'section' => 'correctiveActions',
+                'order' => 1,
+                'text' => 'Lakukan overbending pada punch menjadi 88° untuk mengkompensasi springback.',
+                'target_date' => '2026-09-18',
+                'pic' => 'Dedi K.',
+                'status' => 'Close',
+            ]);
+
+            $finding111_2 = TrialFinding::create([
+                'trial_session_id' => $trial111->id,
+                'order' => 2,
+            ]);
+            TrialEntry::create([
+                'trial_finding_id' => $finding111_2->id,
+                'section' => 'problems',
+                'order' => 1,
+                'text' => 'Lubang piercing dia 8.5mm mengalami ovalitas 0.08mm.',
+            ]);
+            TrialEntry::create([
+                'trial_finding_id' => $finding111_2->id,
+                'section' => 'causes',
+                'order' => 1,
+                'text' => 'Punch pilot bending mengalami defleksi getaran saat penetrasi awal.',
+            ]);
+            TrialEntry::create([
+                'trial_finding_id' => $finding111_2->id,
+                'section' => 'correctiveActions',
+                'order' => 1,
+                'text' => 'Ganti material punch pilot ke punch carbide micro-grain dengan guide bush tambahan.',
+                'target_date' => '2026-09-25',
+                'pic' => 'Budi Santoso',
+                'status' => 'On Process',
+            ]);
 
             // JO 126.112 (JIG — Locator Jig)
             $jo112 = JO::create([

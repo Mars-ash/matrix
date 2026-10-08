@@ -196,6 +196,45 @@ describe("ADD_CATEGORY", () => {
   });
 });
 
+describe("UPDATE_CATEGORY", () => {
+  it("updates category label and logs activity", () => {
+    const jo = state.projects[0].jos[0];
+    const cat = jo.categories[0];
+    const next = reducer(state, {
+      type: "UPDATE_CATEGORY",
+      projectId,
+      joId: jo.id,
+      categoryId: cat.id,
+      label: "PART DIES OP 10 RENAMED",
+    });
+
+    const updatedJo = next.projects[0].jos[0];
+    const updatedCat = updatedJo.categories.find((c) => c.id === cat.id);
+    expect(updatedCat?.label).toBe("PART DIES OP 10 RENAMED");
+    expect(updatedJo.activities[0].message).toContain("renamed to \"PART DIES OP 10 RENAMED\"");
+  });
+});
+
+describe("DELETE_CATEGORY", () => {
+  it("removes category and logs activity", () => {
+    const jo = state.projects[0].jos[0];
+    const cat = jo.categories[0];
+    const prevCount = jo.categories.length;
+
+    const next = reducer(state, {
+      type: "DELETE_CATEGORY",
+      projectId,
+      joId: jo.id,
+      categoryId: cat.id,
+    });
+
+    const updatedJo = next.projects[0].jos[0];
+    expect(updatedJo.categories.length).toBe(prevCount - 1);
+    expect(updatedJo.categories.some((c) => c.id === cat.id)).toBe(false);
+    expect(updatedJo.activities[0].message).toContain(`Category "${cat.label}" deleted.`);
+  });
+});
+
 describe("ADD_ITEM", () => {
   it("adds an item with default '-' controls to a Part category", () => {
     const jo = state.projects[0].jos[0]; // 126.110

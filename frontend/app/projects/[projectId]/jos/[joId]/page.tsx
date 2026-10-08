@@ -7,6 +7,7 @@ import { ControlTable } from "@/components/control-table";
 import { ActivityPanel } from "@/components/activity-panel";
 import { AddDataDialog } from "@/components/add-data-dialog";
 import { CategoryCreateDialog } from "@/components/category-create-dialog";
+import { CategoryEditDialog } from "@/components/category-edit-dialog";
 import { JoItemSearch } from "@/components/jo-item-search";
 import { Dialog } from "@/components/dialog";
 import { ConfirmDialog } from "@/components/confirm-dialog";
@@ -16,7 +17,7 @@ import { useAppState, useAppDispatch } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
 import { joProgress, joProblemCount, categoryProgress } from "@/lib/progress";
 import { formatProgress } from "@/lib/format";
-import { SUBCONT_SUPPLIERS, PO_SUPPLIERS, type ControlStatus, type Item } from "@/lib/types";
+import { SUBCONT_SUPPLIERS, PO_SUPPLIERS, type ControlStatus, type Item, type Category } from "@/lib/types";
 import { poTrackingLabel } from "@/lib/po-tracking";
 
 interface PageProps {
@@ -45,6 +46,8 @@ export default function JoDetailPage({ params }: PageProps) {
   const [finishConfirmOpen, setFinishConfirmOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [categoryCreateOpen, setCategoryCreateOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [deletingCategory, setDeletingCategory] = useState<Category | null>(null);
   const [highlightedItemId, setHighlightedItemId] = useState<string | null>(null);
 
   // Item edit / delete states
@@ -417,17 +420,17 @@ export default function JoDetailPage({ params }: PageProps) {
               style={{
                 display: "flex",
                 justifyContent: "space-between",
-                alignItems: "baseline",
+                alignItems: "center",
                 marginBottom: 8,
                 paddingBottom: 6,
                 borderBottom: "1px solid var(--color-border)",
               }}
             >
-              <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
-                <h2 style={{ fontSize: 18 }}>{cat.label}</h2>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <h2 style={{ fontSize: 18, margin: 0 }}>{cat.label}</h2>
                 <span
                   style={{
-                    fontSize: 10,
+                    fontSize: 11,
                     color: "var(--color-text-muted)",
                     fontWeight: 500,
                   }}
@@ -435,6 +438,81 @@ export default function JoDetailPage({ params }: PageProps) {
                   {cat.kind} · {cat.items.length} item{cat.items.length !== 1 ? "s" : ""}
                   {cat.isCustom && " · Custom"}
                 </span>
+                {isController && (
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: 4, marginLeft: 2 }}>
+                    <button
+                      type="button"
+                      className="btn-icon"
+                      onClick={() => setEditingCategory(cat)}
+                      title="Edit Nama Kategori"
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        width: 24,
+                        height: 24,
+                        borderRadius: "var(--radius-sm)",
+                        background: "transparent",
+                        border: "1px solid var(--color-border-subtle)",
+                        color: "var(--color-text-muted)",
+                        cursor: "pointer",
+                        transition: "all 120ms ease",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = "var(--color-accent)";
+                        e.currentTarget.style.color = "var(--color-accent)";
+                        e.currentTarget.style.background = "var(--color-bg-hover)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = "var(--color-border-subtle)";
+                        e.currentTarget.style.color = "var(--color-text-muted)";
+                        e.currentTarget.style.background = "transparent";
+                      }}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                        <path d="m15 5 4 4" />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-icon"
+                      onClick={() => setDeletingCategory(cat)}
+                      title="Hapus Kategori"
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        width: 24,
+                        height: 24,
+                        borderRadius: "var(--radius-sm)",
+                        background: "transparent",
+                        border: "1px solid var(--color-border-subtle)",
+                        color: "var(--color-text-muted)",
+                        cursor: "pointer",
+                        transition: "all 120ms ease",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = "rgba(220, 38, 38, 0.4)";
+                        e.currentTarget.style.color = "var(--color-status-problem)";
+                        e.currentTarget.style.background = "var(--color-status-problem-bg)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = "var(--color-border-subtle)";
+                        e.currentTarget.style.color = "var(--color-text-muted)";
+                        e.currentTarget.style.background = "transparent";
+                      }}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M3 6h18" />
+                        <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                        <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                        <line x1="10" x2="10" y1="11" y2="17" />
+                        <line x1="14" x2="14" y1="11" y2="17" />
+                      </svg>
+                    </button>
+                  </div>
+                )}
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <span
@@ -570,6 +648,37 @@ export default function JoDetailPage({ params }: PageProps) {
         onClose={() => setCategoryCreateOpen(false)}
         projectId={projectId}
         joId={joId}
+      />
+
+      {/* Category Edit Dialog */}
+      {editingCategory && (
+        <CategoryEditDialog
+          open={!!editingCategory}
+          onClose={() => setEditingCategory(null)}
+          projectId={project ? project.id : projectId}
+          joId={jo ? jo.id : joId}
+          category={editingCategory}
+        />
+      )}
+
+      {/* Delete Category Confirmation Dialog */}
+      <ConfirmDialog
+        open={!!deletingCategory}
+        onClose={() => setDeletingCategory(null)}
+        onConfirm={() => {
+          if (!deletingCategory) return;
+          dispatch({
+            type: "DELETE_CATEGORY",
+            projectId: project ? project.id : projectId,
+            joId: jo ? jo.id : joId,
+            categoryId: deletingCategory.id,
+          });
+          setDeletingCategory(null);
+        }}
+        title="Hapus Kategori"
+        message={`Apakah Anda yakin ingin menghapus kategori "${deletingCategory?.label}"? Semua ${deletingCategory?.items.length ?? 0} item di dalamnya akan ikut terhapus.`}
+        confirmText="Hapus Kategori"
+        destructive
       />
 
       {/* Finish Confirmation Dialog */}

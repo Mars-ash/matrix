@@ -760,5 +760,45 @@ class ApiTest extends TestCase
         $res->assertStatus(403);
         $this->assertNotNull($jo->fresh()->finish_date);
     }
+
+    public function test_controller_can_update_and_delete_category(): void
+    {
+        $project = Project::create(['name' => 'Cat CRUD Project', 'customer' => 'Cust']);
+        $jo = $project->jos()->create(['jo_number' => 'JO-CAT-CRUD', 'product' => 'Die', 'type' => 'PROGRESSIVE']);
+        $cat = $jo->categories()->create(['label' => 'PART DIES OP 10', 'kind' => 'Part', 'sort_order' => 1]);
+        $item = $cat->items()->create(['description' => 'Punch Blade', 'qty' => 2]);
+
+        // 1. Controller updates category label
+        $updateRes = $this->withHeader('Authorization', 'Bearer ' . $this->controllerToken)
+            ->putJson("/api/categories/{$cat->id}", [
+                'label' => 'PART DIES OP 20 MODIFIED',
+            ]);
+        $updateRes->assertStatus(200)
+            ->assertJsonPath('data.label', 'PART DIES OP 20 MODIFIED');
+        $this->assertEquals('PART DIES OP 20 MODIFIED', $cat->fresh()->label);
+
+        // 2. Controller deletes category (cascades items)
+        $deleteRes = $this->withHeader('Authorization', 'Bearer ' . $this->controllerToken)
+            ->deleteJson("/api/categories/{$cat->id}");
+        $deleteRes->assertStatus(200);
+
+        $this->assertDatabaseMissing('categories', ['id' => $cat->id]);
+        $this->assertDatabaseMissing('items', ['id' => $item->id]);
+    }
+
+    public function test_viewer_cannot_update_or_delete_category(): void
+    {
+        $project = Project::create(['name' => 'Cat Auth Project', 'customer' => 'Cust']);
+        $jo = $project->jos()->create(['jo_number' => 'JO-CAT-AUTH', 'product' => 'Die', 'type' => 'PROGRESSIVE']);
+        $cat = $jo->categories()->create(['label' => 'PART DIES OP 10', 'kind' => 'Part', 'sort_order' => 1]);
+
+        $updateRes = $this->withHeader('Authorization', 'Bearer ' . $this->viewerToken)
+            ->putJson("/api/categories/{$cat->id}", ['label' => 'Hacked']);
+        $updateRes->assertStatus(403);
+
+        $deleteRes = $this->withHeader('Authorization', 'Bearer ' . $this->viewerToken)
+            ->deleteJson("/api/categories/{$cat->id}");
+        $deleteRes->assertStatus(403);
+    }
 }
 

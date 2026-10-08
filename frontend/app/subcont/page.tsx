@@ -143,12 +143,9 @@ function SubcontTrackingContent() {
   let totalActive = 0;
   let totalUrgent = 0;
   let totalOverdue = 0;
-  let totalRecentlyDone = 0;
 
   for (const row of activeSubcontRows) {
-    if (row.item.subcontStatus === "Done") {
-      totalRecentlyDone++;
-    } else {
+    if (row.item.subcontStatus !== "Done") {
       totalActive++;
       const notif = getNotification(row.item.arrivalTargetDate, row.item.subcontStatus);
       if (notif) {
@@ -646,7 +643,7 @@ function SubcontTrackingContent() {
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           <Link href="/subcont/done" className="btn btn-secondary">
-            Riwayat Done ({doneCount})
+            Riwayat ({doneCount})
           </Link>
           {isController && (
             <button type="button" className="btn btn-primary" onClick={() => setIsAddOpen(true)}>
@@ -691,18 +688,6 @@ function SubcontTrackingContent() {
           </div>
           <div style={{ fontSize: 11, color: "var(--color-text-muted)" }}>
             Melewati target kedatangan
-          </div>
-        </div>
-
-        <div className="card-static" style={{ padding: "10px 14px", display: "flex", flexDirection: "column", gap: 3 }}>
-          <div style={{ fontSize: 10, fontWeight: 600, color: "var(--color-status-done)", textTransform: "uppercase", letterSpacing: "0.04em" }}>
-            Recently Done
-          </div>
-          <div style={{ fontSize: 22, fontWeight: 700, fontFamily: "var(--font-mono)", color: "var(--color-status-done)" }}>
-            {totalRecentlyDone}
-          </div>
-          <div style={{ fontSize: 11, color: "var(--color-text-muted)" }}>
-            Selesai dalam 5 menit
           </div>
         </div>
       </div>

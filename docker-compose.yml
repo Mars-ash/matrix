@@ -30,6 +30,7 @@ services:
       APP_NAME: MATRIX
       APP_ENV: production
       APP_DEBUG: "false"
+      APP_KEY: ${APP_KEY:-base64:jhpNiYDHjs6UdixpxWYrQ1qaEW8R1yamqZ+vZ4iskkI=}
       APP_URL: http://localhost:8000
       DB_CONNECTION: pgsql
       DB_HOST: postgres
@@ -66,8 +67,15 @@ services:
         condition: service_started
     environment:
       NODE_ENV: production
+      BACKEND_INTERNAL_URL: http://backend:80
     ports:
       - "3000:3000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:3000/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
 volumes:
   matrix-pgdata:

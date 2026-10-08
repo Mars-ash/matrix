@@ -95,14 +95,14 @@ function SubcontDoneContent() {
 
   if (isHydrated === false) {
     return (
-      <AppShell breadcrumbs={[{ label: "Subcont Tracker", href: "/subcont" }, { label: "Riwayat Done" }]}>
-        <TrackerTableSkeleton title="Riwayat Done — Subcont" />
+      <AppShell breadcrumbs={[{ label: "Subcont Tracker", href: "/subcont" }, { label: "Riwayat" }]}>
+        <TrackerTableSkeleton title="Riwayat — Subcont" />
       </AppShell>
     );
   }
 
   return (
-    <AppShell breadcrumbs={[{ label: "Subcont Tracker", href: "/subcont" }, { label: "Riwayat Done" }]}>
+    <AppShell breadcrumbs={[{ label: "Subcont Tracker", href: "/subcont" }, { label: "Riwayat" }]}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 12 }}>
         <div>
           <div style={{ marginBottom: 4 }}>
@@ -121,7 +121,7 @@ function SubcontDoneContent() {
               ← Kembali ke Subcont Tracker
             </Link>
           </div>
-          <h1>Riwayat Done — Subcont</h1>
+          <h1>Riwayat — Subcont</h1>
         </div>
       </div>
 
@@ -321,8 +321,8 @@ export default function SubcontDonePage() {
   return (
     <Suspense
       fallback={
-        <AppShell breadcrumbs={[{ label: "Subcont Tracker", href: "/subcont" }, { label: "Riwayat Done" }]}>
-          <TrackerTableSkeleton title="Riwayat Done — Subcont" />
+        <AppShell breadcrumbs={[{ label: "Subcont Tracker", href: "/subcont" }, { label: "Riwayat" }]}>
+          <TrackerTableSkeleton title="Riwayat — Subcont" />
         </AppShell>
       }
     >

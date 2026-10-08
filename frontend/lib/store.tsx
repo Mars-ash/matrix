@@ -79,6 +79,10 @@ export type AppAction =
       projects: Project[];
     }
   | {
+      type: "SET_HYDRATED";
+      isHydrated: boolean;
+    }
+  | {
       type: "SYNC_PROJECT";
       tempId?: string;
       project: Project;
@@ -153,6 +157,19 @@ export type AppAction =
       label: string;
       kind: CategoryKind;
       isCustom: boolean;
+    }
+  | {
+      type: "UPDATE_CATEGORY";
+      projectId: string;
+      joId: string;
+      categoryId: string;
+      label: string;
+    }
+  | {
+      type: "DELETE_CATEGORY";
+      projectId: string;
+      joId: string;
+      categoryId: string;
     }
   | {
       type: "ADD_ITEM";
@@ -575,6 +592,12 @@ function executeReducer(next: AppState, state: AppState, action: AppAction): App
       };
     }
 
+    case "SET_HYDRATED": {
+      return {
+        ...state,
+        isHydrated: action.isHydrated,
+      };
+    }
 
     case "SET_PROJECTS": {
       const storedTrials = loadTrialSessionsFromStorage();
@@ -830,6 +853,31 @@ function executeReducer(next: AppState, state: AppState, action: AppAction): App
       }
 
       addActivity(jo, `Category "${action.label}" added.`);
+      return next;
+    }
+
+    case "UPDATE_CATEGORY": {
+      const project = next.projects.find((p) => p.id === action.projectId);
+      const jo = project?.jos.find((j) => j.id === action.joId);
+      const cat = jo?.categories.find((c) => c.id === action.categoryId);
+      if (!cat || !jo) return state;
+
+      const oldLabel = cat.label;
+      cat.label = action.label;
+      addActivity(jo, `Category "${oldLabel}" renamed to "${action.label}".`);
+      return next;
+    }
+
+    case "DELETE_CATEGORY": {
+      const project = next.projects.find((p) => p.id === action.projectId);
+      const jo = project?.jos.find((j) => j.id === action.joId);
+      if (!jo) return state;
+
+      const catIndex = jo.categories.findIndex((c) => c.id === action.categoryId);
+      if (catIndex === -1) return state;
+
+      const [deleted] = jo.categories.splice(catIndex, 1);
+      addActivity(jo, `Category "${deleted.label}" deleted.`);
       return next;
     }
 
@@ -1798,7 +1846,7 @@ const storeProviderInitialState: AppState = {
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [state, rawDispatch] = useReducer(reducer, storeProviderInitialState);
-  const { token } = useAuth();
+  const { token, isLoading: isAuthLoading } = useAuth();
 
   const isHydratedRef = React.useRef(false);
 
@@ -1810,11 +1858,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const cached = getCachedProjects();
     if (cached && cached.length > 0) {
       rawDispatch({ type: "HYDRATE_PROJECTS", projects: cached });
-    } else {
-      rawDispatch({ type: "HYDRATE_PROJECTS", projects: [] });
+      isHydratedRef.current = true;
     }
     rawDispatch({ type: "HYDRATE_TRIAL_STORAGE" });
-    isHydratedRef.current = true;
   }, []);
 
 
@@ -1864,26 +1910,39 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   // Sync state from backend once we have a token (mount with a stored token, or right after login)
   useEffect(() => {
-    if (!token) return;
+    if (isAuthLoading) return;
+
+    if (!token) {
+      rawDispatch({ type: "SET_HYDRATED", isHydrated: true });
+      return;
+    }
+
     let active = true;
     api
       .getProjects()
       .then((res) => {
-        if (active && res.data && res.data.length > 0) {
-          rawDispatch({ type: "SET_PROJECTS", projects: res.data });
+        if (active) {
+          rawDispatch({ type: "SET_PROJECTS", projects: res.data || [] });
+          isHydratedRef.current = true;
           try {
-            localStorage.setItem(PROJECTS_CACHE_KEY, JSON.stringify(res.data));
+            if (res.data && res.data.length > 0) {
+              localStorage.setItem(PROJECTS_CACHE_KEY, JSON.stringify(res.data));
+            }
           } catch {}
         }
       })
-      .catch(() => {
-        // Keep cached projects if the API is unreachable
+      .catch((err) => {
+        if (active) {
+          console.warn("Failed to fetch projects from backend:", err?.message || err);
+          rawDispatch({ type: "SET_HYDRATED", isHydrated: true });
+          isHydratedRef.current = true;
+        }
       });
 
     return () => {
       active = false;
     };
-  }, [token]);
+  }, [token, isAuthLoading]);
 
   // Async API synchronization wrapper
   const dispatch: Dispatch<AppAction> = (action: AppAction) => {
@@ -1977,6 +2036,24 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           })
           .catch((err) => {
             console.warn("Failed to persist category to database:", err?.message || err);
+          });
+        break;
+
+      case "UPDATE_CATEGORY":
+        api
+          .updateCategory(action.categoryId, {
+            label: action.label,
+          })
+          .catch((err) => {
+            console.warn("Failed to persist category update to database:", err?.message || err);
+          });
+        break;
+
+      case "DELETE_CATEGORY":
+        api
+          .deleteCategory(action.categoryId)
+          .catch((err) => {
+            console.warn("Failed to delete category from database:", err?.message || err);
           });
         break;
 

@@ -65,14 +65,14 @@ function PoTrackerDoneContent() {
 
   if (isHydrated === false) {
     return (
-      <AppShell breadcrumbs={[{ label: "PO Tracker", href: "/po-tracker" }, { label: "Riwayat Done" }]}>
-        <TrackerTableSkeleton title="Riwayat Done — PO" />
+      <AppShell breadcrumbs={[{ label: "Pre Order Tracker", href: "/po-tracker" }, { label: "Riwayat" }]}>
+        <TrackerTableSkeleton title="Riwayat — PO" />
       </AppShell>
     );
   }
 
   return (
-    <AppShell breadcrumbs={[{ label: "PO Tracker", href: "/po-tracker" }, { label: "Riwayat Done" }]}>
+    <AppShell breadcrumbs={[{ label: "Pre Order Tracker", href: "/po-tracker" }, { label: "Riwayat" }]}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 12 }}>
         <div>
           <div style={{ marginBottom: 4 }}>
@@ -88,10 +88,10 @@ function PoTrackerDoneContent() {
                 fontWeight: 500,
               }}
             >
-              ← Kembali ke PO Tracker
+              ← Kembali ke Pre Order Tracker
             </Link>
           </div>
-          <h1>Riwayat Done — PO</h1>
+          <h1>Riwayat — PO</h1>
         </div>
       </div>
 
@@ -297,8 +297,8 @@ export default function PoTrackerDonePage() {
   return (
     <Suspense
       fallback={
-        <AppShell breadcrumbs={[{ label: "PO Tracker", href: "/po-tracker" }, { label: "Riwayat Done" }]}>
-          <TrackerTableSkeleton title="Riwayat Done — PO" />
+        <AppShell breadcrumbs={[{ label: "Pre Order Tracker", href: "/po-tracker" }, { label: "Riwayat" }]}>
+          <TrackerTableSkeleton title="Riwayat — PO" />
         </AppShell>
       }
     >

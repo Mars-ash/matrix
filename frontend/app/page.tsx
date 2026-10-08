@@ -14,7 +14,7 @@ import { useAuth } from "@/lib/auth";
 import { joProblemCount } from "@/lib/progress";
 import type { Project, JO } from "@/lib/types";
 import { DashboardSkeleton } from "@/components/skeleton-loader";
-import { GlobalItemSearch } from "@/components/global-item-search";
+import { MainUnifiedSearch } from "@/components/main-unified-search";
 import { visibleProjects } from "@/lib/tracker-items";
 
 export default function DashboardPage() {
@@ -177,12 +177,10 @@ export default function DashboardPage() {
               {isAllCollapsed ? "Buka Semua" : "Tutup Semua"}
             </button>
           )}
-          <input
-            className="input"
-            placeholder="Filter project / JO..."
+          <MainUnifiedSearch
+            projects={projects}
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            style={{ width: 240, minWidth: 140, flex: "1 1 140px", maxWidth: 300 }}
+            onChange={setSearchQuery}
           />
           {isController && (
             <NewItemMenu
@@ -193,9 +191,6 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
-
-      {/* Global cross-JO part search */}
-      <GlobalItemSearch projects={projects} />
 
       {/* Project sections */}
       {filteredProjects.map((project) => {

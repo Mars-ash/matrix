@@ -59,6 +59,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::patch('/jos/{jo}/restore', [JOController::class, 'restore']);
 
         Route::post('/jos/{jo}/categories', [CategoryController::class, 'store']);
+        Route::put('/categories/{category}', [CategoryController::class, 'update']);
+        Route::delete('/categories/{category}', [CategoryController::class, 'destroy']);
         Route::post('/categories/{category}/items', [ItemController::class, 'store']);
         Route::post('/categories/{category}/items/batch', [ItemController::class, 'batchStore']);
         Route::post('/trackers/items', [TrackerItemController::class, 'store']);

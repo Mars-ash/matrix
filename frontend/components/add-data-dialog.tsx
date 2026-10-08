@@ -353,9 +353,6 @@ export function AddDataDialog({
             style={{ textAlign: "left", cursor: "pointer", border: "1px solid var(--color-border)" }}
           >
             <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 4 }}>Manual Entry</div>
-            <div style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>
-              Isi data part / komponen satu per satu secara langsung.
-            </div>
           </button>
           <button
             className="card"
@@ -366,10 +363,7 @@ export function AddDataDialog({
             style={{ textAlign: "left", cursor: "pointer", border: "1px solid var(--color-border)" }}
           >
             <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 4, display: "flex", alignItems: "center" }}>
-              Image Conversion (OCR Vision AI)
-            </div>
-            <div style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>
-              Ekstrak daftar tabel BOM secara otomatis dari foto / screenshot gambar teknik.
+              Image Conversion
             </div>
           </button>
         </div>

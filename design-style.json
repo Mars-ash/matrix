@@ -1,0 +1,645 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "name": "matrix-design-system",
+  "version": "1.0.0",
+  "description": "Comprehensive design style and design token specifications extracted from the MATRIX Production Controlling platform. Re-apply this configuration to new projects for an identical high-precision industrial aesthetic.",
+  "meta": {
+    "themeName": "Industrial Control Precision",
+    "themeType": "High-Contrast Engineering Canvas",
+    "vibe": "Utilitarian, high information density, dense workshop control, crystal-clear status communication, zero decorative fluff",
+    "targetDensity": "Compact (Dense tables, sticky dual-axis freeze, tight 12-13px typography)",
+    "frameworkCompatibility": {
+      "cssEngine": "Tailwind CSS v4 + Vanilla CSS Custom Properties (:root)",
+      "uiFramework": "React 19 / Next.js 16 (App Router)",
+      "iconRecommendation": "Heroicons / Lucide React (stroke width: 1.75 - 2px, default size: 14 - 16px)"
+    }
+  },
+  "typography": {
+    "fontFamilies": {
+      "sans": "\"DM Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, sans-serif",
+      "mono": "\"JetBrains Mono\", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace"
+    },
+    "monoUseCases": [
+      "Job Order numbers (e.g. 'JO 126.110')",
+      "Part position numbers (e.g. '01', '02')",
+      "Dimensions and tolerances (e.g. '50 x 120 x 200 mm')",
+      "Quantities & counts (e.g. 'QTY: 4')",
+      "Dates & deadlines (e.g. '2026-10-15')",
+      "Purchase Order numbers (e.g. 'PO-2026-089')",
+      "Progress percentages (e.g. '87.5%')",
+      "Countdown chips (e.g. 'H-3', 'Overdue 2d')"
+    ],
+    "scale": {
+      "brandTitle": {
+        "fontSize": "18px",
+        "fontWeight": 800,
+        "lineHeight": 1.15,
+        "letterSpacing": "0.04em",
+        "textTransform": "uppercase"
+      },
+      "brandSubtitle": {
+        "fontSize": "10px",
+        "fontWeight": 500,
+        "lineHeight": 1.2,
+        "letterSpacing": "0.06em",
+        "textTransform": "uppercase",
+        "color": "var(--color-text-muted)"
+      },
+      "h1": {
+        "fontSize": "1.375rem",
+        "pixelEquivalent": "22px",
+        "fontWeight": 600,
+        "lineHeight": 1.25,
+        "letterSpacing": "-0.01em"
+      },
+      "h2": {
+        "fontSize": "1rem",
+        "pixelEquivalent": "16px",
+        "fontWeight": 600,
+        "lineHeight": 1.3,
+        "letterSpacing": "-0.01em"
+      },
+      "h3": {
+        "fontSize": "0.875rem",
+        "pixelEquivalent": "14px",
+        "fontWeight": 600,
+        "lineHeight": 1.35
+      },
+      "body": {
+        "fontSize": "13px",
+        "fontWeight": 400,
+        "lineHeight": 1.5
+      },
+      "bodySmall": {
+        "fontSize": "12px",
+        "fontWeight": 400,
+        "lineHeight": 1.4
+      },
+      "label": {
+        "fontSize": "11px",
+        "fontWeight": 500,
+        "lineHeight": 1.2,
+        "letterSpacing": "0.03em",
+        "textTransform": "uppercase",
+        "color": "var(--color-text-secondary)"
+      },
+      "tableHeader": {
+        "fontSize": "10px",
+        "fontWeight": 500,
+        "lineHeight": 1.2,
+        "letterSpacing": "0.04em",
+        "textTransform": "uppercase",
+        "color": "var(--color-text-muted)"
+      },
+      "tableCell": {
+        "fontSize": "12px",
+        "fontWeight": 400,
+        "lineHeight": 1.4
+      },
+      "statusBadge": {
+        "fontSize": "11px",
+        "fontWeight": 600,
+        "lineHeight": 1.2,
+        "letterSpacing": "0.02em"
+      },
+      "counterBadge": {
+        "fontSize": "10px",
+        "fontWeight": 700,
+        "lineHeight": 1
+      },
+      "breadcrumbs": {
+        "fontSize": "11px",
+        "fontWeight": 400,
+        "lineHeight": 1.2
+      }
+    }
+  },
+  "colors": {
+    "canvasAndSurfaces": {
+      "--color-bg": {
+        "value": "#f5f4f1",
+        "description": "Main app canvas; warm industrial technical paper / workbench tone"
+      },
+      "--color-bg-raised": {
+        "value": "#ffffff",
+        "description": "Elevated components: cards, table bodies, top header, dialog panels"
+      },
+      "--color-bg-surface": {
+        "value": "#ffffff",
+        "description": "General surface level equivalent to raised"
+      },
+      "--color-bg-hover": {
+        "value": "#eeedea",
+        "description": "Subtle neutral hover on interactive table rows, buttons, menu items"
+      },
+      "--color-bg-wash": {
+        "value": "#faf9f7",
+        "description": "Subtle tint for table header backgrounds, segmented toggle tracks, and panel insets"
+      }
+    },
+    "bordersAndDividers": {
+      "--color-border": {
+        "value": "#d8d5cf",
+        "description": "Primary structural border for cards, inputs, table boundaries, and header bottom"
+      },
+      "--color-border-subtle": {
+        "value": "#eeedea",
+        "description": "Subtle border for interior row dividers and table cell horizontal rules"
+      }
+    },
+    "typographyColors": {
+      "--color-text": {
+        "value": "#1a1a18",
+        "description": "Primary high-contrast dark ink"
+      },
+      "--color-text-secondary": {
+        "value": "#5c5b56",
+        "description": "Secondary text for meta items, subtitles, and form labels"
+      },
+      "--color-text-muted": {
+        "value": "#8a8880",
+        "description": "Muted text for placeholders, table column labels, breadcrumbs, and empty states"
+      }
+    },
+    "brandAccent": {
+      "--color-accent": {
+        "value": "#2563eb",
+        "description": "Cobalt engineering blue; used for primary focus rings, active indicators, and links"
+      },
+      "--color-accent-hover": {
+        "value": "#1d4fd8",
+        "description": "Deepened cobalt blue for hover states"
+      },
+      "--color-accent-subtle-bg": {
+        "value": "#2563eb1f",
+        "description": "Subtle blue tint for row highlights and active row selection"
+      }
+    },
+    "statusAndProcessTokens": {
+      "Done": {
+        "label": "Done",
+        "meaning": "Process finished and QC verified (100% / weight 1.0)",
+        "textColor": "#0d7c4a",
+        "bgColor": "#edf7f0",
+        "borderColor": "rgba(13, 124, 74, 0.2)",
+        "cssVarText": "--color-status-done",
+        "cssVarBg": "--color-status-done-bg"
+      },
+      "InProgress": {
+        "label": "In Progress",
+        "meaning": "Active in internal manufacturing workshop (50% / weight 0.5)",
+        "textColor": "#c2850c",
+        "bgColor": "#fef7ec",
+        "borderColor": "rgba(194, 133, 12, 0.2)",
+        "cssVarText": "--color-status-in-progress",
+        "cssVarBg": "--color-status-in-progress-bg"
+      },
+      "InProgressSC": {
+        "label": "In Progress SC",
+        "meaning": "Dispatched to external subcontractor / maklun (50% / weight 0.5)",
+        "textColor": "#0284c7",
+        "bgColor": "#f0f9ff",
+        "borderColor": "rgba(2, 132, 199, 0.2)",
+        "cssVarText": "--color-status-in-progress-sc",
+        "cssVarBg": "--color-status-in-progress-sc-bg"
+      },
+      "NotStarted": {
+        "label": "Not Started",
+        "meaning": "In queue, work not initiated yet (0% / weight 0.0)",
+        "textColor": "#2563eb",
+        "bgColor": "#eff4ff",
+        "borderColor": "rgba(37, 99, 235, 0.2)",
+        "cssVarText": "--color-status-not-started",
+        "cssVarBg": "--color-status-not-started-bg"
+      },
+      "Problem": {
+        "label": "Problem",
+        "meaning": "Bottleneck, defect, or material delay; requires mandatory note (0% / weight 0.0)",
+        "textColor": "#dc2626",
+        "bgColor": "#fef2f2",
+        "borderColor": "rgba(220, 38, 38, 0.2)",
+        "cssVarText": "--color-status-problem",
+        "cssVarBg": "--color-status-problem-bg"
+      },
+      "Excluded": {
+        "label": "-",
+        "meaning": "Process not required for this part; completely excluded from formula denominator",
+        "textColor": "#8a8880",
+        "bgColor": "#eeedea",
+        "borderColor": "transparent",
+        "cssVarText": "--color-status-na",
+        "cssVarBg": "--color-status-na-bg"
+      }
+    },
+    "urgencyChips": {
+      "overdue": {
+        "textColor": "#dc2626",
+        "bgColor": "#fef2f2",
+        "badgeBg": "#dc2626",
+        "badgeText": "#ffffff"
+      },
+      "hDay": {
+        "label": "Hari H",
+        "textColor": "#ea580c",
+        "bgColor": "#fff7ed",
+        "badgeBg": "#ea580c",
+        "badgeText": "#ffffff"
+      },
+      "h3": {
+        "label": "H-3..H-1",
+        "textColor": "#c2850c",
+        "bgColor": "#fef7ec",
+        "badgeBg": "#c2850c",
+        "badgeText": "#ffffff"
+      }
+    }
+  },
+  "radii": {
+    "--radius-sm": {
+      "value": "3px",
+      "usage": "Status badges, tag pills, count chips, focus outline"
+    },
+    "--radius-md": {
+      "value": "4px",
+      "usage": "Buttons, text inputs, selects, segmented controls"
+    },
+    "--radius-lg": {
+      "value": "6px",
+      "usage": "Dashboard cards, table outer containers, popover dropdowns, photo thumbnails"
+    },
+    "--radius-xl": {
+      "value": "8px",
+      "usage": "Modal dialog panels, slide-out drawer sheets, floating action bars"
+    }
+  },
+  "shadows": {
+    "--shadow-sm": {
+      "value": "0 1px 2px rgba(0, 0, 0, 0.04)",
+      "usage": "Active segmented toggle button, subtle cell elevation"
+    },
+    "--shadow-md": {
+      "value": "0 2px 8px rgba(0, 0, 0, 0.06)",
+      "usage": "Standard dropdown menus, quick search dropdowns"
+    },
+    "--shadow-lg": {
+      "value": "0 4px 16px rgba(0, 0, 0, 0.08)",
+      "usage": "Modal dialog panels"
+    },
+    "floatingBar": {
+      "value": "0 8px 30px rgba(0, 0, 0, 0.16)",
+      "usage": "Fixed bottom bulk action bar"
+    },
+    "popoverDeep": {
+      "value": "0 12px 32px rgba(0, 0, 0, 0.25)",
+      "usage": "Notification popovers and complex menus"
+    },
+    "stickyColumnDivider": {
+      "value": "2px 0 4px rgba(0, 0, 0, 0.04)",
+      "usage": "Right border shadow for sticky frozen table columns (No., Description)"
+    }
+  },
+  "layoutAndStructure": {
+    "topHeader": {
+      "position": "fixed",
+      "top": "0",
+      "left": "0",
+      "right": "0",
+      "height": "56px",
+      "background": "var(--color-bg-raised)",
+      "borderBottom": "1px solid var(--color-border)",
+      "padding": "0 24px",
+      "zIndex": 40,
+      "display": "flex",
+      "alignItems": "center",
+      "justifyContent": "space-between"
+    },
+    "mainContent": {
+      "marginTop": "56px",
+      "padding": "24px 32px",
+      "minHeight": "100vh",
+      "background": "var(--color-bg)"
+    },
+    "kpiGrid": {
+      "display": "grid",
+      "gridTemplateColumns": "repeat(auto-fit, minmax(180px, 1fr))",
+      "gap": "10px",
+      "marginBottom": "18px"
+    },
+    "dialogBackdrop": {
+      "position": "fixed",
+      "inset": "0",
+      "background": "rgba(0, 0, 0, 0.3)",
+      "backdropFilter": "blur(1px)",
+      "display": "flex",
+      "alignItems": "center",
+      "justifyContent": "center",
+      "zIndex": 50
+    },
+    "dialogPanel": {
+      "background": "var(--color-bg-raised)",
+      "border": "1px solid var(--color-border)",
+      "borderRadius": "var(--radius-xl)",
+      "boxShadow": "var(--shadow-lg)",
+      "padding": "20px",
+      "width": "90%",
+      "maxWidth": "480px",
+      "maxHeight": "85vh",
+      "overflowY": "auto"
+    },
+    "dialogPanelWide": {
+      "maxWidth": "960px",
+      "width": "min(960px, 94vw)"
+    }
+  },
+  "components": {
+    "buttons": {
+      "base": {
+        "display": "inline-flex",
+        "alignItems": "center",
+        "justifyContent": "center",
+        "gap": "5px",
+        "padding": "6px 12px",
+        "fontSize": "12px",
+        "fontWeight": 500,
+        "lineHeight": 1,
+        "borderRadius": "var(--radius-md)",
+        "cursor": "pointer",
+        "whiteSpace": "nowrap",
+        "border": "1px solid transparent",
+        "transition": "background 0.1s ease, border-color 0.1s ease"
+      },
+      "variants": {
+        "primary": {
+          "background": "var(--color-text)",
+          "color": "var(--color-bg)",
+          "borderColor": "var(--color-text)",
+          "hoverBackground": "#333330"
+        },
+        "secondary": {
+          "background": "var(--color-bg-raised)",
+          "color": "var(--color-text)",
+          "borderColor": "var(--color-border)",
+          "hoverBackground": "var(--color-bg-hover)"
+        },
+        "danger": {
+          "background": "var(--color-status-problem-bg)",
+          "color": "var(--color-status-problem)",
+          "borderColor": "rgba(220, 38, 38, 0.2)",
+          "hoverBackground": "#fde8e8"
+        },
+        "ghost": {
+          "background": "transparent",
+          "color": "var(--color-text-secondary)",
+          "borderColor": "transparent",
+          "hoverBackground": "var(--color-bg-hover)",
+          "hoverColor": "var(--color-text)"
+        },
+        "small": {
+          "padding": "4px 8px",
+          "fontSize": "11px"
+        }
+      }
+    },
+    "inputsAndSelects": {
+      "base": {
+        "width": "100%",
+        "color": "var(--color-text)",
+        "background": "var(--color-bg-raised)",
+        "border": "1px solid var(--color-border)",
+        "borderRadius": "var(--radius-md)",
+        "padding": "6px 10px",
+        "fontSize": "13px",
+        "lineHeight": 1.4,
+        "outline": "none",
+        "transition": "border-color 0.1s ease"
+      },
+      "focus": {
+        "borderColor": "var(--color-accent)",
+        "outline": "none"
+      },
+      "select": {
+        "appearance": "none",
+        "backgroundImage": "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' fill='%235c5b56' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E\")",
+        "backgroundPosition": "right 8px center",
+        "backgroundRepeat": "no-repeat",
+        "paddingRight": "26px"
+      },
+      "formLabel": {
+        "display": "block",
+        "color": "var(--color-text-secondary)",
+        "fontSize": "11px",
+        "fontWeight": 500,
+        "letterSpacing": "0.03em",
+        "textTransform": "uppercase",
+        "marginBottom": "3px"
+      },
+      "errorText": {
+        "color": "var(--color-status-problem)",
+        "fontSize": "11px",
+        "marginTop": "3px"
+      }
+    },
+    "cards": {
+      "base": {
+        "background": "var(--color-bg-raised)",
+        "border": "1px solid var(--color-border)",
+        "borderRadius": "var(--radius-lg)",
+        "padding": "14px",
+        "transition": "border-color 0.12s ease"
+      },
+      "hover": {
+        "borderColor": "var(--color-text-muted)"
+      }
+    },
+    "tables": {
+      "container": {
+        "display": "block",
+        "width": "100%",
+        "maxWidth": "100%",
+        "overflowX": "auto",
+        "background": "var(--color-bg-raised)",
+        "border": "1px solid var(--color-border)",
+        "borderRadius": "var(--radius-lg)",
+        "scrollbarWidth": "thin",
+        "scrollbarColor": "var(--color-border) transparent"
+      },
+      "table": {
+        "width": "100%",
+        "minWidth": "max-content",
+        "borderCollapse": "collapse",
+        "fontSize": "12px"
+      },
+      "th": {
+        "position": "sticky",
+        "top": "0",
+        "background": "var(--color-bg-wash)",
+        "color": "var(--color-text-muted)",
+        "fontSize": "10px",
+        "fontWeight": 500,
+        "letterSpacing": "0.04em",
+        "textTransform": "uppercase",
+        "textAlign": "left",
+        "whiteSpace": "nowrap",
+        "padding": "6px 8px",
+        "borderBottom": "2px solid var(--color-border)",
+        "zIndex": 10
+      },
+      "td": {
+        "verticalAlign": "middle",
+        "padding": "5px 8px",
+        "borderBottom": "1px solid var(--color-border-subtle)",
+        "whiteSpace": "nowrap"
+      },
+      "rowHover": {
+        "background": "var(--color-bg-wash)"
+      },
+      "rowSelected": {
+        "background": "color-mix(in srgb, var(--color-accent) 8%, var(--color-bg-raised))"
+      },
+      "stickyColumns": {
+        "checkbox": {
+          "position": "sticky",
+          "left": "0",
+          "zIndexHead": 30,
+          "zIndexBody": 16,
+          "width": "36px",
+          "textAlign": "center"
+        },
+        "no": {
+          "position": "sticky",
+          "left": "0",
+          "zIndexHead": 30,
+          "zIndexBody": 15,
+          "borderRight": "1px solid var(--color-border)",
+          "boxShadow": "2px 0 4px rgba(0, 0, 0, 0.02)"
+        },
+        "description": {
+          "position": "sticky",
+          "left": "64px",
+          "zIndexHead": 25,
+          "zIndexBody": 14,
+          "borderRight": "1px solid var(--color-border)",
+          "boxShadow": "2px 0 4px rgba(0, 0, 0, 0.04)"
+        }
+      }
+    },
+    "badges": {
+      "base": {
+        "display": "inline-flex",
+        "alignItems": "center",
+        "justifyContent": "center",
+        "fontSize": "10px",
+        "fontWeight": 500,
+        "borderRadius": "var(--radius-sm)",
+        "padding": "1px 6px",
+        "whiteSpace": "nowrap",
+        "letterSpacing": "0.01em"
+      },
+      "statusBadge": {
+        "fontSize": "11px",
+        "fontWeight": 600,
+        "padding": "4px 10px",
+        "minWidth": "85px",
+        "textAlign": "center",
+        "letterSpacing": "0.02em"
+      }
+    },
+    "progressBar": {
+      "track": {
+        "width": "100%",
+        "height": "6px",
+        "background": "var(--color-bg-hover)",
+        "borderRadius": "3px",
+        "overflow": "hidden"
+      },
+      "fill": {
+        "height": "100%",
+        "background": "var(--color-accent)",
+        "borderRadius": "3px",
+        "transition": "width 0.3s ease"
+      },
+      "fillComplete": {
+        "background": "var(--color-status-done)"
+      }
+    },
+    "floatingBulkBar": {
+      "position": "fixed",
+      "bottom": "24px",
+      "left": "50%",
+      "transform": "translateX(-50%)",
+      "background": "var(--color-bg-raised)",
+      "border": "1px solid var(--color-border)",
+      "borderRadius": "var(--radius-lg)",
+      "boxShadow": "0 8px 30px rgba(0, 0, 0, 0.16)",
+      "padding": "10px 18px",
+      "display": "flex",
+      "alignItems": "center",
+      "gap": "12px",
+      "zIndex": 60,
+      "animation": "bulkBarSlideUp 0.18s ease-out"
+    },
+    "mobileViewToggle": {
+      "display": "inline-flex",
+      "alignItems": "center",
+      "background": "var(--color-bg-wash)",
+      "border": "1px solid var(--color-border)",
+      "borderRadius": "var(--radius-sm)",
+      "padding": "2px",
+      "gap": "2px",
+      "button": {
+        "padding": "4px 10px",
+        "fontSize": "11px",
+        "fontWeight": 500,
+        "color": "var(--color-text-secondary)",
+        "borderRadius": "var(--radius-sm)",
+        "border": "none",
+        "background": "transparent"
+      },
+      "buttonActive": {
+        "background": "var(--color-bg-raised)",
+        "color": "var(--color-text)",
+        "fontWeight": 600,
+        "boxShadow": "0 1px 2px rgba(0, 0, 0, 0.06)"
+      }
+    }
+  },
+  "animations": {
+    "fadeIn": {
+      "keyframes": {
+        "from": { "opacity": 0 },
+        "to": { "opacity": 1 }
+      },
+      "duration": "0.12s",
+      "timing": "ease"
+    },
+    "slideUp": {
+      "keyframes": {
+        "from": { "opacity": 0, "transform": "translateY(8px)" },
+        "to": { "opacity": 1, "transform": "translateY(0)" }
+      },
+      "duration": "0.15s",
+      "timing": "ease"
+    },
+    "bulkBarSlideUp": {
+      "keyframes": {
+        "from": { "opacity": 0, "transform": "translate(-50%, 16px)" },
+        "to": { "opacity": 1, "transform": "translate(-50%, 0)" }
+      },
+      "duration": "0.18s",
+      "timing": "ease-out"
+    },
+    "rowHighlightPulse": {
+      "keyframes": {
+        "0%": { "background": "rgba(37, 99, 235, 0.15)" },
+        "30%": { "background": "rgba(37, 99, 235, 0.12)" },
+        "100%": { "background": "transparent" }
+      },
+      "duration": "2.5s",
+      "timing": "ease-out"
+    }
+  },
+  "rawCssTokens": {
+    "cssVariables": ":root {\n  --color-bg: #f5f4f1;\n  --color-bg-raised: #ffffff;\n  --color-bg-surface: #ffffff;\n  --color-bg-hover: #eeedea;\n  --color-bg-wash: #faf9f7;\n  --color-border: #d8d5cf;\n  --color-border-subtle: #eeedea;\n  --color-text: #1a1a18;\n  --color-text-secondary: #5c5b56;\n  --color-text-muted: #8a8880;\n  --color-status-na: #8a8880;\n  --color-status-not-started: #2563eb;\n  --color-status-in-progress: #c2850c;\n  --color-status-in-progress-sc: #0284c7;\n  --color-status-done: #0d7c4a;\n  --color-status-problem: #dc2626;\n  --color-status-na-bg: #eeedea;\n  --color-status-not-started-bg: #eff4ff;\n  --color-status-in-progress-bg: #fef7ec;\n  --color-status-in-progress-sc-bg: #f0f9ff;\n  --color-status-done-bg: #edf7f0;\n  --color-status-problem-bg: #fef2f2;\n  --color-accent: #2563eb;\n  --color-accent-hover: #1d4fd8;\n  --radius-sm: 3px;\n  --radius-md: 4px;\n  --radius-lg: 6px;\n  --radius-xl: 8px;\n  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);\n  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.06);\n  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.08);\n}",
+    "tailwindInlineTheme": "@theme inline {\n  --color-background: var(--color-bg);\n  --color-foreground: var(--color-text);\n  --font-sans: \"DM Sans\", system-ui, -apple-system, sans-serif;\n  --font-mono: \"JetBrains Mono\", ui-monospace, monospace;\n}"
+  }
+}

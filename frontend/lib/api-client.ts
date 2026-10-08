@@ -158,6 +158,22 @@ export const api = {
     });
   },
 
+  async updateCategory(
+    categoryId: string,
+    payload: { label: string }
+  ): Promise<{ data: Category; message: string }> {
+    return request<{ data: Category; message: string }>(`/categories/${categoryId}`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async deleteCategory(categoryId: string): Promise<{ message: string }> {
+    return request<{ message: string }>(`/categories/${categoryId}`, {
+      method: "DELETE",
+    });
+  },
+
   async addItem(
     categoryId: string,
     item: {

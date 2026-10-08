@@ -480,7 +480,7 @@ function PoTrackerContent() {
           description={
             searchQuery
               ? "Try adjusting your search."
-              : "Belum ada PO aktif. Item yang sudah Done ada di Riwayat Done."
+              : "Belum ada PO aktif. Item yang sudah Done ada di Riwayat."
           }
         />
       );
@@ -524,21 +524,21 @@ function PoTrackerContent() {
 
   if (isHydrated === false) {
     return (
-      <AppShell breadcrumbs={[{ label: "PO Tracker" }]}>
-        <TrackerTableSkeleton title="PO Tracker" />
+      <AppShell breadcrumbs={[{ label: "Pre Order Tracker" }]}>
+        <TrackerTableSkeleton title="Pre Order Tracker" />
       </AppShell>
     );
   }
 
   return (
-    <AppShell breadcrumbs={[{ label: "PO Tracker" }]}>
+    <AppShell breadcrumbs={[{ label: "Pre Order Tracker" }]}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 12 }}>
         <div>
-          <h1>PO Tracker</h1>
+          <h1>Pre Order Tracker</h1>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           <Link href="/po-tracker/done" className="btn btn-secondary">
-            Riwayat Done ({doneCount})
+            Riwayat ({doneCount})
           </Link>
           {isController && (
             <button type="button" className="btn btn-primary" onClick={() => setIsAddOpen(true)}>
@@ -797,8 +797,8 @@ export default function PoTrackerPage() {
   return (
     <Suspense
       fallback={
-        <AppShell breadcrumbs={[{ label: "PO Tracker" }]}>
-          <TrackerTableSkeleton title="PO Tracker" />
+        <AppShell breadcrumbs={[{ label: "Pre Order Tracker" }]}>
+          <TrackerTableSkeleton title="Pre Order Tracker" />
         </AppShell>
       }
     >

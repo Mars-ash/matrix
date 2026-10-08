@@ -56,3 +56,32 @@ export function defaultControls(kind: CategoryKind): Control[] {
     notes: "",
   }));
 }
+
+/** Suggested category names for Part kind. */
+export const COMMON_PART_SUGGESTIONS = [
+  "Part",
+  "Part Dies OP 10",
+  "Part Dies OP 20",
+  "Part Dies OP 30",
+  "Part Dies OP 40",
+  "Part Dies OP 50",
+  "Part Dies",
+  "Part RH",
+  "Part LH",
+  "Part Jig",
+] as const;
+
+/** Suggested category names for Component kind. */
+export const COMMON_COMPONENT_SUGGESTIONS = [
+  "Component",
+  "Component Dies OP 10",
+  "Component Dies OP 20",
+  "Component Dies OP 30",
+  "Component Dies OP 40",
+  "Component Dies OP 50",
+  "Component Dies",
+  "Component Standard",
+  "Component RH",
+  "Component LH",
+  "Component Jig",
+] as const;

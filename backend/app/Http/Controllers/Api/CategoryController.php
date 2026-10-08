@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\CategoryResource;
 use App\Models\Activity;
+use App\Models\Category;
 use App\Models\JO;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -71,5 +72,52 @@ class CategoryController extends Controller
             'data' => new CategoryResource($category->load('items.controls')),
             'message' => 'Category added successfully.',
         ], 201);
+    }
+
+    public function update(Request $request, Category $category): JsonResponse
+    {
+        if (!$request->user()?->isController()) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
+        $validated = $request->validate([
+            'label' => ['required', 'string', 'max:255'],
+        ]);
+
+        $oldLabel = $category->label;
+        $category->update([
+            'label' => $validated['label'],
+        ]);
+
+        Activity::create([
+            'jo_id' => $category->jo_id,
+            'message' => "Category \"{$oldLabel}\" renamed to \"{$category->label}\".",
+        ]);
+
+        return response()->json([
+            'data' => new CategoryResource($category->load('items.controls')),
+            'message' => 'Category updated successfully.',
+        ]);
+    }
+
+    public function destroy(Request $request, Category $category): JsonResponse
+    {
+        if (!$request->user()?->isController()) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
+        $joId = $category->jo_id;
+        $label = $category->label;
+
+        $category->delete();
+
+        Activity::create([
+            'jo_id' => $joId,
+            'message' => "Category \"{$label}\" deleted.",
+        ]);
+
+        return response()->json([
+            'message' => 'Category deleted successfully.',
+        ]);
     }
 }
