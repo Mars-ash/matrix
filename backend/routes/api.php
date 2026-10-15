@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\ControlController;
 use App\Http\Controllers\Api\ItemController;
 use App\Http\Controllers\Api\JOController;
 use App\Http\Controllers\Api\OcrController;
+use App\Http\Controllers\Api\PartnerController;
 use App\Http\Controllers\Api\PoTrackerController;
 use App\Http\Controllers\Api\ProjectController;
 use App\Http\Controllers\Api\SubcontTrackerController;
@@ -43,6 +44,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/jos/{jo}', [JOController::class, 'show']);
     Route::get('/trackers/subcont', [SubcontTrackerController::class, 'index']);
     Route::get('/trackers/po', [PoTrackerController::class, 'index']);
+    Route::get('/partners', [PartnerController::class, 'index']);
 
     // Trial Sessions (Read)
     Route::get('/jos/{jo}/trial-sessions', [TrialSessionController::class, 'index']);
@@ -50,6 +52,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Mutating endpoints (Strictly restricted to 'controller' role)
     Route::middleware('role.controller')->group(function () {
+        Route::post('/partners', [PartnerController::class, 'store']);
+        Route::put('/partners/{partner}', [PartnerController::class, 'update']);
+        Route::delete('/partners/{partner}', [PartnerController::class, 'destroy']);
+
         Route::post('/projects', [ProjectController::class, 'store']);
         Route::put('/projects/{project}', [ProjectController::class, 'update']);
         Route::delete('/projects/{project}', [ProjectController::class, 'destroy']);

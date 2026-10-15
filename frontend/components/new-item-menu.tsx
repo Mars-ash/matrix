@@ -5,9 +5,10 @@ interface NewItemMenuProps {
   onNewProject: () => void;
   onNewJo: () => void;
   onNewData: () => void;
+  onManagePartners?: () => void;
 }
 
-export function NewItemMenu({ onNewProject, onNewJo, onNewData }: NewItemMenuProps) {
+export function NewItemMenu({ onNewProject, onNewJo, onNewData, onManagePartners }: NewItemMenuProps) {
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -51,6 +52,15 @@ export function NewItemMenu({ onNewProject, onNewJo, onNewData }: NewItemMenuPro
             <span style={{ fontSize: 14 }}></span>
             <span>New Data</span>
           </button>
+          {onManagePartners && (
+            <button
+              className="new-item-menu-option"
+              onClick={() => { setOpen(false); onManagePartners(); }}
+            >
+              <span style={{ fontSize: 14 }}></span>
+              <span>Customer & Supplier</span>
+            </button>
+          )}
         </div>
       )}
     </div>

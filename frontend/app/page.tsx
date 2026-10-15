@@ -9,6 +9,7 @@ import { ProjectEditDialog } from "@/components/project-edit-dialog";
 import { NewItemMenu } from "@/components/new-item-menu";
 import { NewDataDialog } from "@/components/new-data-dialog";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { PartnerManagementDialog } from "@/components/partner-management-dialog";
 import { useAppState, useAppDispatch } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
 import { joProblemCount } from "@/lib/progress";
@@ -26,6 +27,7 @@ export default function DashboardPage() {
   const [createProjectOpen, setCreateProjectOpen] = useState(false);
   const [createJoProjectId, setCreateJoProjectId] = useState<string | undefined>(undefined);
   const [newDataOpen, setNewDataOpen] = useState(false);
+  const [partnerDialogOpen, setPartnerDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [deleteProjectTarget, setDeleteProjectTarget] = useState<Project | null>(null);
   const [editProjectTarget, setEditProjectTarget] = useState<Project | null>(null);
@@ -187,6 +189,7 @@ export default function DashboardPage() {
               onNewProject={() => setCreateProjectOpen(true)}
               onNewJo={() => setCreateOpen(true)}
               onNewData={() => setNewDataOpen(true)}
+              onManagePartners={() => setPartnerDialogOpen(true)}
             />
           )}
         </div>
@@ -433,6 +436,10 @@ export default function DashboardPage() {
       <NewDataDialog
         open={newDataOpen}
         onClose={() => setNewDataOpen(false)}
+      />
+      <PartnerManagementDialog
+        open={partnerDialogOpen}
+        onClose={() => setPartnerDialogOpen(false)}
       />
 
       {/* Edit Project Name */}

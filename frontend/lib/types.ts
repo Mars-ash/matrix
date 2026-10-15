@@ -114,6 +114,7 @@ export interface PoTracking {
   poNo?: string;
   poDate?: string; // YYYY-MM-DD
   targetArrival?: string; // YYYY-MM-DD
+  actualArrivalDate?: string; // YYYY-MM-DD or ISO-8601
   notes?: string;
 }
 
@@ -126,6 +127,7 @@ export interface Control {
   photos?: ProcessPhoto[];
   inProgressAt?: string; // Date string when marked "In Progress"
   targetDate?: string; // YYYY-MM-DD
+  doneAt?: string; // Date string when marked "Done"
   poTracking?: PoTracking;
 }
 
@@ -365,5 +367,21 @@ export interface AuthUser {
   username?: string;
   email: string;
   role: UserRole;
+}
+
+/** Partner types supported by Customer & Supplier Management. */
+export type PartnerType = "customer" | "supplier_po" | "supplier_subcont";
+
+/** Partner statuses. */
+export type PartnerStatus = "active" | "discontinued";
+
+/** Customer or Supplier Partner master record. */
+export interface Partner {
+  id: string;
+  name: string;
+  type: PartnerType;
+  status: PartnerStatus;
+  createdAt?: string;
+  updatedAt?: string;
 }
 

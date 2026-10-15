@@ -11,6 +11,7 @@ import { TrackerTableSkeleton } from "@/components/skeleton-loader";
 import { useAppDispatch, useAppState } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
 import { PO_SUPPLIERS, type ControlStatus, type PoTracking } from "@/lib/types";
+import { api } from "@/lib/api-client";
 import { TrackerAddItemDialog } from "@/components/tracker-add-item-dialog";
 import { UNASSIGNED_JO_LABEL } from "@/lib/tracker-items";
 import {
@@ -58,6 +59,21 @@ function PoTrackerContent() {
   const [sortMode, setSortMode] = useState<PoTrackingSortMode>("newest");
   const [editingNotesRow, setEditingNotesRow] = useState<PoTrackingRow | null>(null);
   const [notesTemp, setNotesTemp] = useState("");
+  const [poSuppliers, setPoSuppliers] = useState<string[]>(Array.from(PO_SUPPLIERS));
+
+  useEffect(() => {
+    let isMounted = true;
+    api.getPartners("supplier_po", "active")
+      .then((data) => {
+        if (isMounted && data.length > 0) {
+          setPoSuppliers(data.map((p) => p.name));
+        }
+      })
+      .catch(() => {});
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
   const [isBulkStatusOpen, setIsBulkStatusOpen] = useState(false);
@@ -295,10 +311,10 @@ function PoTrackerContent() {
                         aria-label={`Supplier for ${row.item.description}`}
                       >
                         <option value="">—</option>
-                        {row.supplier && !PO_SUPPLIERS.includes(row.supplier as any) && (
+                        {row.supplier && !poSuppliers.includes(row.supplier) && (
                           <option value={row.supplier}>{row.supplier}</option>
                         )}
-                        {PO_SUPPLIERS.map((sup) => (
+                        {poSuppliers.map((sup) => (
                           <option key={sup} value={sup}>
                             {sup}
                           </option>

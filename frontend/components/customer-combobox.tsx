@@ -10,6 +10,7 @@ import React, {
 } from "react";
 import { createPortal } from "react-dom";
 import { DEFAULT_CUSTOMERS } from "@/lib/types";
+import { api } from "@/lib/api-client";
 
 export interface CustomerComboboxProps {
   value: string;
@@ -40,6 +41,29 @@ export function CustomerCombobox({
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState(value || "");
   const [activeIndex, setActiveIndex] = useState<number>(-1);
+  const [partnerCustomers, setPartnerCustomers] = useState<string[]>([]);
+
+  useEffect(() => {
+    let isMounted = true;
+    api.getPartners("customer", "active")
+      .then((data) => {
+        if (isMounted && data.length > 0) {
+          setPartnerCustomers(data.map((p) => p.name));
+        }
+      })
+      .catch(() => {
+        // Fallback to default options
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const effectiveOptions = useMemo(() => {
+    if (options !== DEFAULT_CUSTOMERS) return options;
+    if (partnerCustomers.length > 0) return partnerCustomers;
+    return DEFAULT_CUSTOMERS;
+  }, [options, partnerCustomers]);
 
   const [coords, setCoords] = useState<{
     top: number;
@@ -73,9 +97,9 @@ export function CustomerCombobox({
   // Filter options based on query
   const filteredOptions = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return options;
-    return options.filter((opt) => opt.toLowerCase().includes(q));
-  }, [options, query]);
+    if (!q) return effectiveOptions;
+    return effectiveOptions.filter((opt) => opt.toLowerCase().includes(q));
+  }, [effectiveOptions, query]);
 
   // Calculate and update dropdown position (escapes overflow containers via Portal)
   const updatePosition = useCallback(() => {
@@ -126,7 +150,7 @@ export function CustomerCombobox({
         setIsOpen(false);
         // If query doesn't match current selected value, check if exact match exists, else revert
         const trimmed = query.trim().toLowerCase();
-        const exactMatch = options.find(
+        const exactMatch = effectiveOptions.find(
           (opt) => opt.toLowerCase() === trimmed
         );
         if (exactMatch) {
@@ -141,7 +165,7 @@ export function CustomerCombobox({
 
     document.addEventListener("mousedown", handleOutsideClick);
     return () => document.removeEventListener("mousedown", handleOutsideClick);
-  }, [query, value, options, onChange]);
+  }, [query, value, effectiveOptions, onChange]);
 
   // Scroll active item into view
   useEffect(() => {

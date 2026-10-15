@@ -9,6 +9,9 @@ import type {
   CategoryKind,
   CompanyEntity,
   ProcessPhoto,
+  Partner,
+  PartnerType,
+  PartnerStatus,
 } from "./types";
 import { API_BASE_URL } from "./config";
 import { getAuthToken, clearAuthStorage } from "./auth-storage";
@@ -591,5 +594,46 @@ export const api = {
     }
 
     return res.json();
+  },
+
+  // Partners (Customer & Supplier Management)
+  async getPartners(type?: PartnerType, status?: PartnerStatus): Promise<Partner[]> {
+    const params = new URLSearchParams();
+    if (type) params.append("type", type);
+    if (status) params.append("status", status);
+    const queryString = params.toString() ? `?${params.toString()}` : "";
+    const res = await request<{ data: Partner[] }>(`/partners${queryString}`);
+    return res.data;
+  },
+
+  async createPartner(payload: {
+    name: string;
+    type: PartnerType;
+    status?: PartnerStatus;
+  }): Promise<{ data: Partner; message: string }> {
+    return request<{ data: Partner; message: string }>(`/partners`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async updatePartner(
+    partnerId: string,
+    payload: {
+      name?: string;
+      type?: PartnerType;
+      status?: PartnerStatus;
+    }
+  ): Promise<{ data: Partner; message: string }> {
+    return request<{ data: Partner; message: string }>(`/partners/${partnerId}`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async deletePartner(partnerId: string): Promise<{ message: string }> {
+    return request<{ message: string }>(`/partners/${partnerId}`, {
+      method: "DELETE",
+    });
   },
 };

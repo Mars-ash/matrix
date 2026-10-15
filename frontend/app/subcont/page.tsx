@@ -6,6 +6,7 @@ import { AppShell } from "@/components/app-shell";
 import { useAppState, useAppDispatch } from "@/lib/store";
 import type { Item, Project, JO, Category, Control, ControlStatus } from "@/lib/types";
 import { SUBCONT_SUPPLIERS } from "@/lib/types";
+import { api } from "@/lib/api-client";
 import { EmptyState } from "@/components/empty-state";
 import { Dialog } from "@/components/dialog";
 import { StatusSelect } from "@/components/status-select";
@@ -66,6 +67,21 @@ function SubcontTrackingContent() {
   const [sortMode, setSortMode] = useState<SortMode>("newest");
   const [currentTime, setCurrentTime] = useState(() => Date.now());
   const [highlightedItemId, setHighlightedItemId] = useState<string | null>(null);
+  const [scSuppliers, setScSuppliers] = useState<string[]>(Array.from(SUBCONT_SUPPLIERS));
+
+  useEffect(() => {
+    let isMounted = true;
+    api.getPartners("supplier_subcont", "active")
+      .then((data) => {
+        if (isMounted && data.length > 0) {
+          setScSuppliers(data.map((p) => p.name));
+        }
+      })
+      .catch(() => {});
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     setCurrentTime(Date.now());
@@ -351,10 +367,10 @@ function SubcontTrackingContent() {
                         }}
                       >
                         <option value="">—</option>
-                        {row.item.subcontSupplier && !(SUBCONT_SUPPLIERS as readonly string[]).includes(row.item.subcontSupplier) && (
+                        {row.item.subcontSupplier && !scSuppliers.includes(row.item.subcontSupplier) && (
                           <option value={row.item.subcontSupplier}>{row.item.subcontSupplier}</option>
                         )}
-                        {SUBCONT_SUPPLIERS.map((sup) => (
+                        {scSuppliers.map((sup) => (
                           <option key={sup} value={sup}>
                             {sup}
                           </option>
