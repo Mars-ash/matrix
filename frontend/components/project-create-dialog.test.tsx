@@ -66,4 +66,76 @@ describe("ProjectCreateDialog Component", () => {
     expect(onClose).toHaveBeenCalled();
     expect(onCreated).toHaveBeenCalled();
   });
+
+  it("successfully creates project when newly added customer is fetched from partners API", async () => {
+    const { api } = await import("@/lib/api-client");
+    vi.spyOn(api, "getPartners").mockResolvedValueOnce([
+      { id: "1", name: "PT Mitra Baru Sukses", type: "customer", status: "active" },
+    ]);
+
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    const onCreated = vi.fn();
+
+    render(<ProjectCreateDialog open={true} onClose={onClose} onCreated={onCreated} />);
+
+    const combobox = screen.getByRole("combobox", { name: /Customer \*/i });
+    await user.click(combobox);
+
+    const option = await screen.findByRole("option", { name: /PT Mitra Baru Sukses/i });
+    await user.click(option);
+
+    const nameInput = screen.getByLabelText(/Project Name \*/i);
+    await user.type(nameInput, "Project stamping panel");
+
+    const submitBtn = screen.getByRole("button", { name: /Create Project/i });
+    await user.click(submitBtn);
+
+    expect(mockDispatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "CREATE_PROJECT",
+        name: "Project stamping panel",
+        customer: "PT Mitra Baru Sukses",
+        company: "BKP",
+      })
+    );
+    expect(screen.queryByText("Pilih customer yang valid dari daftar dropdown.")).not.toBeInTheDocument();
+    expect(onClose).toHaveBeenCalled();
+    expect(onCreated).toHaveBeenCalled();
+  });
+
+  it("supports passing custom customers prop and creates project", async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+
+    render(
+      <ProjectCreateDialog
+        open={true}
+        onClose={onClose}
+        customers={["PT Custom Alpha", "PT Custom Beta"]}
+      />
+    );
+
+    const nameInput = screen.getByLabelText(/Project Name \*/i);
+    await user.type(nameInput, "Custom Tooling");
+
+    const combobox = screen.getByRole("combobox", { name: /Customer \*/i });
+    await user.click(combobox);
+
+    const option = screen.getByRole("option", { name: /PT Custom Alpha/i });
+    await user.click(option);
+
+    const submitBtn = screen.getByRole("button", { name: /Create Project/i });
+    await user.click(submitBtn);
+
+    expect(mockDispatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "CREATE_PROJECT",
+        name: "Custom Tooling",
+        customer: "PT Custom Alpha",
+        company: "BKP",
+      })
+    );
+    expect(onClose).toHaveBeenCalled();
+  });
 });

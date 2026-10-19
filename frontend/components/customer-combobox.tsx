@@ -26,7 +26,7 @@ export interface CustomerComboboxProps {
 export function CustomerCombobox({
   value,
   onChange,
-  options = DEFAULT_CUSTOMERS,
+  options,
   placeholder = "Cari atau pilih customer...",
   error,
   disabled = false,
@@ -44,6 +44,7 @@ export function CustomerCombobox({
   const [partnerCustomers, setPartnerCustomers] = useState<string[]>([]);
 
   useEffect(() => {
+    if (options !== undefined) return;
     let isMounted = true;
     api.getPartners("customer", "active")
       .then((data) => {
@@ -57,10 +58,10 @@ export function CustomerCombobox({
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [options]);
 
   const effectiveOptions = useMemo(() => {
-    if (options !== DEFAULT_CUSTOMERS) return options;
+    if (options !== undefined) return options;
     if (partnerCustomers.length > 0) return partnerCustomers;
     return DEFAULT_CUSTOMERS;
   }, [options, partnerCustomers]);

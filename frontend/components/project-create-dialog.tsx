@@ -1,24 +1,56 @@
 "use client";
-import React, { useState, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Dialog } from "./dialog";
 import { useAppDispatch } from "@/lib/store";
 import { uid } from "@/lib/format";
 import { COMPANIES, DEFAULT_CUSTOMERS, type CompanyEntity } from "@/lib/types";
 import { CustomerCombobox } from "./customer-combobox";
+import { api } from "@/lib/api-client";
 
 interface ProjectCreateDialogProps {
   open: boolean;
   onClose: () => void;
   onCreated?: (projectId: string) => void;
+  customers?: readonly string[];
 }
 
-export function ProjectCreateDialog({ open, onClose, onCreated }: ProjectCreateDialogProps) {
+export function ProjectCreateDialog({
+  open,
+  onClose,
+  onCreated,
+  customers: propCustomers,
+}: ProjectCreateDialogProps) {
   const dispatch = useAppDispatch();
 
   const [name, setName] = useState("");
   const [company, setCompany] = useState<CompanyEntity>("BKP");
   const [customer, setCustomer] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [partnerCustomers, setPartnerCustomers] = useState<string[]>([]);
+
+  // Fetch active customers from API whenever dialog opens
+  useEffect(() => {
+    if (!open || propCustomers) return;
+    let isMounted = true;
+    api.getPartners("customer", "active")
+      .then((data) => {
+        if (isMounted && data.length > 0) {
+          setPartnerCustomers(data.map((p) => p.name));
+        }
+      })
+      .catch(() => {
+        // Fallback to DEFAULT_CUSTOMERS
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, [open, propCustomers]);
+
+  const effectiveCustomers = useMemo(() => {
+    if (propCustomers && propCustomers.length > 0) return propCustomers;
+    if (partnerCustomers.length > 0) return partnerCustomers;
+    return DEFAULT_CUSTOMERS;
+  }, [propCustomers, partnerCustomers]);
 
   const reset = useCallback(() => {
     setName("");
@@ -33,7 +65,10 @@ export function ProjectCreateDialog({ open, onClose, onCreated }: ProjectCreateD
     if (!company) errs.company = "Company (BMI / BKP) is required.";
     if (!customer.trim()) {
       errs.customer = "Customer name is required.";
-    } else if (!DEFAULT_CUSTOMERS.includes(customer.trim() as (typeof DEFAULT_CUSTOMERS)[number])) {
+    } else if (
+      effectiveCustomers.length > 0 &&
+      !effectiveCustomers.some((c) => c.toLowerCase() === customer.trim().toLowerCase())
+    ) {
       errs.customer = "Pilih customer yang valid dari daftar dropdown.";
     }
 
@@ -54,7 +89,7 @@ export function ProjectCreateDialog({ open, onClose, onCreated }: ProjectCreateD
     reset();
     onClose();
     if (onCreated) onCreated(newId);
-  }, [name, company, customer, dispatch, onClose, reset, onCreated]);
+  }, [name, company, customer, effectiveCustomers, dispatch, onClose, reset, onCreated]);
 
   return (
     <Dialog
@@ -129,6 +164,7 @@ export function ProjectCreateDialog({ open, onClose, onCreated }: ProjectCreateD
           <CustomerCombobox
             id="project-customer-combobox"
             value={customer}
+            options={effectiveCustomers}
             onChange={(val) => {
               setCustomer(val);
               setErrors((p) => ({ ...p, customer: "" }));
