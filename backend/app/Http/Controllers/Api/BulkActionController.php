@@ -34,6 +34,31 @@ class BulkActionController extends Controller
         $itemIds = $validated['itemIds'];
         $now = Carbon::now();
 
+        // Validate items are not already sent to PO
+        $existingItems = Item::with(['category', 'controls.poTracking'])
+            ->whereIn('id', $itemIds)
+            ->get();
+
+        $alreadySentPo = [];
+        foreach ($existingItems as $item) {
+            $primaryProcess = $item->category?->kind === 'Component' ? 'PO' : 'Material';
+            $ctrl = $item->controls->first(fn ($c) => $c->process === $primaryProcess || $c->process === 'PO' || $c->process === 'Material');
+            if ($ctrl && ($ctrl->status === 'Done' || $ctrl->poTracking !== null)) {
+                $alreadySentPo[] = [
+                    'id' => $item->id,
+                    'no' => $item->no,
+                    'description' => $item->description,
+                ];
+            }
+        }
+
+        if (!empty($alreadySentPo)) {
+            return response()->json([
+                'message' => 'Beberapa part/komponen sudah pernah dikirim PO dan tidak dapat dikirim ulang.',
+                'already_sent_items' => $alreadySentPo,
+            ], 422);
+        }
+
         DB::transaction(function () use ($validated, $itemIds, $jo, $now) {
             $items = Item::with('controls')->whereIn('id', $itemIds)->get();
 
@@ -154,6 +179,30 @@ class BulkActionController extends Controller
         $supplier = $validated['supplier'] ?? null;
         $arrivalTargetDate = $validated['arrivalTargetDate'] ?? null;
         $now = Carbon::now();
+
+        // Validate items are not already in subcont
+        $existingItems = Item::with('controls')
+            ->whereIn('id', $itemIds)
+            ->get();
+
+        $alreadySubcont = [];
+        foreach ($existingItems as $item) {
+            $ctrl = $item->controls->first(fn ($c) => $c->process === $process);
+            if ($item->is_subcont || ($ctrl && $ctrl->status === 'In Progress SC')) {
+                $alreadySubcont[] = [
+                    'id' => $item->id,
+                    'no' => $item->no,
+                    'description' => $item->description,
+                ];
+            }
+        }
+
+        if (!empty($alreadySubcont)) {
+            return response()->json([
+                'message' => 'Beberapa part/komponen sudah aktif di Subcont dan tidak dapat dikirim ulang.',
+                'already_sent_items' => $alreadySubcont,
+            ], 422);
+        }
 
         DB::transaction(function () use ($itemIds, $process, $supplier, $arrivalTargetDate, $jo, $now) {
             Item::whereIn('id', $itemIds)->update([
