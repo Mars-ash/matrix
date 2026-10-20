@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
-import type { Project } from "./types";
+import type { Item, Project } from "./types";
 import {
   collectPoTrackingRows,
   filterPoTrackingRows,
   getPoTrackingDeadline,
+  isItemPoSent,
   isPoRowArchived,
   isPoTrackingProcess,
   poRowKey,
@@ -292,6 +293,78 @@ describe("PO tracking helpers", () => {
         [poRowKey(doneRow)]: now - 6 * 60 * 1000,
       };
       expect(isPoRowArchived(doneRow, recentlyDone, now)).toBe(true);
+    });
+  });
+
+  describe("isItemPoSent", () => {
+    it("returns true when Part Material control is Done", () => {
+      const item: Item = {
+        id: "part-1",
+        no: "P1",
+        description: "Plate",
+        dimension: "",
+        material: "",
+        qty: 1,
+        hrc: "",
+        controls: [
+          { process: "Material", status: "Done", notes: "" },
+          { process: "Arrival", status: "Not Started", notes: "" },
+        ],
+      };
+      expect(isItemPoSent(item, "Part")).toBe(true);
+    });
+
+    it("returns true when control has poTracking", () => {
+      const item: Item = {
+        id: "part-2",
+        no: "P2",
+        description: "Punch",
+        dimension: "",
+        material: "",
+        qty: 1,
+        hrc: "",
+        controls: [
+          {
+            process: "Material",
+            status: "In Progress",
+            notes: "",
+            poTracking: { poNo: "PO-123" },
+          },
+        ],
+      };
+      expect(isItemPoSent(item, "Part")).toBe(true);
+    });
+
+    it("returns true when Component PO control is Done", () => {
+      const item: Item = {
+        id: "comp-1",
+        no: "C1",
+        description: "Screw",
+        dimension: "",
+        material: "",
+        qty: 10,
+        hrc: "",
+        controls: [
+          { process: "PO", status: "Done", notes: "" },
+        ],
+      };
+      expect(isItemPoSent(item, "Component")).toBe(true);
+    });
+
+    it("returns false when control is Not Started and has no poTracking", () => {
+      const item: Item = {
+        id: "part-3",
+        no: "P3",
+        description: "Block",
+        dimension: "",
+        material: "",
+        qty: 1,
+        hrc: "",
+        controls: [
+          { process: "Material", status: "Not Started", notes: "" },
+        ],
+      };
+      expect(isItemPoSent(item, "Part")).toBe(false);
     });
   });
 });

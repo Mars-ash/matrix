@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { collectSubcontRows, isSubcontArchived } from "./subcont-tracking";
+import { collectSubcontRows, isItemSubcontSent, isSubcontArchived } from "./subcont-tracking";
 import type { Item, Project } from "./types";
 
 function makeItem(partial: Partial<Item>): Item {
@@ -87,6 +87,29 @@ describe("subcont-tracking", () => {
       const rows = collectSubcontRows(projects);
       expect(rows).toHaveLength(1);
       expect(rows[0].item.id).toBe("i1");
+    });
+  });
+
+  describe("isItemSubcontSent", () => {
+    it("returns true when isSubcont is true", () => {
+      const item = makeItem({ isSubcont: true, subcontStatus: "In Progress" });
+      expect(isItemSubcontSent(item)).toBe(true);
+    });
+
+    it("returns true when control status is In Progress SC", () => {
+      const item = makeItem({
+        isSubcont: false,
+        controls: [{ process: "Machining", status: "In Progress SC", notes: "" }],
+      });
+      expect(isItemSubcontSent(item, "Machining")).toBe(true);
+    });
+
+    it("returns false when isSubcont is false and no SC status", () => {
+      const item = makeItem({
+        isSubcont: false,
+        controls: [{ process: "Machining", status: "Not Started", notes: "" }],
+      });
+      expect(isItemSubcontSent(item)).toBe(false);
     });
   });
 });

@@ -41,3 +41,12 @@ export function isSubcontArchived(item: Item, now: number): boolean {
   if (!item.subcontDoneAt) return true;
   return now - new Date(item.subcontDoneAt).getTime() > FIVE_MINUTES_MS;
 }
+
+export function isItemSubcontSent(item: Item, process?: string): boolean {
+  if (item.isSubcont) return true;
+  if (process) {
+    const ctrl = item.controls.find((c) => c.process === process);
+    if (ctrl?.status === "In Progress SC") return true;
+  }
+  return item.controls.some((c) => c.status === "In Progress SC");
+}

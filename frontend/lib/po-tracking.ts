@@ -15,6 +15,7 @@ export interface PoTrackingRow {
   poNo: string;
   poDate: string;
   targetArrival: string;
+  actualArrivalDate: string;
   notes: string;
   originalIndex: number;
 }
@@ -28,6 +29,15 @@ export function isPoTrackingProcess(process: string): process is PoTrackingProce
 
 export function poTrackingLabel(process: string): string {
   return process === "Material" ? "PO Mtl" : process === "PO" ? "PO" : process;
+}
+
+export function isItemPoSent(item: Item, categoryKind?: string): boolean {
+  const primaryProcess = categoryKind === "Component" ? "PO" : "Material";
+  const primaryCtrl = item.controls.find(
+    (c) => c.process === primaryProcess || c.process === "PO" || c.process === "Material"
+  );
+  if (!primaryCtrl) return false;
+  return primaryCtrl.status === "Done" || !!primaryCtrl.poTracking;
 }
 
 export function collectPoTrackingRows(projects: Project[]): PoTrackingRow[] {
@@ -70,6 +80,11 @@ export function collectPoTrackingRows(projects: Project[]): PoTrackingRow[] {
                 arrivalControl?.targetDate ??
                 item.arrivalTargetDate ??
                 control.targetDate ??
+                "",
+              actualArrivalDate:
+                tracking?.actualArrivalDate ??
+                arrivalControl?.doneAt ??
+                control.doneAt ??
                 "",
               notes:
                 (control.status === "Problem" && control.notes?.trim())
