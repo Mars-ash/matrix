@@ -5,6 +5,8 @@ import type { Category, ControlStatus } from "@/lib/types";
 import { PART_PROCESSES, COMPONENT_PROCESSES } from "@/lib/types";
 import { useAuth } from "@/lib/auth";
 import { useAppDispatch } from "@/lib/store";
+import { isItemPoSent } from "@/lib/po-tracking";
+import { isItemSubcontSent } from "@/lib/subcont-tracking";
 import { ProcessControlCell } from "./process-control-cell";
 
 interface MobileItemListProps {
@@ -533,6 +535,9 @@ export function MobileItemList({
                                     (processName === "Material" || processName === "PO") &&
                                     onRequestSendPo
                                   ) {
+                                    if (isItemPoSent(item, category.kind)) {
+                                      return;
+                                    }
                                     onRequestSendPo({
                                       categoryId: category.id,
                                       item,
@@ -541,6 +546,9 @@ export function MobileItemList({
                                     return;
                                   }
                                   if (newStatus === "In Progress SC" && onRequestSendSubcont) {
+                                    if (isItemSubcontSent(item, processName)) {
+                                      return;
+                                    }
                                     onRequestSendSubcont({
                                       categoryId: category.id,
                                       item,

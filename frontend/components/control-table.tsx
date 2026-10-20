@@ -4,6 +4,8 @@ import type { Category } from "@/lib/types";
 import { PART_PROCESSES, COMPONENT_PROCESSES } from "@/lib/types";
 import { useAppDispatch } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
+import { isItemPoSent } from "@/lib/po-tracking";
+import { isItemSubcontSent } from "@/lib/subcont-tracking";
 import { ProcessControlCell } from "./process-control-cell";
 import { EmptyState } from "./empty-state";
 import { MobileItemList } from "./mobile-item-list";
@@ -344,10 +346,16 @@ export function ControlTable({
                               (processName === "Material" || processName === "PO") &&
                               onRequestSendPo
                             ) {
+                              if (isItemPoSent(item, category.kind)) {
+                                return;
+                              }
                               onRequestSendPo({ categoryId: category.id, item, process: processName });
                               return;
                             }
                             if (newStatus === "In Progress SC" && onRequestSendSubcont) {
+                              if (isItemSubcontSent(item, processName)) {
+                                return;
+                              }
                               onRequestSendSubcont({ categoryId: category.id, item, process: processName });
                               return;
                             }

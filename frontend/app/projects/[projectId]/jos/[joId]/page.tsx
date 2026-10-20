@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useCallback, useEffect, use } from "react";
+import React, { useState, useCallback, useEffect, useMemo, use } from "react";
 import Link from "next/link";
 import { notFound, useRouter } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
@@ -18,7 +18,8 @@ import { useAuth } from "@/lib/auth";
 import { joProgress, joProblemCount, categoryProgress } from "@/lib/progress";
 import { formatProgress } from "@/lib/format";
 import { SUBCONT_SUPPLIERS, PO_SUPPLIERS, type ControlStatus, type Item, type Category } from "@/lib/types";
-import { poTrackingLabel } from "@/lib/po-tracking";
+import { poTrackingLabel, isItemPoSent } from "@/lib/po-tracking";
+import { isItemSubcontSent } from "@/lib/subcont-tracking";
 
 interface PageProps {
   params: Promise<{ projectId: string; joId: string }>;
@@ -92,6 +93,50 @@ export default function JoDetailPage({ params }: PageProps) {
   const progress = jo ? joProgress(jo) : null;
   const problems = jo ? joProblemCount(jo) : 0;
   const addDataCat = jo ? jo.categories.find((c) => c.id === addDataCatId) : null;
+
+  // Memoized lists of PO eligibility
+  const selectedPoItems = useMemo<{ item: Item; categoryKind: string }[]>(() => {
+    if (!jo) return [];
+    const items: { item: Item; categoryKind: string }[] = [];
+    for (const cat of jo.categories) {
+      for (const item of cat.items) {
+        if (selectedItemIds.includes(item.id)) {
+          items.push({ item, categoryKind: cat.kind });
+        }
+      }
+    }
+    return items;
+  }, [jo, selectedItemIds]);
+
+  const eligiblePoItems = useMemo<{ item: Item; categoryKind: string }[]>(() => {
+    return selectedPoItems.filter(({ item, categoryKind }: { item: Item; categoryKind: string }) => !isItemPoSent(item, categoryKind));
+  }, [selectedPoItems]);
+
+  const alreadySentPoItems = useMemo<{ item: Item; categoryKind: string }[]>(() => {
+    return selectedPoItems.filter(({ item, categoryKind }: { item: Item; categoryKind: string }) => isItemPoSent(item, categoryKind));
+  }, [selectedPoItems]);
+
+  // Memoized lists of Subcont eligibility
+  const selectedSubcontItems = useMemo<Item[]>(() => {
+    if (!jo) return [];
+    const items: Item[] = [];
+    for (const cat of jo.categories) {
+      for (const item of cat.items) {
+        if (selectedItemIds.includes(item.id)) {
+          items.push(item);
+        }
+      }
+    }
+    return items;
+  }, [jo, selectedItemIds]);
+
+  const eligibleSubcontItems = useMemo<Item[]>(() => {
+    return selectedSubcontItems.filter((item: Item) => !isItemSubcontSent(item, bulkSubcontProcess));
+  }, [selectedSubcontItems, bulkSubcontProcess]);
+
+  const alreadySentSubcontItems = useMemo<Item[]>(() => {
+    return selectedSubcontItems.filter((item: Item) => isItemSubcontSent(item, bulkSubcontProcess));
+  }, [selectedSubcontItems, bulkSubcontProcess]);
 
   // Handle search result navigation
   const handleSearchSelect = useCallback((categoryId: string, itemId: string) => {
@@ -382,6 +427,14 @@ export default function JoDetailPage({ params }: PageProps) {
               <a
                 key={cat.id}
                 href={`#cat-${cat.id}`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  const el = document.getElementById(`cat-${cat.id}`);
+                  if (el) {
+                    el.scrollIntoView({ behavior: "smooth", block: "start" });
+                    window.history.replaceState(null, "", `#cat-${cat.id}`);
+                  }
+                }}
                 style={{
                   color: "var(--color-text-secondary)",
                   textDecoration: "none",
@@ -415,7 +468,7 @@ export default function JoDetailPage({ params }: PageProps) {
       {/* Category sections */}
       <div style={{ display: "flex", flexDirection: "column", gap: 20, marginBottom: 28 }}>
         {jo.categories.map((cat) => (
-          <section key={cat.id} id={`cat-${cat.id}`}>
+          <section key={cat.id} id={`cat-${cat.id}`} className="jo-category-section" style={{ scrollMarginTop: 84 }}>
             <div
               style={{
                 display: "flex",
@@ -781,7 +834,9 @@ export default function JoDetailPage({ params }: PageProps) {
         title={
           singlePoItem
             ? `Kirim PO — ${singlePoItem.item.description} (${poTrackingLabel(singlePoItem.process)})`
-            : `Kirim PO (Bulk — ${selectedItemIds.length} Part Terpilih)`
+            : alreadySentPoItems.length > 0
+              ? `Kirim PO (Bulk — ${eligiblePoItems.length} dari ${selectedItemIds.length} Part Terpilih)`
+              : `Kirim PO (Bulk — ${selectedItemIds.length} Part Terpilih)`
         }
         footer={
           <>
@@ -796,8 +851,16 @@ export default function JoDetailPage({ params }: PageProps) {
             </button>
             <button
               className="btn btn-primary"
+              disabled={
+                singlePoItem
+                  ? isItemPoSent(singlePoItem.item, singlePoItem.process === "PO" ? "Component" : "Part")
+                  : eligiblePoItems.length === 0
+              }
               onClick={() => {
                 if (singlePoItem) {
+                  if (isItemPoSent(singlePoItem.item, singlePoItem.process === "PO" ? "Component" : "Part")) {
+                    return;
+                  }
                   dispatch({
                     type: "BULK_SEND_PO",
                     projectId,
@@ -811,11 +874,12 @@ export default function JoDetailPage({ params }: PageProps) {
                   });
                   setSinglePoItem(null);
                 } else if (activeBulkModal === "po") {
+                  if (eligiblePoItems.length === 0) return;
                   dispatch({
                     type: "BULK_SEND_PO",
                     projectId,
                     joId,
-                    itemIds: selectedItemIds,
+                    itemIds: eligiblePoItems.map((p: { item: Item; categoryKind: string }) => p.item.id),
                     supplier: poSupplier,
                     poNo: poNo,
                     poDate: poDate,
@@ -827,12 +891,68 @@ export default function JoDetailPage({ params }: PageProps) {
                 }
               }}
             >
-              {singlePoItem ? "Simpan & Kirim PO" : `Kirim PO (${selectedItemIds.length} Part)`}
+              {singlePoItem
+                ? isItemPoSent(singlePoItem.item, singlePoItem.process === "PO" ? "Component" : "Part")
+                  ? "Sudah Dikirim PO"
+                  : "Simpan & Kirim PO"
+                : eligiblePoItems.length === 0
+                  ? "Semua Part Sudah Dikirim PO"
+                  : `Kirim PO (${eligiblePoItems.length} Part)`}
             </button>
           </>
         }
       >
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {singlePoItem && isItemPoSent(singlePoItem.item, singlePoItem.process === "PO" ? "Component" : "Part") && (
+            <div
+              style={{
+                padding: "10px 12px",
+                borderRadius: "var(--radius-md)",
+                background: "var(--color-bg-wash)",
+                border: "1px solid var(--color-border)",
+                fontSize: 12,
+                color: "var(--color-status-problem)",
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+              <span>Part ini sudah pernah dikirim PO dan tidak dapat dikirim ulang.</span>
+            </div>
+          )}
+
+          {!singlePoItem && alreadySentPoItems.length > 0 && (
+            <div
+              style={{
+                padding: "10px 12px",
+                borderRadius: "var(--radius-md)",
+                background: "var(--color-bg-wash)",
+                border: "1px solid var(--color-border)",
+                fontSize: 12,
+                color: "var(--color-text-secondary)",
+                display: "flex",
+                flexDirection: "column",
+                gap: 4,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 600, color: "var(--color-text)" }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+                <span>{alreadySentPoItems.length} part dilewati karena sudah pernah dikirim PO</span>
+              </div>
+              <div style={{ fontSize: 11, color: "var(--color-text-muted)" }}>
+                Part yang dilewati: {alreadySentPoItems.map((p: { item: Item; categoryKind: string }) => `No. ${p.item.no} (${p.item.description})`).join(", ")}
+              </div>
+            </div>
+          )}
           <div>
             <label className="label">No. PO</label>
             <input
@@ -1065,7 +1185,9 @@ export default function JoDetailPage({ params }: PageProps) {
         title={
           singleSubcontItem
             ? `Kirim ke Subcont — ${singleSubcontItem.item.description} (${singleSubcontItem.process})`
-            : `Kirim ke Subcont (Bulk — ${selectedItemIds.length} Part Terpilih)`
+            : alreadySentSubcontItems.length > 0
+              ? `Kirim ke Subcont (Bulk — ${eligibleSubcontItems.length} dari ${selectedItemIds.length} Part Terpilih)`
+              : `Kirim ke Subcont (Bulk — ${selectedItemIds.length} Part Terpilih)`
         }
         footer={
           <>
@@ -1080,9 +1202,17 @@ export default function JoDetailPage({ params }: PageProps) {
             </button>
             <button
               className="btn btn-primary"
-              disabled={!bulkSubcontSupplier}
+              disabled={
+                !bulkSubcontSupplier ||
+                (singleSubcontItem
+                  ? isItemSubcontSent(singleSubcontItem.item, singleSubcontItem.process)
+                  : eligibleSubcontItems.length === 0)
+              }
               onClick={() => {
                 if (singleSubcontItem) {
+                  if (isItemSubcontSent(singleSubcontItem.item, singleSubcontItem.process)) {
+                    return;
+                  }
                   dispatch({
                     type: "BULK_SEND_SUBCONT",
                     projectId,
@@ -1094,11 +1224,12 @@ export default function JoDetailPage({ params }: PageProps) {
                   });
                   setSingleSubcontItem(null);
                 } else if (activeBulkModal === "subcont") {
+                  if (eligibleSubcontItems.length === 0) return;
                   dispatch({
                     type: "BULK_SEND_SUBCONT",
                     projectId,
                     joId,
-                    itemIds: selectedItemIds,
+                    itemIds: eligibleSubcontItems.map((p: Item) => p.id),
                     process: bulkSubcontProcess,
                     supplier: bulkSubcontSupplier,
                     arrivalTargetDate: bulkSubcontArrivalDate,
@@ -1109,13 +1240,67 @@ export default function JoDetailPage({ params }: PageProps) {
               }}
             >
               {singleSubcontItem
-                ? "Simpan & Kirim ke Subcont"
-                : `Kirim ke Subcont (${selectedItemIds.length} Part)`}
+                ? isItemSubcontSent(singleSubcontItem.item, singleSubcontItem.process)
+                  ? "Sudah Aktif di Subcont"
+                  : "Simpan & Kirim ke Subcont"
+                : eligibleSubcontItems.length === 0
+                  ? "Semua Part Sudah di Subcont"
+                  : `Kirim ke Subcont (${eligibleSubcontItems.length} Part)`}
             </button>
           </>
         }
       >
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {singleSubcontItem && isItemSubcontSent(singleSubcontItem.item, singleSubcontItem.process) && (
+            <div
+              style={{
+                padding: "10px 12px",
+                borderRadius: "var(--radius-md)",
+                background: "var(--color-bg-wash)",
+                border: "1px solid var(--color-border)",
+                fontSize: 12,
+                color: "var(--color-status-problem)",
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+              <span>Part ini sudah aktif di Subcont dan tidak dapat dikirim ulang.</span>
+            </div>
+          )}
+
+          {!singleSubcontItem && alreadySentSubcontItems.length > 0 && (
+            <div
+              style={{
+                padding: "10px 12px",
+                borderRadius: "var(--radius-md)",
+                background: "var(--color-bg-wash)",
+                border: "1px solid var(--color-border)",
+                fontSize: 12,
+                color: "var(--color-text-secondary)",
+                display: "flex",
+                flexDirection: "column",
+                gap: 4,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 600, color: "var(--color-text)" }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+                <span>{alreadySentSubcontItems.length} part dilewati karena sudah aktif di Subcont</span>
+              </div>
+              <div style={{ fontSize: 11, color: "var(--color-text-muted)" }}>
+                Part yang dilewati: {alreadySentSubcontItems.map((p: Item) => `No. ${p.no} (${p.description})`).join(", ")}
+              </div>
+            </div>
+          )}
           <div>
             <label className="label">Proses Subcont</label>
             {singleSubcontItem ? (
