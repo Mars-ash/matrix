@@ -787,6 +787,18 @@ describe("BULK_SEND_PO", () => {
   it("bulk dispatches PO for selected items and updates status to Done, Arrival to In Progress, poTracking, and Arrival targetDate", () => {
     const jo = state.projects[0].jos[0];
     const cat = jo.categories[0];
+    // Reset items to Not Started without PO for dispatch test
+    for (const idx of [0, 1]) {
+      const m = cat.items[idx].controls.find((c) => c.process === "Material");
+      if (m) {
+        m.status = "Not Started";
+        m.poTracking = undefined;
+      }
+      const a = cat.items[idx].controls.find((c) => c.process === "Arrival");
+      if (a) {
+        a.status = "Not Started";
+      }
+    }
     const itemIds = [cat.items[0].id, cat.items[1].id];
 
     const next = reducer(state, {
@@ -822,6 +834,32 @@ describe("BULK_SEND_PO", () => {
     expect(arr2.targetDate).toBe("2026-09-08");
 
     expect(next.projects[0].jos[0].activities[0].message).toContain("Bulk sent PO");
+  });
+
+  it("skips items that already had PO sent", () => {
+    const jo = state.projects[0].jos[0];
+    const cat = jo.categories[0];
+    const item1 = cat.items[0];
+    const mtl1 = item1.controls.find((c) => c.process === "Material")!;
+    mtl1.status = "Done";
+    mtl1.poTracking = {
+      poNo: "PO-OLD-001",
+      supplier: "Old Vendor",
+    };
+
+    const next = reducer(state, {
+      type: "BULK_SEND_PO",
+      projectId,
+      joId: jo.id,
+      itemIds: [item1.id],
+      supplier: "New Vendor",
+      poNo: "PO-NEW-999",
+    });
+
+    const updatedItem1 = next.projects[0].jos[0].categories[0].items[0];
+    const updatedMtl1 = updatedItem1.controls.find((c) => c.process === "Material")!;
+    expect(updatedMtl1.poTracking?.poNo).toBe("PO-OLD-001");
+    expect(updatedMtl1.poTracking?.supplier).toBe("Old Vendor");
   });
 });
 
@@ -1278,6 +1316,27 @@ describe("BULK OPERATIONS", () => {
 
     const ctrl = uItem.controls.find((c) => c.process === "Wirecut")!;
     expect(ctrl.status).toBe("In Progress SC");
+  });
+
+  it("BULK_SEND_SUBCONT skips items that are already in subcont", () => {
+    const jo = state.projects[0].jos[0];
+    const cat = jo.categories[0];
+    const item = cat.items[0];
+    item.isSubcont = true;
+    item.subcontSupplier = "Old SC Vendor";
+
+    const next = reducer(state, {
+      type: "BULK_SEND_SUBCONT",
+      projectId,
+      joId: jo.id,
+      itemIds: [item.id],
+      process: "Wirecut",
+      supplier: "New SC Vendor",
+    });
+
+    const updatedCat = next.projects[0].jos[0].categories[0];
+    const uItem = updatedCat.items.find((i) => i.id === item.id)!;
+    expect(uItem.subcontSupplier).toBe("Old SC Vendor");
   });
 });
 

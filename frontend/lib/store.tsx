@@ -33,7 +33,8 @@ import type {
 import { INITIAL_PROJECTS } from "./mock-data";
 import { defaultControls } from "./category";
 import { uid } from "./format";
-import { isPoTrackingProcess, poTrackingLabel } from "./po-tracking";
+import { isPoTrackingProcess, poTrackingLabel, isItemPoSent } from "./po-tracking";
+import { isItemSubcontSent } from "./subcont-tracking";
 
 export type TrialEntrySection = "problems" | "causes" | "correctiveActions";
 
@@ -1047,6 +1048,18 @@ function executeReducer(next: AppState, state: AppState, action: AppAction): App
       control.status = action.status;
       control.notes = action.status === "Problem" ? action.notes : "";
 
+      if (action.status === "Done") {
+        control.doneAt = new Date().toISOString();
+        if (action.process === "Arrival") {
+          const poCtrl = item.controls.find((c) => isPoTrackingProcess(c.process));
+          if (poCtrl?.poTracking) {
+            poCtrl.poTracking.actualArrivalDate = poCtrl.poTracking.actualArrivalDate || new Date().toISOString().split("T")[0];
+          }
+        }
+      } else {
+        control.doneAt = undefined;
+      }
+
       if (action.status === "In Progress" && ["PO", "Material", "Arrival"].includes(action.process)) {
         control.inProgressAt = new Date().toISOString();
       }
@@ -1105,15 +1118,21 @@ function executeReducer(next: AppState, state: AppState, action: AppAction): App
         const arrivalCtrl = item.controls.find((c) => c.process === "Arrival");
 
         if (action.status === "Done") {
+          const nowIso = new Date().toISOString();
+          control.doneAt = nowIso;
           if (arrivalCtrl) {
             arrivalCtrl.status = "Done";
+            arrivalCtrl.doneAt = nowIso;
           }
         } else if (action.status === "Problem") {
+          control.doneAt = undefined;
           if (arrivalCtrl) {
             arrivalCtrl.status = "Problem";
+            arrivalCtrl.doneAt = undefined;
             arrivalCtrl.notes = action.problemNotes?.trim() || "";
           }
         } else if (action.status === "In Progress") {
+          control.doneAt = undefined;
           control.inProgressAt = action.tracking.poDate
             ? new Date(action.tracking.poDate).toISOString()
             : new Date().toISOString();
@@ -1122,6 +1141,7 @@ function executeReducer(next: AppState, state: AppState, action: AppAction): App
               arrivalCtrl.notes = "";
             }
             arrivalCtrl.status = "In Progress";
+            arrivalCtrl.doneAt = undefined;
           }
         }
       }
@@ -1135,6 +1155,9 @@ function executeReducer(next: AppState, state: AppState, action: AppAction): App
         poNo: action.tracking.poNo?.trim() ?? "",
         poDate: action.tracking.poDate?.trim() ?? "",
         targetArrival: action.tracking.targetArrival?.trim() ?? "",
+        actualArrivalDate: action.status === "Done"
+          ? (action.tracking.actualArrivalDate || control.poTracking?.actualArrivalDate || new Date().toISOString().split("T")[0])
+          : (action.status === "In Progress" || action.status === "Problem" ? undefined : (action.tracking.actualArrivalDate ?? control.poTracking?.actualArrivalDate)),
         notes: effectiveNotes,
       };
 
@@ -1241,6 +1264,7 @@ function executeReducer(next: AppState, state: AppState, action: AppAction): App
       for (const cat of jo.categories) {
         for (const item of cat.items) {
           if (action.itemIds.includes(item.id)) {
+            if (isItemSubcontSent(item, action.process)) continue;
             item.isSubcont = true;
             item.subcontProcess = action.process;
             item.subcontStatus = "In Progress";
@@ -1273,6 +1297,7 @@ function executeReducer(next: AppState, state: AppState, action: AppAction): App
       for (const cat of jo.categories) {
         for (const item of cat.items) {
           if (action.itemIds.includes(item.id)) {
+            if (isItemPoSent(item, cat.kind)) continue;
             const proc = cat.kind === "Part" ? "Material" : "PO";
             const ctrl = item.controls.find((c) => c.process === proc);
             if (ctrl) {
@@ -2180,9 +2205,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           }
           return id;
         });
+        const eligibleItemIds = resolvedItemIds.filter((id) => {
+          for (const p of state.projects) {
+            for (const jo of p.jos) {
+              for (const cat of jo.categories) {
+                const it = cat.items.find((i) => i.id === id);
+                if (it) return !isItemPoSent(it, cat.kind);
+              }
+            }
+          }
+          return true;
+        });
+        if (eligibleItemIds.length === 0) break;
         api
           .bulkSendPo(resolvedJoId, {
-            itemIds: resolvedItemIds,
+            itemIds: eligibleItemIds,
             supplier: action.supplier,
             poNo: action.poNo,
             poDate: action.poDate,
@@ -2297,16 +2334,29 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         break;
       }
 
-      case "BULK_SEND_SUBCONT":
+      case "BULK_SEND_SUBCONT": {
+        const eligibleSubcontIds = action.itemIds.filter((id) => {
+          for (const p of state.projects) {
+            for (const jo of p.jos) {
+              for (const cat of jo.categories) {
+                const it = cat.items.find((i) => i.id === id);
+                if (it) return !isItemSubcontSent(it, action.process);
+              }
+            }
+          }
+          return true;
+        });
+        if (eligibleSubcontIds.length === 0) break;
         api
           .bulkSendSubcont(action.joId, {
-            itemIds: action.itemIds,
+            itemIds: eligibleSubcontIds,
             process: action.process,
             supplier: action.supplier,
             arrivalTargetDate: action.arrivalTargetDate,
           })
           .catch(() => {});
         break;
+      }
 
       case "BULK_UPDATE_TARGET_ARRIVAL":
         api
