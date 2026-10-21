@@ -224,6 +224,7 @@ parts110[0].controls[0].poTracking = {
   poNo: "PO-MTL-126110-001",
   poDate: relativeDate(-12),
   targetArrival: relativeDate(-8),
+  actualArrivalDate: relativeDate(-7),
   notes: "Material received.",
 };
 
@@ -263,6 +264,22 @@ components110[9].controls[0].poTracking = {
   poDate: "",
   targetArrival: relativeDate(5),
   notes: "Need supplier selection.",
+};
+components110[0].controls[0].poTracking = {
+  supplier: "MISUMI",
+  poNo: "PO-COMP-126110-001",
+  poDate: relativeDate(-10),
+  targetArrival: relativeDate(-6),
+  actualArrivalDate: relativeDate(-5),
+  notes: "Received in good condition.",
+};
+components110[1].controls[0].poTracking = {
+  supplier: "CV Sansei Engineering",
+  poNo: "PO-COMP-126110-002",
+  poDate: relativeDate(-9),
+  targetArrival: relativeDate(-5),
+  actualArrivalDate: relativeDate(-5),
+  notes: "Batch screws arrived.",
 };
 
 // ---------------------------------------------------------------------------

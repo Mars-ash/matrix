@@ -33,9 +33,10 @@ COPY docker/supervisord.conf /etc/supervisord.conf
 COPY backend/ /var/www/html/
 COPY --from=vendor /app/vendor/ /var/www/html/vendor/
 
-# Set file permissions for Laravel storage and cache
+# Set file permissions for Laravel storage and cache and create storage symlink
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache \
-    && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
+    && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache \
+    && ln -sfn /var/www/html/storage/app/public /var/www/html/public/storage
 
 EXPOSE 80
 

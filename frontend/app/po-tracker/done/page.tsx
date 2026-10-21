@@ -73,7 +73,7 @@ function PoTrackerDoneContent() {
 
   return (
     <AppShell breadcrumbs={[{ label: "Pre Order Tracker", href: "/po-tracker" }, { label: "Riwayat" }]}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 12 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 16, flexWrap: "wrap", gap: 12 }}>
         <div>
           <div style={{ marginBottom: 4 }}>
             <Link
@@ -93,17 +93,17 @@ function PoTrackerDoneContent() {
           </div>
           <h1>Riwayat — PO</h1>
         </div>
-      </div>
 
-      <div className="kpi-grid">
-        <div className="card-static" style={{ padding: "10px 14px", display: "flex", flexDirection: "column", gap: 3, maxWidth: 260 }}>
-          <div style={{ fontSize: 10, fontWeight: 600, color: "var(--color-status-done)", textTransform: "uppercase", letterSpacing: "0.04em" }}>
-            Total Done
-          </div>
-          <div style={{ fontSize: 22, fontWeight: 700, fontFamily: "var(--font-mono)", color: "var(--color-status-done)" }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 8, paddingBottom: 2 }}>
+          <span style={{ fontSize: 12, fontWeight: 600, color: "var(--color-text-muted)", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+            Total Done:
+          </span>
+          <span style={{ fontSize: 24, fontWeight: 700, fontFamily: "var(--font-mono)", color: "var(--color-status-done)", lineHeight: 1 }}>
             {doneRows.length}
-          </div>
-          <div style={{ fontSize: 11, color: "var(--color-text-muted)" }}>PO Mtl dan PO selesai</div>
+          </span>
+          <span style={{ fontSize: 12, color: "var(--color-text-muted)" }}>
+            PO selesai
+          </span>
         </div>
       </div>
 
@@ -155,6 +155,7 @@ function PoTrackerDoneContent() {
                 <th style={{ minWidth: 125 }}>No. PO</th>
                 <th className="col-date" style={{ minWidth: 150, textAlign: "center" }}>PO Date</th>
                 <th className="col-date" style={{ minWidth: 165, textAlign: "center" }}>Target Arrival</th>
+                <th className="col-date" style={{ minWidth: 150, textAlign: "center" }}>Actual Arv Date</th>
                 <th style={{ width: 54, textAlign: "center" }}>Catatan</th>
                 {isController && <th style={{ minWidth: 100, textAlign: "center" }}>Aksi</th>}
               </tr>
@@ -205,6 +206,11 @@ function PoTrackerDoneContent() {
                   <td className="col-date" style={{ textAlign: "center", minWidth: 165 }}>
                     <span style={{ fontSize: 12, fontWeight: 500, color: row.targetArrival ? "var(--color-text)" : "var(--color-text-muted)" }}>
                       {formatDate(row.targetArrival)}
+                    </span>
+                  </td>
+                  <td className="col-date" style={{ textAlign: "center", minWidth: 150 }}>
+                    <span style={{ fontSize: 12, fontWeight: 500, color: row.actualArrivalDate ? "var(--color-text)" : "var(--color-text-muted)" }}>
+                      {formatDate(row.actualArrivalDate)}
                     </span>
                   </td>
                   <td style={{ textAlign: "center" }}>

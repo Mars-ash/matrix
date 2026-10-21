@@ -62,7 +62,7 @@ export function JoItemSearch({ categories, onSelect }: JoItemSearchProps) {
   const showResults = focused && query.trim().length > 0;
 
   return (
-    <div ref={wrapperRef} className="jo-search-container" style={{ position: "relative", width: "100%", maxWidth: 320 }}>
+    <div ref={wrapperRef} className="jo-search-container" style={{ position: "relative", width: "100%", maxWidth: 320, zIndex: 40 }}>
       <input
         className="input"
         type="search"

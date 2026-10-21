@@ -6,6 +6,17 @@
 .DS_Store
 Thumbs.db
 *.pem
+*.bak
+
+# Environment & Secrets (Root, Frontend, Backend)
+.env
+.env.*
+.env*.local
+!.env.example
+
+# Local Docker Overrides
+docker-compose.override.yml
+!docker-compose.override.yml.example
 
 # Logs & Debugging
 *.log
@@ -14,16 +25,22 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
+# Dependencies & Build Artifacts (Global)
+node_modules/
+*/node_modules/
+
+# Database Dumps & Backups
+backups/
+*.sql
+*.dump
+
 # ---------------------------------------------------------------------------
 # Frontend (Next.js & Node)
 # ---------------------------------------------------------------------------
-frontend/node_modules/
 frontend/.next/
 frontend/out/
 frontend/build/
 frontend/.vercel/
-frontend/.env*.local
-frontend/.env
 frontend/*.tsbuildinfo
 frontend/next-env.d.ts
 frontend/test-results/
@@ -32,14 +49,10 @@ frontend/test-results/
 # Backend (Laravel & PHP)
 # ---------------------------------------------------------------------------
 backend/vendor/
-backend/.env
-backend/.env.backup
-backend/.env.production
 backend/.phpactor.json
 backend/.phpunit.result.cache
 backend/.phpunit.cache
 backend/auth.json
-backend/node_modules/
 backend/public/build/
 backend/public/hot
 backend/public/storage
@@ -63,6 +76,8 @@ backend/Homestead.yaml
 # Local Test Reports & Context Snapshots
 .context/
 scripts/testing/*-results.json
+.vite/
+results.json
 
 # IDE & Tooling
 .vscode/*

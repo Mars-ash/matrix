@@ -31,7 +31,11 @@ services:
       APP_ENV: production
       APP_DEBUG: "false"
       APP_KEY: ${APP_KEY:-base64:jhpNiYDHjs6UdixpxWYrQ1qaEW8R1yamqZ+vZ4iskkI=}
-      APP_URL: http://localhost:8000
+      APP_URL: https://matrixbmi.shop
+      ASSET_URL: https://matrixbmi.shop
+      SANCTUM_STATEFUL_DOMAINS: matrixbmi.shop
+      SESSION_DOMAIN: matrixbmi.shop
+      TRUSTED_PROXIES: "*"
       DB_CONNECTION: pgsql
       DB_HOST: postgres
       DB_PORT: 5432
@@ -82,3 +86,4 @@ volumes:
     driver: local
   matrix-storage:
     driver: local
+

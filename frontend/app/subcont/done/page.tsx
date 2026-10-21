@@ -103,7 +103,7 @@ function SubcontDoneContent() {
 
   return (
     <AppShell breadcrumbs={[{ label: "Subcont Tracker", href: "/subcont" }, { label: "Riwayat" }]}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 12 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 16, flexWrap: "wrap", gap: 12 }}>
         <div>
           <div style={{ marginBottom: 4 }}>
             <Link
@@ -123,17 +123,17 @@ function SubcontDoneContent() {
           </div>
           <h1>Riwayat — Subcont</h1>
         </div>
-      </div>
 
-      <div className="kpi-grid">
-        <div className="card-static" style={{ padding: "10px 14px", display: "flex", flexDirection: "column", gap: 3, maxWidth: 260 }}>
-          <div style={{ fontSize: 10, fontWeight: 600, color: "var(--color-status-done)", textTransform: "uppercase", letterSpacing: "0.04em" }}>
-            Total Done
-          </div>
-          <div style={{ fontSize: 22, fontWeight: 700, fontFamily: "var(--font-mono)", color: "var(--color-status-done)" }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 8, paddingBottom: 2 }}>
+          <span style={{ fontSize: 12, fontWeight: 600, color: "var(--color-text-muted)", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+            Total Done:
+          </span>
+          <span style={{ fontSize: 24, fontWeight: 700, fontFamily: "var(--font-mono)", color: "var(--color-status-done)", lineHeight: 1 }}>
             {doneRows.length}
-          </div>
-          <div style={{ fontSize: 11, color: "var(--color-text-muted)" }}>Part subcont selesai</div>
+          </span>
+          <span style={{ fontSize: 12, color: "var(--color-text-muted)" }}>
+            Part selesai
+          </span>
         </div>
       </div>
 
@@ -184,7 +184,7 @@ function SubcontDoneContent() {
                 <th style={{ minWidth: 120 }}>Supplier</th>
                 <th style={{ minWidth: 90, textAlign: "center" }}>Proses</th>
                 <th className="col-date" style={{ minWidth: 165, textAlign: "center" }}>Target Arrival</th>
-                <th style={{ minWidth: 110, textAlign: "center" }}>Selesai</th>
+                <th className="col-date" style={{ minWidth: 150, textAlign: "center" }}>Actual Arv Date</th>
                 <th style={{ width: 50, textAlign: "center" }}>Catatan</th>
                 {isController && <th style={{ minWidth: 100, textAlign: "center" }}>Aksi</th>}
               </tr>
@@ -228,8 +228,10 @@ function SubcontDoneContent() {
                       {formatDate(row.item.arrivalTargetDate)}
                     </span>
                   </td>
-                  <td style={{ textAlign: "center", fontSize: 12 }}>
-                    {formatDate(row.item.subcontDoneAt)}
+                  <td className="col-date" style={{ textAlign: "center", minWidth: 150 }}>
+                    <span style={{ fontSize: 12, fontWeight: 500, color: row.item.subcontDoneAt ? "var(--color-text)" : "var(--color-text-muted)" }}>
+                      {formatDate(row.item.subcontDoneAt)}
+                    </span>
                   </td>
                   <td style={{ textAlign: "center" }}>
                     {row.item.subcontNotes ? (

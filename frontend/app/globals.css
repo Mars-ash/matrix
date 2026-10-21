@@ -747,7 +747,7 @@ input.no-spinner,
 }
 
 .jo-search-results {
-  z-index: 30;
+  z-index: 50;
   background: var(--color-bg-raised);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
@@ -1524,10 +1524,11 @@ input.no-spinner,
 
 .trial-session-list-header {
   border-bottom: 1px solid var(--color-border);
-  flex-direction: column;
-  gap: 8px;
-  padding: 12px;
   display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
 }
 
 .trial-session-items {
@@ -2875,3 +2876,14 @@ input::-ms-clear {
 }
 
 
+
+
+/* JO Table category navigation and search stack */
+.jo-search-container {
+  position: relative;
+  z-index: 40;
+}
+
+.jo-category-section {
+  scroll-margin-top: 84px;
+}

@@ -18,7 +18,7 @@ interface TrialReportSessionListProps {
   printSelectedIds: string[];
   onTogglePrintSelect: (id: string) => void;
   onCreateNew: () => void;
-  onDuplicate: () => void;
+  onDuplicate?: () => void;
   onDeleteSession: (id: string) => void;
 }
 
@@ -31,7 +31,6 @@ export function TrialReportSessionList({
   printSelectedIds,
   onTogglePrintSelect,
   onCreateNew,
-  onDuplicate,
   onDeleteSession,
 }: TrialReportSessionListProps) {
   const { isController, isViewer } = useAuth();
@@ -51,18 +50,25 @@ export function TrialReportSessionList({
           Trial Sessions
         </h3>
         {isController && (
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            <button className="btn btn-primary btn-sm" onClick={onCreateNew}>
-              Buat Trial Baru
-            </button>
-            <button
-              className="btn btn-secondary btn-sm"
-              onClick={onDuplicate}
-              disabled={sessions.length === 0}
-            >
-              Duplikat Trial Sebelumnya
-            </button>
-          </div>
+          <button
+            className="btn btn-primary btn-sm"
+            onClick={onCreateNew}
+            title="Buat Trial Baru"
+            aria-label="Buat Trial Baru"
+            style={{
+              width: 24,
+              height: 24,
+              padding: 0,
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 16,
+              fontWeight: 700,
+              lineHeight: 1,
+            }}
+          >
+            +
+          </button>
         )}
       </div>
 

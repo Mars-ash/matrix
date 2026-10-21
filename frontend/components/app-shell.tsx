@@ -6,6 +6,7 @@ import { useAppState } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
 import type { Project } from "@/lib/types";
 import { UNASSIGNED_JO_LABEL } from "@/lib/tracker-items";
+import { ScrollToTop } from "@/components/scroll-to-top";
 
 interface AppShellProps {
   children: ReactNode;
@@ -512,6 +513,7 @@ export function AppShell({ children, breadcrumbs }: AppShellProps) {
         )}
         {children}
       </main>
+      <ScrollToTop />
     </div>
   );
 }

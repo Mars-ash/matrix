@@ -6,6 +6,7 @@ RUN apk add --no-cache libc6-compat
 WORKDIR /app
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm install
+RUN npm install --no-save @next/swc-linux-x64-musl@16.3.0 || true
 
 # Stage 2: Builder
 FROM node:20-alpine AS builder
@@ -18,7 +19,7 @@ ENV NODE_ENV=production
 ENV DOCKER_BUILD=1
 ARG BACKEND_INTERNAL_URL=http://backend:80
 ENV BACKEND_INTERNAL_URL=$BACKEND_INTERNAL_URL
-RUN npm run build
+RUN npm run build -- --webpack
 
 # Stage 3: Production Runner
 FROM node:20-alpine AS runner
