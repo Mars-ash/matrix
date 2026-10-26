@@ -23,7 +23,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('/health', fn () => response()->json(['status' => 'healthy', 'app' => 'MATRIX', 'time' => now()->toIso8601String()]));
 
 Route::prefix('auth')->group(function () {
-    Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('/me', [AuthController::class, 'me']);
@@ -37,7 +37,7 @@ Route::prefix('auth')->group(function () {
 | Protected Domain REST API Routes
 |--------------------------------------------------------------------------
 */
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     // Read-only endpoints (Accessible to all authenticated users: controller & viewer)
     Route::get('/projects', [ProjectController::class, 'index']);
     Route::get('/projects/{project}', [ProjectController::class, 'show']);

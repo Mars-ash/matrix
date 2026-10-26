@@ -230,6 +230,7 @@ textarea.input {
   top: 0;
   z-index: 10;
   background: var(--color-bg-wash);
+  box-shadow: inset 0 -2px 0 var(--color-border);
 }
 
 .control-table th {
@@ -293,6 +294,7 @@ textarea.input {
   top: 0;
   z-index: 30 !important;
   background: var(--color-bg-wash);
+  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.02), inset 0 -2px 0 var(--color-border);
 }
 
 .control-table tbody td.td-sticky-no {
@@ -350,6 +352,7 @@ tr.row-highlight .td-sticky-no {
   top: 0;
   z-index: 25 !important;
   background: var(--color-bg-wash);
+  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.04), inset 0 -2px 0 var(--color-border);
 }
 
 .control-table tbody td.td-sticky-desc {
@@ -434,6 +437,7 @@ tr.row-highlight .td-sticky-desc {
   left: 0;
   z-index: 30 !important;
   background: var(--color-bg-wash);
+  box-shadow: inset 0 -2px 0 var(--color-border);
 }
 
 .control-table tbody td.td-tracker-checkbox {
@@ -461,6 +465,7 @@ tr.row-highlight .td-sticky-desc {
   left: 36px;
   z-index: 28 !important;
   background: var(--color-bg-wash);
+  box-shadow: inset 0 -2px 0 var(--color-border);
 }
 
 .table-viewer .control-table thead th.th-tracker-jo {
@@ -496,6 +501,7 @@ tr.row-highlight .td-sticky-desc {
   left: 116px;
   z-index: 25 !important;
   background: var(--color-bg-wash);
+  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.04), inset 0 -2px 0 var(--color-border);
 }
 
 .table-viewer .control-table thead th.th-tracker-item {
@@ -536,6 +542,8 @@ tr.row-highlight .td-tracker-item {
   border-radius: var(--radius-lg);
   background: var(--color-bg-raised);
   overflow-x: auto;
+  overflow-y: auto;
+  max-height: min(72vh, 680px);
   scrollbar-width: thin;
   scrollbar-color: var(--color-border) transparent;
   width: 100%;

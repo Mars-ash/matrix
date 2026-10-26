@@ -516,12 +516,13 @@ export function MobileItemList({
                                 fontWeight: 600,
                                 color: "var(--color-text)",
                                 minWidth: 90,
+                                flex: 1,
                               }}
                             >
                               {processName === "Material" ? "PO Mtl" : processName}
                             </span>
 
-                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0, justifyContent: "flex-end" }}>
                               <ProcessControlCell
                                 control={control}
                                 projectId={projectId}

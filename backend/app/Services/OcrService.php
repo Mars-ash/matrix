@@ -48,7 +48,7 @@ class OcrService
         ))));
 
         if (empty($allKeys)) {
-            return $this->failureResponse('Gemini API Key tidak disetel. Harap hubungi administrator.');
+            return $this->failureResponse('Gemini API Key tidak disetel. Harap hubungi ammar.');
         }
 
         try {

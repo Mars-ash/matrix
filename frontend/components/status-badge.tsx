@@ -14,17 +14,18 @@ const STATUS_STYLES: Record<ControlStatus, { bg: string; text: string; label: st
 interface StatusBadgeProps {
   status: ControlStatus;
   className?: string;
+  style?: React.CSSProperties;
 }
 
-export function StatusBadge({ status, className = "" }: StatusBadgeProps) {
-  const style = STATUS_STYLES[status];
+export function StatusBadge({ status, className = "", style }: StatusBadgeProps) {
+  const styleObj = STATUS_STYLES[status];
   return (
     <span
       className={`badge ${className}`}
-      style={{ background: style.bg, color: style.text }}
+      style={{ background: styleObj.bg, color: styleObj.text, ...style }}
       data-status={status}
     >
-      {style.label}
+      {styleObj.label}
     </span>
   );
 }

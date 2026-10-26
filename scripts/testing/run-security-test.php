@@ -26,7 +26,7 @@ echo "====================================================\n";
 echo "       MATRIX SECURITY & OWASP AUDIT (API Core)     \n";
 echo "====================================================\n\n";
 
-$baseUrl = 'http://127.0.0.1:8000/api';
+$baseUrl = getenv('MATRIX_API_URL') ?: 'http://127.0.0.1:8001/api';
 $results = [
     'passed' => 0,
     'failed' => 0,
@@ -189,7 +189,7 @@ assertSec(in_array($uploadRes->status(), [404, 422]),
 
 // 7. Sensitive Information Leakage Check (.env / keys)
 echo "\n--- 7. Sensitive Info & Environment Exposure ---\n";
-$envCheck = Http::get('http://127.0.0.1:8000/.env');
+$envCheck = Http::get(str_replace('/api', '', $baseUrl) . '/.env');
 assertSec($envCheck->status() === 404 || $envCheck->status() === 403, 
     "Direct .env Access Blocked", 
     "Status: {$envCheck->status()} (Should be 404/403)", $results);

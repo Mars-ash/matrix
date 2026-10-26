@@ -12,9 +12,17 @@ interface StatusSelectProps {
   process?: string;
   allowedStatuses?: ControlStatus[];
   onChange: (status: ControlStatus, notes: string) => void;
+  width?: number | string;
 }
 
-export function StatusSelect({ value, notes, process, allowedStatuses, onChange }: StatusSelectProps) {
+export function StatusSelect({
+  value,
+  notes,
+  process,
+  allowedStatuses,
+  onChange,
+  width = 115,
+}: StatusSelectProps) {
   const { isViewer } = useAuth();
   const [pendingProblem, setPendingProblem] = useState(false);
   const [problemNotes, setProblemNotes] = useState("");
@@ -53,9 +61,18 @@ export function StatusSelect({ value, notes, process, allowedStatuses, onChange 
     return (
       <span
         title={notes ? `Problem: ${notes}` : undefined}
-        style={{ cursor: "default", display: "inline-block" }}
+        style={{
+          cursor: "default",
+          display: "inline-flex",
+          justifyContent: "center",
+          alignItems: "center",
+          width,
+          minWidth: width,
+          maxWidth: width,
+          boxSizing: "border-box",
+        }}
       >
-        <StatusBadge status={value} />
+        <StatusBadge status={value} style={{ width: "100%", justifyContent: "center" }} />
       </span>
     );
   }
@@ -102,9 +119,11 @@ export function StatusSelect({ value, notes, process, allowedStatuses, onChange 
           color: statusColorVar[selectValue],
           fontSize: 12,
           fontWeight: 600,
-          padding: "4px 18px 4px 8px", // Adjusted right padding slightly to help optical centering
-          width: "auto",
-          minWidth: 100,
+          padding: "4px 20px 4px 8px", // Clean right padding for chevron
+          width,
+          minWidth: width,
+          maxWidth: width,
+          boxSizing: "border-box",
           backgroundColor: statusBgVar[selectValue],
           borderColor: "transparent",
           textAlign: "center",

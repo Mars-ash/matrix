@@ -22,4 +22,24 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*'),
         );
+
+        $exceptions->render(function (\Throwable $e, Request $request) {
+            if ($request->is('api/*')) {
+                if ($e instanceof \Illuminate\Validation\ValidationException
+                    || $e instanceof \Illuminate\Auth\AuthenticationException
+                    || $e instanceof \Symfony\Component\HttpKernel\Exception\HttpExceptionInterface) {
+                    return null;
+                }
+
+                \Illuminate\Support\Facades\Log::error($e->getMessage(), ['exception' => $e]);
+
+                $message = config('app.debug') && !($e instanceof \PDOException)
+                    ? $e->getMessage()
+                    : 'Terjadi kesalahan pada server. Silakan coba beberapa saat lagi.';
+
+                return response()->json([
+                    'message' => $message,
+                ], 500);
+            }
+        });
     })->create();

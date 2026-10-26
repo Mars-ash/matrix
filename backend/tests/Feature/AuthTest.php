@@ -230,4 +230,21 @@ class AuthTest extends TestCase
             ->getJson('/api/projects')
             ->assertStatus(200);
     }
+
+    public function test_login_is_rate_limited(): void
+    {
+        for ($i = 0; $i < 5; $i++) {
+            $this->postJson('/api/auth/login', [
+                'username' => 'ratelimit_user',
+                'password' => 'wrongpass',
+            ]);
+        }
+
+        $res = $this->postJson('/api/auth/login', [
+            'username' => 'ratelimit_user',
+            'password' => 'wrongpass',
+        ]);
+
+        $res->assertStatus(429);
+    }
 }
