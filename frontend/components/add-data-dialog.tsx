@@ -606,12 +606,12 @@ export function AddDataDialog({
               <table className="control-table" style={{ width: "100%", tableLayout: "auto" }}>
                 <thead>
                   <tr>
-                    <th style={{ width: 45, textAlign: "center" }}>No</th>
-                    <th>Description</th>
-                    <th style={{ width: 140 }}>Dimension</th>
-                    <th style={{ width: 105 }}>Material</th>
-                    <th style={{ width: 60, textAlign: "center" }}>Qty</th>
-                    <th style={{ width: 75, textAlign: "center" }}>HRc</th>
+                    <th style={{ width: 75, minWidth: 65, textAlign: "center" }}>No</th>
+                    <th style={{ minWidth: 200 }}>Description</th>
+                    <th style={{ width: 220, minWidth: 190 }}>Dimension</th>
+                    <th style={{ width: 120, minWidth: 105 }}>Material</th>
+                    <th style={{ width: 55, minWidth: 50, textAlign: "center" }}>Qty</th>
+                    <th style={{ width: 75, minWidth: 70, textAlign: "center" }}>HRc</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -622,7 +622,7 @@ export function AddDataDialog({
                           className="input"
                           value={row.no}
                           onChange={(e) => updateConvRow(idx, "no", e.target.value)}
-                          style={{ width: "100%", padding: "4px 6px", textAlign: "center" }}
+                          style={{ width: "100%", minWidth: 55, padding: "4px 6px", textAlign: "center" }}
                         />
                       </td>
                       <td>
@@ -630,7 +630,7 @@ export function AddDataDialog({
                           className="input"
                           value={row.description}
                           onChange={(e) => updateConvRow(idx, "description", e.target.value)}
-                          style={{ width: "100%", minWidth: 160, padding: "4px 6px" }}
+                          style={{ width: "100%", minWidth: 180, padding: "4px 6px" }}
                         />
                       </td>
                       <td>
@@ -638,7 +638,7 @@ export function AddDataDialog({
                           className="input"
                           value={row.dimension}
                           onChange={(e) => updateConvRow(idx, "dimension", e.target.value)}
-                          style={{ width: "100%", padding: "4px 6px" }}
+                          style={{ width: "100%", minWidth: 180, padding: "4px 6px" }}
                         />
                       </td>
                       <td>
@@ -646,7 +646,7 @@ export function AddDataDialog({
                           className="input"
                           value={row.material}
                           onChange={(e) => updateConvRow(idx, "material", e.target.value)}
-                          style={{ width: "100%", padding: "4px 6px" }}
+                          style={{ width: "100%", minWidth: 100, padding: "4px 6px" }}
                         />
                       </td>
                       <td>
@@ -658,6 +658,7 @@ export function AddDataDialog({
                           onChange={(e) => updateConvRow(idx, "qty", e.target.value)}
                           style={{
                             width: "100%",
+                            minWidth: 40,
                             padding: "4px 6px",
                             textAlign: "center",
                             MozAppearance: "textfield",
@@ -669,7 +670,7 @@ export function AddDataDialog({
                           className="input"
                           value={row.hrc}
                           onChange={(e) => updateConvRow(idx, "hrc", e.target.value)}
-                          style={{ width: "100%", padding: "4px 6px", textAlign: "center" }}
+                          style={{ width: "100%", minWidth: 60, padding: "4px 6px", textAlign: "center" }}
                         />
                       </td>
                     </tr>

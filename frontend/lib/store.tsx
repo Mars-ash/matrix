@@ -995,6 +995,7 @@ function executeReducer(next: AppState, state: AppState, action: AppAction): App
       if (action.data.material !== undefined) item.material = action.data.material;
       if (action.data.qty !== undefined) item.qty = action.data.qty;
       if (action.data.hrc !== undefined) item.hrc = action.data.hrc;
+      item.updatedAt = new Date().toISOString();
 
       addActivity(jo!, `Item "${item.description}" updated.`);
       return next;
@@ -1077,6 +1078,8 @@ function executeReducer(next: AppState, state: AppState, action: AppAction): App
         }
       }
 
+      item.updatedAt = new Date().toISOString();
+
       addActivity(
         jo!,
         `${item.description} → ${action.process}: ${prevStatus} → ${action.status}${
@@ -1097,6 +1100,7 @@ function executeReducer(next: AppState, state: AppState, action: AppAction): App
       if (!control) return state;
 
       control.targetDate = action.targetDate;
+      item.updatedAt = new Date().toISOString();
       return next;
     }
 
@@ -1175,6 +1179,8 @@ function executeReducer(next: AppState, state: AppState, action: AppAction): App
         item.qty = action.qty;
       }
 
+      item.updatedAt = new Date().toISOString();
+
       const joRef = jo!;
       const rowLabel = poTrackingLabel(action.process);
       const statusText = action.status ? ` (Status: ${action.status})` : "";
@@ -1197,6 +1203,7 @@ function executeReducer(next: AppState, state: AppState, action: AppAction): App
             const ctrl = item.controls.find((c) => c.process === "Arrival" || c.process === "Material" || c.process === "PO");
             if (ctrl) {
               ctrl.targetDate = action.targetDate;
+              item.updatedAt = new Date().toISOString();
               count++;
             }
           }
@@ -1248,7 +1255,10 @@ function executeReducer(next: AppState, state: AppState, action: AppAction): App
                 itemUpdated = true;
               }
             }
-            if (itemUpdated) count++;
+            if (itemUpdated) {
+              item.updatedAt = new Date().toISOString();
+              count++;
+            }
           }
         }
       }
@@ -1273,6 +1283,7 @@ function executeReducer(next: AppState, state: AppState, action: AppAction): App
             if (action.supplier) item.subcontSupplier = action.supplier;
             if (action.arrivalTargetDate) item.arrivalTargetDate = action.arrivalTargetDate;
             if (!item.subcontDispatchDate) item.subcontDispatchDate = new Date().toISOString();
+            item.updatedAt = new Date().toISOString();
 
             const ctrl = item.controls.find((c) => c.process === action.process);
             if (ctrl) {
@@ -1329,6 +1340,7 @@ function executeReducer(next: AppState, state: AppState, action: AppAction): App
                 arrivalCtrl.targetDate = action.targetArrival.trim();
               }
             }
+            item.updatedAt = new Date().toISOString();
             count++;
           }
         }
@@ -1423,6 +1435,8 @@ function executeReducer(next: AppState, state: AppState, action: AppAction): App
         item.arrivalTargetDate = action.arrivalTargetDate;
       }
 
+      item.updatedAt = new Date().toISOString();
+
       // Only log meaningful changes
       if (action.isSubcont !== undefined) {
         addActivity(
@@ -1456,6 +1470,7 @@ function executeReducer(next: AppState, state: AppState, action: AppAction): App
         ...action.photo,
         addedAt: new Date().toISOString(),
       });
+      item.updatedAt = new Date().toISOString();
 
       addActivity(
         jo!,

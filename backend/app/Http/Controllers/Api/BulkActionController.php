@@ -100,6 +100,8 @@ class BulkActionController extends Controller
 
                 if (!empty($validated['targetArrival'])) {
                     $item->update(['arrival_target_date' => $validated['targetArrival']]);
+                } else {
+                    $item->touch();
                 }
             }
 
@@ -146,6 +148,8 @@ class BulkActionController extends Controller
                     'notes' => $notes,
                     'in_progress_at' => in_array($status, ['In Progress', 'In Progress SC']) ? $now : null,
                 ]);
+
+            Item::whereIn('id', $itemIds)->update(['updated_at' => $now]);
 
             $count = count($itemIds);
             $procList = implode(', ', $processes);

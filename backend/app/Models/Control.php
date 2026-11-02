@@ -13,6 +13,8 @@ class Control extends Model
 {
     use HasFactory, HasUuids;
 
+    protected $touches = ['item'];
+
     protected $fillable = [
         'item_id',
         'process',

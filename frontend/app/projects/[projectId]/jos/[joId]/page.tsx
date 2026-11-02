@@ -15,7 +15,7 @@ import { ItemEditDialog } from "@/components/item-edit-dialog";
 import { JoDetailSkeleton } from "@/components/skeleton-loader";
 import { useAppState, useAppDispatch } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
-import { joProgress, joProblemCount, categoryProgress } from "@/lib/progress";
+import { joProgress, joProblemCount, categoryProgress, categoryLastUpdated } from "@/lib/progress";
 import { formatProgress } from "@/lib/format";
 import { SUBCONT_SUPPLIERS, PO_SUPPLIERS, type ControlStatus, type Item, type Category } from "@/lib/types";
 import { poTrackingLabel, isItemPoSent } from "@/lib/po-tracking";
@@ -50,6 +50,15 @@ export default function JoDetailPage({ params }: PageProps) {
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [deletingCategory, setDeletingCategory] = useState<Category | null>(null);
   const [highlightedItemId, setHighlightedItemId] = useState<string | null>(null);
+  const [categorySortModes, setCategorySortModes] = useState<Record<string, "default" | "newest" | "oldest">>({});
+
+  const cycleCategorySortMode = (catId: string) => {
+    setCategorySortModes((prev) => {
+      const current = prev[catId] ?? "default";
+      const next = current === "default" ? "newest" : current === "newest" ? "oldest" : "default";
+      return { ...prev, [catId]: next };
+    });
+  };
 
   // Item edit / delete states
   const [editingItem, setEditingItem] = useState<{ item: Item; categoryId: string } | null>(null);
@@ -491,83 +500,188 @@ export default function JoDetailPage({ params }: PageProps) {
                   {cat.kind} · {cat.items.length} item{cat.items.length !== 1 ? "s" : ""}
                   {cat.isCustom && " · Custom"}
                 </span>
-                {isController && (
-                  <div style={{ display: "inline-flex", alignItems: "center", gap: 4, marginLeft: 2 }}>
-                    <button
-                      type="button"
-                      className="btn-icon"
-                      onClick={() => setEditingCategory(cat)}
-                      title="Edit Nama Kategori"
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        width: 24,
-                        height: 24,
-                        borderRadius: "var(--radius-sm)",
-                        background: "transparent",
-                        border: "1px solid var(--color-border-subtle)",
-                        color: "var(--color-text-muted)",
-                        cursor: "pointer",
-                        transition: "all 120ms ease",
-                      }}
-                      onMouseEnter={(e) => {
+                <div style={{ display: "inline-flex", alignItems: "center", gap: 6, marginLeft: 2 }}>
+                  {isController && (
+                    <>
+                      {/* Tombol Hapus Kategori (posisi ditukar: sebelum edit) */}
+                      <button
+                        type="button"
+                        className="btn-icon"
+                        onClick={() => setDeletingCategory(cat)}
+                        title="Hapus Kategori"
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          width: 24,
+                          height: 24,
+                          borderRadius: "var(--radius-sm)",
+                          background: "transparent",
+                          border: "1px solid var(--color-border-subtle)",
+                          color: "var(--color-text-muted)",
+                          cursor: "pointer",
+                          transition: "all 120ms ease",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.borderColor = "rgba(220, 38, 38, 0.4)";
+                          e.currentTarget.style.color = "var(--color-status-problem)";
+                          e.currentTarget.style.background = "var(--color-status-problem-bg)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.borderColor = "var(--color-border-subtle)";
+                          e.currentTarget.style.color = "var(--color-text-muted)";
+                          e.currentTarget.style.background = "transparent";
+                        }}
+                      >
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M3 6h18" />
+                          <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                          <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                          <line x1="10" x2="10" y1="11" y2="17" />
+                          <line x1="14" x2="14" y1="11" y2="17" />
+                        </svg>
+                      </button>
+
+                      {/* Tombol Edit Kategori (posisi ditukar: setelah hapus) */}
+                      <button
+                        type="button"
+                        className="btn-icon"
+                        onClick={() => setEditingCategory(cat)}
+                        title="Edit Nama Kategori"
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          width: 24,
+                          height: 24,
+                          borderRadius: "var(--radius-sm)",
+                          background: "transparent",
+                          border: "1px solid var(--color-border-subtle)",
+                          color: "var(--color-text-muted)",
+                          cursor: "pointer",
+                          transition: "all 120ms ease",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.borderColor = "var(--color-accent)";
+                          e.currentTarget.style.color = "var(--color-accent)";
+                          e.currentTarget.style.background = "var(--color-bg-hover)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.borderColor = "var(--color-border-subtle)";
+                          e.currentTarget.style.color = "var(--color-text-muted)";
+                          e.currentTarget.style.background = "transparent";
+                        }}
+                      >
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                          <path d="m15 5 4 4" />
+                        </svg>
+                      </button>
+                    </>
+                  )}
+
+                  {/* Tombol Sort Kategori: di sebelah tombol edit kategori */}
+                  <button
+                    type="button"
+                    onClick={() => cycleCategorySortMode(cat.id)}
+                    title={
+                      (categorySortModes[cat.id] ?? "default") === "default"
+                        ? "Urutan: Default (Klik untuk urutkan Terbaru)"
+                        : (categorySortModes[cat.id] ?? "default") === "newest"
+                          ? "Urutan: Terbaru (Klik untuk urutkan Terlama)"
+                          : "Urutan: Terlama (Klik untuk kembali ke Default)"
+                    }
+                    aria-label={`Urutan ${(categorySortModes[cat.id] ?? "default") === "default" ? "Default" : (categorySortModes[cat.id] ?? "default") === "newest" ? "Terbaru" : "Terlama"}`}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4,
+                      height: 24,
+                      padding: "0 7px",
+                      borderRadius: "var(--radius-sm)",
+                      background:
+                        (categorySortModes[cat.id] ?? "default") !== "default"
+                          ? "color-mix(in srgb, var(--color-accent) 12%, transparent)"
+                          : "transparent",
+                      border:
+                        (categorySortModes[cat.id] ?? "default") !== "default"
+                          ? "1px solid var(--color-accent)"
+                          : "1px solid var(--color-border-subtle)",
+                      color:
+                        (categorySortModes[cat.id] ?? "default") !== "default"
+                          ? "var(--color-accent)"
+                          : "var(--color-text-muted)",
+                      cursor: "pointer",
+                      fontSize: 11,
+                      fontWeight: (categorySortModes[cat.id] ?? "default") !== "default" ? 600 : 500,
+                      transition: "all 120ms ease",
+                      userSelect: "none",
+                    }}
+                    onMouseEnter={(e) => {
+                      if ((categorySortModes[cat.id] ?? "default") === "default") {
                         e.currentTarget.style.borderColor = "var(--color-accent)";
                         e.currentTarget.style.color = "var(--color-accent)";
                         e.currentTarget.style.background = "var(--color-bg-hover)";
-                      }}
-                      onMouseLeave={(e) => {
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if ((categorySortModes[cat.id] ?? "default") === "default") {
                         e.currentTarget.style.borderColor = "var(--color-border-subtle)";
                         e.currentTarget.style.color = "var(--color-text-muted)";
                         e.currentTarget.style.background = "transparent";
-                      }}
-                    >
+                      }
+                    }}
+                  >
+                    {(categorySortModes[cat.id] ?? "default") === "default" && (
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
-                        <path d="m15 5 4 4" />
+                        <path d="m21 16-4 4-4-4" />
+                        <path d="M17 20V4" />
+                        <path d="m3 8 4-4 4 4" />
+                        <path d="M7 4v16" />
                       </svg>
-                    </button>
-                    <button
-                      type="button"
-                      className="btn-icon"
-                      onClick={() => setDeletingCategory(cat)}
-                      title="Hapus Kategori"
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        width: 24,
-                        height: 24,
-                        borderRadius: "var(--radius-sm)",
-                        background: "transparent",
-                        border: "1px solid var(--color-border-subtle)",
-                        color: "var(--color-text-muted)",
-                        cursor: "pointer",
-                        transition: "all 120ms ease",
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.borderColor = "rgba(220, 38, 38, 0.4)";
-                        e.currentTarget.style.color = "var(--color-status-problem)";
-                        e.currentTarget.style.background = "var(--color-status-problem-bg)";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.borderColor = "var(--color-border-subtle)";
-                        e.currentTarget.style.color = "var(--color-text-muted)";
-                        e.currentTarget.style.background = "transparent";
-                      }}
-                    >
+                    )}
+                    {(categorySortModes[cat.id] ?? "default") === "newest" && (
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M3 6h18" />
-                        <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-                        <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-                        <line x1="10" x2="10" y1="11" y2="17" />
-                        <line x1="14" x2="14" y1="11" y2="17" />
+                        <path d="m3 16 4 4 4-4" />
+                        <path d="M7 20V4" />
+                        <path d="M11 4h10" />
+                        <path d="M11 8h7" />
+                        <path d="M11 12h4" />
                       </svg>
-                    </button>
-                  </div>
-                )}
+                    )}
+                    {(categorySortModes[cat.id] ?? "default") === "oldest" && (
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="m3 8 4-4 4 4" />
+                        <path d="M7 4v16" />
+                        <path d="M11 12h4" />
+                        <path d="M11 8h7" />
+                        <path d="M11 4h10" />
+                      </svg>
+                    )}
+                    <span>
+                      {(categorySortModes[cat.id] ?? "default") === "default"
+                        ? "Default"
+                        : (categorySortModes[cat.id] ?? "default") === "newest"
+                          ? "Terbaru"
+                          : "Terlama"}
+                    </span>
+                  </button>
+                </div>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                <span
+                  style={{
+                    fontSize: 12,
+                    color: "var(--color-text-muted)",
+                    fontWeight: 500,
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  Last Updated:{" "}
+                  <span style={{ fontWeight: 600, color: "var(--color-text-secondary)" }}>
+                    {categoryLastUpdated(cat)}
+                  </span>
+                </span>
                 <span
                   style={{
                     fontSize: 20,
@@ -596,6 +710,10 @@ export default function JoDetailPage({ params }: PageProps) {
               category={cat}
               projectId={projectId}
               joId={joId}
+              sortMode={categorySortModes[cat.id] ?? "default"}
+              onSortModeChange={(mode) =>
+                setCategorySortModes((prev) => ({ ...prev, [cat.id]: mode }))
+              }
               onAddData={() => setAddDataCatId(cat.id)}
               highlightedItemId={highlightedItemId}
               selectedItemIds={selectedItemIds}

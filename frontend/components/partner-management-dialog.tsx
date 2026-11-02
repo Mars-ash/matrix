@@ -191,8 +191,14 @@ export function PartnerManagementDialog({
 
   return (
     <>
-      <Dialog open={open} onClose={onClose} title="Customer & Supplier">
-        <div style={{ display: "flex", flexDirection: "column", gap: 14, minWidth: 480, maxWidth: 680 }}>
+      <Dialog
+        open={open}
+        onClose={onClose}
+        title="Customer & Supplier"
+        maxWidth={640}
+        panelStyle={{ width: "min(640px, 94vw)" }}
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: 14, width: "100%" }}>
           {/* Tabs */}
           <div
             style={{
@@ -294,6 +300,8 @@ export function PartnerManagementDialog({
                 height: 34,
                 cursor: !newName.trim() || isSubmitting ? "not-allowed" : "pointer",
                 opacity: !newName.trim() || isSubmitting ? 0.6 : 1,
+                whiteSpace: "nowrap",
+                flexShrink: 0,
               }}
             >
               <svg

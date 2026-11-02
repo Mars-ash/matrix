@@ -368,46 +368,6 @@ tr.row-highlight .td-sticky-no {
   left: 40px !important;
 }
 
-/* Segmented control for switching between Compact List and Matrix Table on mobile */
-.mobile-view-toggle {
-  display: inline-flex;
-  align-items: center;
-  background: var(--color-bg-wash);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  padding: 2px;
-  gap: 2px;
-}
-
-.mobile-view-toggle button {
-  background: transparent;
-  border: none;
-  border-radius: var(--radius-sm);
-  padding: 4px 10px;
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  transition: all 120ms ease;
-  line-height: 1.2;
-}
-
-.mobile-view-toggle button.active {
-  background: var(--color-bg-raised);
-  color: var(--color-text);
-  font-weight: 600;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
-}
-
-.mobile-view-toggle button:hover:not(.active) {
-  color: var(--color-text);
-}
-
-@media (min-width: 769px) {
-  .mobile-view-toggle {
-    display: none !important;
-  }
-}
 
 tr:hover .td-sticky-desc {
   background: var(--color-bg-wash);
@@ -588,8 +548,8 @@ tr.row-highlight .td-tracker-item {
 }
 
 .dialog-panel-wide {
-  max-width: 960px;
-  width: min(960px, 94vw);
+  max-width: 1060px;
+  width: min(1060px, 95vw);
 }
 
 /* Remove spinner arrows from number inputs with .no-spinner or inside table-scroll */

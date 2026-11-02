@@ -2,11 +2,13 @@ import { describe, it, expect } from "vitest";
 import {
   calculateProgress,
   categoryProgress,
+  categoryLastUpdated,
   joProgress,
   joProblemCount,
   joStatusSummary,
 } from "./progress";
-import type { Control, Category, JO } from "./types";
+import { formatDdMmYy } from "./format";
+import type { Control, Category, JO, Item } from "./types";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -193,5 +195,141 @@ describe("joStatusSummary", () => {
       Done: 1,
       Problem: 1,
     });
+  });
+});
+
+describe("formatDdMmYy", () => {
+  it("returns '-' for empty or invalid values", () => {
+    expect(formatDdMmYy(null)).toBe("-");
+    expect(formatDdMmYy(undefined)).toBe("-");
+    expect(formatDdMmYy("")).toBe("-");
+    expect(formatDdMmYy("invalid-date")).toBe("-");
+  });
+
+  it("formats date strings in YYYY-MM-DD format correctly without TZ shift", () => {
+    expect(formatDdMmYy("2026-11-02")).toBe("02-11-26");
+    expect(formatDdMmYy("2025-01-09")).toBe("09-01-25");
+  });
+
+  it("formats timestamps and Date objects correctly", () => {
+    const d = new Date(2026, 10, 2); // Month is 0-indexed: 10 = November
+    expect(formatDdMmYy(d)).toBe("02-11-26");
+  });
+});
+
+describe("categoryLastUpdated", () => {
+  it("returns '-' when category has no items", () => {
+    const cat: Category = {
+      id: "cat-empty",
+      label: "PART",
+      kind: "Part",
+      isCustom: false,
+      items: [],
+    };
+    expect(categoryLastUpdated(cat)).toBe("-");
+  });
+
+  it("returns '-' when items have no dates", () => {
+    const cat = makeCat([ctrl("Done")]);
+    expect(categoryLastUpdated(cat)).toBe("-");
+  });
+
+  it("returns formatted date based on item.updatedAt", () => {
+    const cat = makeCat([ctrl("Done")]);
+    cat.items[0].updatedAt = "2026-11-02T08:30:00Z";
+    expect(categoryLastUpdated(cat)).toBe(formatDdMmYy("2026-11-02T08:30:00Z"));
+  });
+
+  it("picks the latest date among multiple items", () => {
+    const cat: Category = {
+      id: "cat-multi",
+      label: "PART",
+      kind: "Part",
+      isCustom: false,
+      items: [
+        {
+          id: "item-1",
+          no: "1",
+          description: "Old item",
+          dimension: "",
+          material: "",
+          qty: 1,
+          hrc: "",
+          controls: [ctrl("Done")],
+          updatedAt: "2026-10-15T10:00:00Z",
+        },
+        {
+          id: "item-2",
+          no: "2",
+          description: "Recently updated item",
+          dimension: "",
+          material: "",
+          qty: 1,
+          hrc: "",
+          controls: [ctrl("In Progress")],
+          updatedAt: "2026-11-02T12:00:00Z",
+        },
+      ],
+    };
+    expect(categoryLastUpdated(cat)).toBe(formatDdMmYy("2026-11-02T12:00:00Z"));
+  });
+
+  it("considers control doneAt / inProgressAt if updatedAt is absent", () => {
+    const cat: Category = {
+      id: "cat-ctrl-date",
+      label: "PART",
+      kind: "Part",
+      isCustom: false,
+      items: [
+        {
+          id: "item-1",
+          no: "1",
+          description: "Item with doneAt",
+          dimension: "",
+          material: "",
+          qty: 1,
+          hrc: "",
+          controls: [
+            {
+              process: "Machining",
+              status: "Done",
+              notes: "",
+              doneAt: "2026-11-01T14:00:00Z",
+            },
+          ],
+        },
+      ],
+    };
+    expect(categoryLastUpdated(cat)).toBe(formatDdMmYy("2026-11-01T14:00:00Z"));
+  });
+
+  it("immediately updates when an item status changes and updatedAt is modified", () => {
+    const item: Item = {
+      id: "item-dyn",
+      no: "1",
+      description: "Dynamic item",
+      dimension: "",
+      material: "",
+      qty: 1,
+      hrc: "",
+      controls: [ctrl("Not Started")],
+      updatedAt: "2026-09-01T00:00:00Z",
+    };
+    const cat: Category = {
+      id: "cat-dyn",
+      label: "PART",
+      kind: "Part",
+      isCustom: false,
+      items: [item],
+    };
+
+    expect(categoryLastUpdated(cat)).toBe(formatDdMmYy("2026-09-01T00:00:00Z"));
+
+    // Simulate status change dispatch updating updatedAt to today
+    item.controls[0].status = "Done";
+    item.updatedAt = new Date().toISOString();
+
+    const todayFormatted = formatDdMmYy(item.updatedAt);
+    expect(categoryLastUpdated(cat)).toBe(todayFormatted);
   });
 });

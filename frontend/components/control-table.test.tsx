@@ -28,41 +28,44 @@ const mockCategory: Category = {
     {
       id: "item-1",
       no: "01",
-      description: "First Oldest Item",
+      description: "First Added - But Last Updated",
       dimension: "10x10",
       material: "SS400",
       qty: 1,
       hrc: "-",
       createdAt: "2026-08-01T10:00:00Z",
+      updatedAt: "2026-08-20T10:00:00Z", // Most recently updated!
       controls: [{ process: "Material", status: "Not Started", notes: "" }],
     },
     {
       id: "item-2",
       no: "02",
-      description: "Second Middle Item",
+      description: "Second Added - Middle Updated",
       dimension: "20x20",
       material: "S45C",
       qty: 1,
       hrc: "-",
       createdAt: "2026-08-05T10:00:00Z",
+      updatedAt: "2026-08-05T10:00:00Z",
       controls: [{ process: "Material", status: "Not Started", notes: "" }],
     },
     {
       id: "item-3",
       no: "03",
-      description: "Third Newest Item",
+      description: "Third Added - Oldest Updated",
       dimension: "30x30",
       material: "SKD11",
       qty: 1,
       hrc: "-",
       createdAt: "2026-08-10T10:00:00Z",
+      updatedAt: "2026-08-02T10:00:00Z", // Created newest, but updated oldest
       controls: [{ process: "Material", status: "Not Started", notes: "" }],
     },
   ],
 };
 
 describe("ControlTable Sorting Functionality", () => {
-  it("renders default order and cycles through Paling Terbaru, Terlama, and Default on button click", () => {
+  it("renders default order and cycles through Terbaru, Terlama, and Default based on updatedAt", () => {
     const { container } = render(
       <ControlTable
         category={mockCategory}
@@ -83,43 +86,43 @@ describe("ControlTable Sorting Functionality", () => {
 
     // 1. Initial Default State
     expect(getItemDescriptions()).toEqual([
-      "First Oldest Item",
-      "Second Middle Item",
-      "Third Newest Item",
+      "First Added - But Last Updated",
+      "Second Added - Middle Updated",
+      "Third Added - Oldest Updated",
     ]);
-    expect(screen.getByText("Urutkan: Default")).toBeInTheDocument();
+    expect(screen.getByText("Default")).toBeInTheDocument();
 
     const sortButton = screen.getByRole("button", { name: "Urutan Default" });
     expect(sortButton).toBeInTheDocument();
 
-    // 2. Click 1 -> Switch to Paling Terbaru (newest first)
+    // 2. Click 1 -> Switch to Terbaru (most recently updated first: item-1 at Aug 20, then item-2 at Aug 5, then item-3 at Aug 2)
     fireEvent.click(sortButton);
 
-    expect(screen.getByText("Paling Terbaru")).toBeInTheDocument();
+    expect(screen.getByText("Terbaru")).toBeInTheDocument();
     expect(getItemDescriptions()).toEqual([
-      "Third Newest Item",
-      "Second Middle Item",
-      "First Oldest Item",
+      "First Added - But Last Updated",
+      "Second Added - Middle Updated",
+      "Third Added - Oldest Updated",
     ]);
 
-    // 3. Click 2 -> Switch to Terlama (oldest first)
+    // 3. Click 2 -> Switch to Terlama (oldest updated first: item-3 at Aug 2, then item-2 at Aug 5, then item-1 at Aug 20)
     fireEvent.click(sortButton);
 
     expect(screen.getByText("Terlama")).toBeInTheDocument();
     expect(getItemDescriptions()).toEqual([
-      "First Oldest Item",
-      "Second Middle Item",
-      "Third Newest Item",
+      "Third Added - Oldest Updated",
+      "Second Added - Middle Updated",
+      "First Added - But Last Updated",
     ]);
 
     // 4. Click 3 -> Cycle back to Default
     fireEvent.click(sortButton);
 
-    expect(screen.getByText("Urutkan: Default")).toBeInTheDocument();
+    expect(screen.getByText("Default")).toBeInTheDocument();
     expect(getItemDescriptions()).toEqual([
-      "First Oldest Item",
-      "Second Middle Item",
-      "Third Newest Item",
+      "First Added - But Last Updated",
+      "Second Added - Middle Updated",
+      "Third Added - Oldest Updated",
     ]);
   });
 });

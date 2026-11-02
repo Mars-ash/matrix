@@ -8,6 +8,29 @@ export function formatProgress(value: number | null): string {
   return `${Math.round(value)}%`;
 }
 
+/**
+ * Format a date to `dd-mm-yy` (e.g. "02-11-26").
+ * Returns "-" if null, undefined, or invalid.
+ */
+export function formatDdMmYy(dateInput: string | number | Date | null | undefined): string {
+  if (!dateInput) return "-";
+  if (typeof dateInput === "string") {
+    const trimmed = dateInput.trim();
+    if (!trimmed) return "-";
+    const dateOnlyMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (dateOnlyMatch) {
+      const [, y, m, d] = dateOnlyMatch;
+      return `${d}-${m}-${y.slice(-2)}`;
+    }
+  }
+  const d = new Date(dateInput);
+  if (isNaN(d.getTime())) return "-";
+  const day = String(d.getDate()).padStart(2, "0");
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const year = String(d.getFullYear()).slice(-2);
+  return `${day}-${month}-${year}`;
+}
+
 /** Format an ISO-8601 timestamp to a short readable string. */
 export function formatTimestamp(iso: string): string {
   const d = new Date(iso);

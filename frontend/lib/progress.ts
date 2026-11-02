@@ -3,6 +3,7 @@
 // No React dependency — these are plain functions over domain types.
 // ---------------------------------------------------------------------------
 import type { ControlStatus, Control, Category, JO } from "./types";
+import { formatDdMmYy } from "./format";
 
 /** Status → weight mapping. `-` is excluded from the denominator. */
 const WEIGHT: Record<ControlStatus, number | null> = {
@@ -41,6 +42,54 @@ export function categoryControls(category: Category): Control[] {
 /** Calculate progress for a single category. */
 export function categoryProgress(category: Category): number | null {
   return calculateProgress(categoryControls(category));
+}
+
+/**
+ * Find the latest update date across all items and controls in a category,
+ * formatted as "dd-mm-yy" (e.g. "02-11-26").
+ * Returns "-" if no items or dates are present.
+ */
+export function categoryLastUpdated(category: Category): string {
+  if (!category || !category.items || category.items.length === 0) {
+    return "-";
+  }
+
+  let latestTime = 0;
+
+  for (const item of category.items) {
+    const rawUpdated = item.updatedAt || (item as any).updated_at;
+    const rawCreated = item.createdAt || (item as any).created_at;
+
+    const dates: (string | number | undefined | null)[] = [
+      rawUpdated,
+      rawCreated,
+      item.subcontDoneAt,
+      item.subcontDispatchDate,
+    ];
+
+    for (const ctrl of item.controls || []) {
+      dates.push(ctrl.doneAt);
+      dates.push(ctrl.inProgressAt);
+      if (ctrl.poTracking?.actualArrivalDate) {
+        dates.push(ctrl.poTracking.actualArrivalDate);
+      }
+      for (const photo of ctrl.photos || []) {
+        dates.push(photo.addedAt);
+      }
+    }
+
+    for (const d of dates) {
+      if (d) {
+        const time = new Date(d).getTime();
+        if (!isNaN(time) && time > latestTime) {
+          latestTime = time;
+        }
+      }
+    }
+  }
+
+  if (latestTime === 0) return "-";
+  return formatDdMmYy(latestTime);
 }
 
 /** Calculate progress for an entire JO across all categories. */
