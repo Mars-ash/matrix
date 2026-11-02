@@ -54,21 +54,16 @@ describe("AddDataDialog Component - Failure & Consent Path", () => {
     expect(fileInput).not.toBeNull();
     fireEvent.change(fileInput, { target: { files: [file] } });
 
-    // 3. Staging preview appears with consent checkbox
+    // 3. Staging preview appears
     await waitFor(() => {
       expect(screen.getByText("bom-sample.png")).toBeInTheDocument();
     });
 
-    // 4. Verify extraction button is disabled until consent is checked
+    // 4. Verify extraction button is enabled
     const extractBtn = screen.getByRole("button", { name: /Kirim & Ekstrak Gambar/i });
-    expect(extractBtn).toBeDisabled();
-
-    // 5. Check consent checkbox
-    const consentCheckbox = screen.getByRole("checkbox");
-    await user.click(consentCheckbox);
     expect(extractBtn).toBeEnabled();
 
-    // 6. Click trigger to execute extraction
+    // 5. Click trigger to execute extraction
     await user.click(extractBtn);
 
     // 7. Verify API was called with consent=true

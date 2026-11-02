@@ -894,6 +894,7 @@ function executeReducer(next: AppState, state: AppState, action: AppAction): App
       const newItem: Item = {
         ...action.item,
         id: action.itemId || uid(),
+        createdAt: (action.item as any).createdAt || new Date().toISOString(),
         controls: defaultControls(action.kind),
       };
       cat.items.push(newItem);
@@ -912,10 +913,11 @@ function executeReducer(next: AppState, state: AppState, action: AppAction): App
       );
       if (!cat) return state;
 
-      const newItems: Item[] = action.items.map((item) => {
+      const newItems: Item[] = action.items.map((item, index) => {
         const newItem: Item = {
           ...item,
           id: item.id || uid(),
+          createdAt: (item as any).createdAt || new Date(Date.now() + index * 100).toISOString(),
           controls: defaultControls(action.kind),
         };
         return newItem;

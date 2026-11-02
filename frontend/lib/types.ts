@@ -149,6 +149,8 @@ export interface Item {
   subcontDispatchDate?: string; // ISO-8601 when marked In Progress SC
   subcontDoneAt?: string; // ISO-8601 timestamp when marked Done
   arrivalTargetDate?: string; // YYYY-MM-DD
+  createdAt?: string; // ISO-8601
+  updatedAt?: string; // ISO-8601
 }
 
 /** A category section within a JO. */

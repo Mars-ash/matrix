@@ -59,15 +59,20 @@ class OcrService
             $mimeType = $optimized['mime'];
 
             $prompt = <<<PROMPT
-You are an expert manufacturing engineer specialized in parsing mechanical drawing BOMs, parts lists, and fabrication tables.
+You are an expert mechanical & tooling manufacturing engineer specialized in parsing engineering drawings, BOM tables, and parts lists (dies, molds, jigs, machining).
 Extract all rows from the table in this image into structured items.
+
 Each item must have:
-- "no": item number or sequence (e.g. "1", "2", "01")
-- "description": name of the part or component (e.g. "PUNCH PLATE", "STRIPPER", "GUIDE PIN", "S50C BLOCK")
-- "dimension": dimensions or thickness if available (e.g. "50 x 200 x 300", "DIA 25 x 120", or "")
-- "material": material type (e.g. "SKD11", "S50C", "SS400", "DC53", or "")
+- "no": item number or sequence (e.g. "1", "01", "S1", "10A")
+- "description": name of the part or component (e.g. "PUNCH PLATE", "STRIPPER BOLT", "GUIDE PIN", "PIN DOWEL", "DIE BLOCK")
+- "dimension": exact dimensions or size callouts. CRITICAL RULES FOR TECHNICAL SYMBOLS:
+  * ALWAYS preserve the diameter symbol 'Ø' accurately (e.g., "Ø30 x 58", "Ø25 x 120", "Ø16 - 80L").
+  * Do NOT confuse the diameter symbol 'Ø' with letter 'O' or digit '0'.
+  * Convert any AutoCAD text codes like "%%C" or "%%c" to "Ø".
+  * Preserve thread callouts (e.g. "M8 x 35", "M12 x 1.75"), plate thickness ("T=25", "PL 50"), and tolerances (e.g. "g6", "H7", "±0.05").
+- "material": material grade (e.g. "SKD11", "S50C", "SS400", "DC53", "SCM440", "SUS304", or "STD" for standard purchased parts)
 - "qty": integer quantity (default 1 if not specified)
-- "hrc": hardness specification (e.g. "58-60", "HRC 60", or "-")
+- "hrc": hardness specification (e.g. "58-60", "HRC 60", "35-40", or "-" if not applicable)
 
 Return ONLY valid JSON array with the exact schema.
 PROMPT;
@@ -88,9 +93,6 @@ PROMPT;
                 ],
                 'generationConfig' => [
                     'response_mime_type' => 'application/json',
-                    'thinking_config' => [
-                        'thinking_level' => 'minimal',
-                    ],
                     'response_schema' => [
                         'type' => 'ARRAY',
                         'items' => [
@@ -111,12 +113,11 @@ PROMPT;
 
             $modelsToTry = array_values(array_unique([
                 $this->model,
+                'gemini-flash-lite-latest',
+                'gemini-3.5-flash-lite',
+                'gemini-flash-latest',
                 'gemini-3.7-flash',
                 'gemini-3.8-flash',
-                'gemini-3.5-flash-lite',
-                'gemini-3.1-flash-lite',
-                'gemini-2.5-flash-lite',
-                'gemini-flash-latest',
             ]));
 
             $response = null;
@@ -163,7 +164,7 @@ PROMPT;
                     try {
                         $res = Http::withHeaders([
                             'x-goog-api-key' => $currentApiKey,
-                        ])->timeout(45)->connectTimeout(10)->post($endpoint, $payload);
+                        ])->timeout(20)->connectTimeout(5)->post($endpoint, $payload);
 
                         if ($res->successful()) {
                             $response = $res;
@@ -210,10 +211,15 @@ PROMPT;
             }
 
             $sanitized = array_map(function ($item, $index) {
+                $dim = (string) ($item['dimension'] ?? '');
+                // Normalize AutoCAD and alternate unicode diameter symbols to standard Ø
+                $dim = preg_replace('/%%[cC]/', 'Ø', $dim);
+                $dim = str_replace(["\u{2300}", "\u{2349}", "\u{00F8}"], 'Ø', $dim);
+
                 return [
                     'no' => (string) ($item['no'] ?? ($index + 1)),
                     'description' => (string) ($item['description'] ?? "Item " . ($index + 1)),
-                    'dimension' => (string) ($item['dimension'] ?? ''),
+                    'dimension' => trim($dim),
                     'material' => (string) ($item['material'] ?? ''),
                     'qty' => max(1, (int) ($item['qty'] ?? 1)),
                     'hrc' => (string) ($item['hrc'] ?? '-'),

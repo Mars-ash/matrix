@@ -590,7 +590,9 @@ export const api = {
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.message || "OCR extraction failed");
+      const firstErr = err.errors ? Object.values(err.errors).flat()[0] : null;
+      const statusText = res.status === 413 ? "Ukuran file terlalu besar (maksimal 15MB)." : null;
+      throw new Error((firstErr as string) || err.message || statusText || `OCR extraction failed (HTTP ${res.status})`);
     }
 
     return res.json();

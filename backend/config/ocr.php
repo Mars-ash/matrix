@@ -5,6 +5,12 @@ $keys = [];
 if ($singleKey = env('GEMINI_API_KEY')) {
     $keys[] = trim($singleKey);
 }
+if ($b1 = env('GEMINI_API_KEY_BACKUP_1')) {
+    $keys[] = trim($b1);
+}
+if ($b2 = env('GEMINI_API_KEY_BACKUP_2')) {
+    $keys[] = trim($b2);
+}
 if ($keysStr = env('GEMINI_API_KEYS')) {
     $keys = array_merge($keys, array_map('trim', explode(',', $keysStr)));
 }
@@ -21,6 +27,6 @@ return [
     */
     'gemini_api_key' => env('GEMINI_API_KEY', $apiKeys[0] ?? ''),
     'api_keys' => $apiKeys,
-    'model' => env('GEMINI_OCR_MODEL', 'gemini-3.7-flash'),
+    'model' => env('GEMINI_OCR_MODEL', 'gemini-flash-lite-latest'),
     'base_url' => env('GEMINI_API_BASE_URL', 'https://generativelanguage.googleapis.com/v1beta'),
 ];

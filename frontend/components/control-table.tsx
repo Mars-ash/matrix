@@ -1,5 +1,5 @@
 "use client";
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect, useState, useMemo } from "react";
 import type { Category } from "@/lib/types";
 import { PART_PROCESSES, COMPONENT_PROCESSES } from "@/lib/types";
 import { useAppDispatch } from "@/lib/store";
@@ -32,6 +32,8 @@ interface ControlTableProps {
   onEditItem?: (item: Category["items"][number]) => void;
   onDeleteItem?: (item: Category["items"][number]) => void;
   defaultMobileView?: "list" | "table";
+  sortMode?: "default" | "newest" | "oldest";
+  onSortModeChange?: (mode: "default" | "newest" | "oldest") => void;
 }
 
 export function ControlTable({
@@ -48,6 +50,8 @@ export function ControlTable({
   onEditItem,
   onDeleteItem,
   defaultMobileView = "list",
+  sortMode: externalSortMode,
+  onSortModeChange,
 }: ControlTableProps) {
   const dispatch = useAppDispatch();
   const { isController } = useAuth();
@@ -55,6 +59,47 @@ export function ControlTable({
 
   const [isMobile, setIsMobile] = useState(false);
   const [mobileView, setMobileView] = useState<"list" | "table">(defaultMobileView);
+  const [internalSortMode, setInternalSortMode] = useState<"default" | "newest" | "oldest">("default");
+  const sortMode = externalSortMode ?? internalSortMode;
+
+  const cycleSortMode = () => {
+    const nextMode =
+      sortMode === "default" ? "newest" : sortMode === "newest" ? "oldest" : "default";
+    if (onSortModeChange) {
+      onSortModeChange(nextMode);
+    } else {
+      setInternalSortMode(nextMode);
+    }
+  };
+
+  const sortedItems = useMemo(() => {
+    if (sortMode === "default") {
+      return category.items;
+    }
+
+    const itemsWithIndex = category.items.map((item, index) => ({ item, index }));
+
+    itemsWithIndex.sort((a, b) => {
+      const hasTimeA = typeof a.item.createdAt === "string" && !isNaN(new Date(a.item.createdAt).getTime());
+      const hasTimeB = typeof b.item.createdAt === "string" && !isNaN(new Date(b.item.createdAt).getTime());
+
+      if (hasTimeA && hasTimeB) {
+        const timeA = new Date(a.item.createdAt!).getTime();
+        const timeB = new Date(b.item.createdAt!).getTime();
+        if (timeA !== timeB) {
+          return sortMode === "newest" ? timeB - timeA : timeA - timeB;
+        }
+      } else if (hasTimeA && !hasTimeB) {
+        return sortMode === "newest" ? -1 : 1;
+      } else if (!hasTimeA && hasTimeB) {
+        return sortMode === "newest" ? 1 : -1;
+      }
+
+      return sortMode === "newest" ? b.index - a.index : a.index - b.index;
+    });
+
+    return itemsWithIndex.map((entry) => entry.item);
+  }, [category.items, sortMode]);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -99,10 +144,157 @@ export function ControlTable({
       <div
         style={{
           display: "flex",
-          justifyContent: "flex-end",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: 8,
+          flexWrap: "wrap",
           marginBottom: 8,
         }}
       >
+        {/* Sort cycle button: default -> paling terbaru -> terlama -> default */}
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <button
+            type="button"
+            className="btn-icon"
+            onClick={cycleSortMode}
+            title={
+              sortMode === "default"
+                ? "Urutan: Default (Klik untuk urutkan Paling Terbaru)"
+                : sortMode === "newest"
+                  ? "Urutan: Paling Terbaru (Klik untuk urutkan Terlama)"
+                  : "Urutan: Terlama (Klik untuk kembali ke Default)"
+            }
+            aria-label={
+              sortMode === "default"
+                ? "Urutan Default"
+                : sortMode === "newest"
+                  ? "Urutan Paling Terbaru"
+                  : "Urutan Terlama"
+            }
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: 26,
+              height: 26,
+              borderRadius: "var(--radius-sm)",
+              background: sortMode !== "default" ? "var(--color-bg-hover)" : "transparent",
+              border:
+                sortMode !== "default"
+                  ? "1px solid var(--color-accent)"
+                  : "1px solid var(--color-border-subtle)",
+              color:
+                sortMode !== "default"
+                  ? "var(--color-accent)"
+                  : "var(--color-text-secondary)",
+              cursor: "pointer",
+              transition: "all 120ms ease",
+            }}
+            onMouseEnter={(e) => {
+              if (sortMode === "default") {
+                e.currentTarget.style.borderColor = "var(--color-accent)";
+                e.currentTarget.style.color = "var(--color-accent)";
+                e.currentTarget.style.background = "var(--color-bg-hover)";
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (sortMode === "default") {
+                e.currentTarget.style.borderColor = "var(--color-border-subtle)";
+                e.currentTarget.style.color = "var(--color-text-secondary)";
+                e.currentTarget.style.background = "transparent";
+              }
+            }}
+          >
+            {sortMode === "default" && (
+              <svg
+                width="13"
+                height="13"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="m21 16-4 4-4-4" />
+                <path d="M17 20V4" />
+                <path d="m3 8 4-4 4 4" />
+                <path d="M7 4v16" />
+              </svg>
+            )}
+            {sortMode === "newest" && (
+              <svg
+                width="13"
+                height="13"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="m3 16 4 4 4-4" />
+                <path d="M7 20V4" />
+                <path d="M11 4h10" />
+                <path d="M11 8h7" />
+                <path d="M11 12h4" />
+              </svg>
+            )}
+            {sortMode === "oldest" && (
+              <svg
+                width="13"
+                height="13"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="m3 8 4-4 4 4" />
+                <path d="M7 4v16" />
+                <path d="M11 12h4" />
+                <path d="M11 8h7" />
+                <path d="M11 4h10" />
+              </svg>
+            )}
+          </button>
+
+          <span
+            onClick={cycleSortMode}
+            style={{
+              fontSize: 11,
+              fontWeight: sortMode !== "default" ? 600 : 500,
+              color:
+                sortMode !== "default"
+                  ? "var(--color-accent)"
+                  : "var(--color-text-muted)",
+              background:
+                sortMode !== "default"
+                  ? "color-mix(in srgb, var(--color-accent) 12%, transparent)"
+                  : "transparent",
+              padding: sortMode !== "default" ? "2px 7px" : "2px 4px",
+              borderRadius: "var(--radius-sm)",
+              cursor: "pointer",
+              userSelect: "none",
+              transition: "all 120ms ease",
+            }}
+            title={
+              sortMode === "default"
+                ? "Klik untuk urutkan Paling Terbaru"
+                : sortMode === "newest"
+                  ? "Klik untuk urutkan Terlama"
+                  : "Klik untuk kembali ke Urutan Default"
+            }
+          >
+            {sortMode === "default"
+              ? "Urutkan: Default"
+              : sortMode === "newest"
+                ? "Paling Terbaru"
+                : "Terlama"}
+          </span>
+        </div>
+
         <div className="mobile-view-toggle">
           <button
             type="button"
@@ -123,7 +315,7 @@ export function ControlTable({
 
       {isMobile && mobileView === "list" ? (
         <MobileItemList
-          category={category}
+          category={{ ...category, items: sortedItems }}
           projectId={projectId}
           joId={joId}
           highlightedItemId={highlightedItemId}
@@ -189,7 +381,7 @@ export function ControlTable({
             </tr>
           </thead>
           <tbody>
-            {category.items.map((item) => {
+            {sortedItems.map((item) => {
               const isSelected = selectedItemIds.includes(item.id);
 
               return (

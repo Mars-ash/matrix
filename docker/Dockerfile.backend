@@ -28,6 +28,7 @@ RUN apk add --no-cache \
 # Configure Nginx & Supervisor
 COPY docker/nginx.conf /etc/nginx/http.d/default.conf
 COPY docker/supervisord.conf /etc/supervisord.conf
+COPY docker/uploads.ini /usr/local/etc/php/conf.d/uploads.ini
 
 # Copy application source
 COPY backend/ /var/www/html/

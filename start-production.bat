@@ -8,7 +8,7 @@ echo ====================================================
 echo.
 
 :: 1. Pindah ke direktori project
-cd /d C:\laragon\www\matrix
+cd /d "%~dp0"
 
 :: 2. Cek apakah Docker Desktop sudah jalan
 echo [1/3] Memeriksa Docker Desktop...

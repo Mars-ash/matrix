@@ -119,7 +119,6 @@ export function AddDataDialog({
   const [convRows, setConvRows] = useState<ExtractedRow[]>([]);
   const [stagedFile, setStagedFile] = useState<File | null>(null);
   const [stagedPreviewUrl, setStagedPreviewUrl] = useState<string | null>(null);
-  const [hasConsent, setHasConsent] = useState(false);
   const [isExtracting, setIsExtracting] = useState(false);
   const [extractionNotice, setExtractionNotice] = useState("");
   const [isConfirming, setIsConfirming] = useState(false);
@@ -135,7 +134,6 @@ export function AddDataDialog({
     }
     setStagedFile(null);
     setStagedPreviewUrl(null);
-    setHasConsent(false);
     setIsExtracting(false);
     setExtractionNotice("");
     setIsConfirming(false);
@@ -187,7 +185,6 @@ export function AddDataDialog({
       }
       setStagedFile(file);
       setStagedPreviewUrl(URL.createObjectURL(file));
-      setHasConsent(false);
       setExtractionNotice("");
     },
     [stagedPreviewUrl]
@@ -195,7 +192,7 @@ export function AddDataDialog({
 
   // Explicit action triggered by user clicking "Kirim & Ekstrak Gambar"
   const handleExecuteExtraction = useCallback(async () => {
-    if (!stagedFile || !hasConsent) return;
+    if (!stagedFile) return;
 
     setIsExtracting(true);
     setExtractionNotice("");
@@ -228,7 +225,7 @@ export function AddDataDialog({
       setIsExtracting(false);
       setConvStep("preview");
     }
-  }, [categoryId, stagedFile, hasConsent]);
+  }, [categoryId, stagedFile]);
 
   const handleConversionConfirm = useCallback(() => {
     if (isConfirming) return;
@@ -410,7 +407,7 @@ export function AddDataDialog({
                 }}
               />
               <p style={{ fontWeight: 600, fontSize: 14, margin: 0 }}>
-                Mengekstrak Data Komponen via OCR Vision AI...
+                Mengekstrak data...
               </p>
               <p style={{ fontSize: 12, color: "var(--color-text-muted)", marginTop: 6 }}>
                 Harap tunggu, proses ini membutuhkan waktu beberapa detik.
@@ -460,42 +457,6 @@ export function AddDataDialog({
                 </div>
               </div>
 
-              {/* Informational consent box */}
-              <div
-                style={{
-                  padding: "10px 12px",
-                  background: "var(--color-bg-card)",
-                  border: "1px solid var(--color-border)",
-                  borderRadius: "var(--radius-md)",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 8,
-                }}
-              >
-                <div style={{ fontSize: 11, color: "var(--color-text-muted)", lineHeight: 1.4 }}>
-                  Gambar akan dikirim ke backend server MATRIX untuk dianalisis oleh OCR Vision AI. File tidak dipublikasikan ke publik.
-                </div>
-                <label
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    fontSize: 12,
-                    fontWeight: 600,
-                    color: "var(--color-text)",
-                    cursor: "pointer",
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={hasConsent}
-                    onChange={(e) => setHasConsent(e.target.checked)}
-                    style={{ cursor: "pointer", width: 15, height: 15 }}
-                  />
-                  <span>Saya menyetujui pengiriman gambar ini untuk ekstraksi OCR</span>
-                </label>
-              </div>
-
               <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 4 }}>
                 <button
                   type="button"
@@ -511,7 +472,7 @@ export function AddDataDialog({
                 <button
                   type="button"
                   className="btn btn-primary btn-sm"
-                  disabled={!hasConsent || isExtracting}
+                  disabled={isExtracting}
                   onClick={handleExecuteExtraction}
                 >
                   Kirim & Ekstrak Gambar

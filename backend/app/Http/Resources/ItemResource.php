@@ -26,6 +26,8 @@ class ItemResource extends JsonResource
             'subcontDispatchDate' => $this->subcont_dispatch_date?->toISOString(),
             'subcontDoneAt' => $this->subcont_done_at?->toISOString(),
             'arrivalTargetDate' => $this->arrival_target_date?->format('Y-m-d'),
+            'createdAt' => $this->created_at?->toISOString(),
+            'updatedAt' => $this->updated_at?->toISOString(),
             'controls' => ControlResource::collection($this->whenLoaded('controls')),
         ];
     }
