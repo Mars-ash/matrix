@@ -78,6 +78,9 @@ backend/Homestead.yaml
 scripts/testing/*-results.json
 .vite/
 results.json
+docs/
+AGENTS/
+How to/
 
 # IDE & Tooling
 .vscode/*
