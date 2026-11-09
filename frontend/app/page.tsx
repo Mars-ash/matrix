@@ -105,7 +105,7 @@ export default function DashboardPage() {
       {/* Header row */}
       <div className="dashboard-header">
         <div>
-          <h1>Project Controlling</h1>
+          <h1>PROJECT CONTROL</h1>
           <p
             style={{
               fontSize: 12,

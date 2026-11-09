@@ -10,7 +10,7 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "MATRIX — Project Controlling",
+  title: "MATRIX",
   description: "Project Controlling System for Die/Tooling Manufacturing",
 };
 

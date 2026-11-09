@@ -445,7 +445,6 @@ export function AppShell({ children, breadcrumbs }: AppShellProps) {
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
           <Link href="/" className="header-brand">
             <span className="header-brand-title">MATRIX</span>
-            <span className="header-brand-subtitle">PROJECT CONTROL</span>
           </Link>
 
           <nav style={{ display: "flex", gap: 12 }}>
