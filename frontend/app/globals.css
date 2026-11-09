@@ -807,6 +807,27 @@ input.no-spinner,
   color: var(--color-text);
 }
 
+.problem-note-indicator {
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  color: var(--color-status-problem);
+  background: none;
+  border: none;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 2px 4px;
+  font-size: 11px;
+  line-height: 1;
+  transition: background 80ms, color 80ms;
+  display: inline-flex;
+}
+
+.problem-note-indicator:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-status-problem);
+}
+
 .photo-count {
   background: var(--color-accent);
   color: #fff;

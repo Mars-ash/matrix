@@ -18,6 +18,7 @@ class ProjectController extends Controller
             'jos.categories.items.controls.poTracking',
             'jos.categories.items.controls.photos',
             'jos.trialSessions.findings.entries.photos',
+            'jos.activities',
         ])->oldest()->get();
 
         return ProjectResource::collection($projects);
@@ -49,6 +50,7 @@ class ProjectController extends Controller
             'jos.categories.items.controls.poTracking',
             'jos.categories.items.controls.photos',
             'jos.trialSessions.findings.entries.photos',
+            'jos.activities',
         ]));
     }
 

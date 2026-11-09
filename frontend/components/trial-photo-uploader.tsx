@@ -62,7 +62,8 @@ export function TrialPhotoUploader({
   onRemovePhoto,
 }: TrialPhotoUploaderProps) {
   const { isController } = useAuth();
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
   const [deletePhotoTarget, setDeletePhotoTarget] = useState<TrialEntryPhoto | null>(null);
 
   const handleFileAdd = useCallback(
@@ -82,7 +83,8 @@ export function TrialPhotoUploader({
           );
         }
       }
-      if (fileInputRef.current) fileInputRef.current.value = "";
+      if (cameraInputRef.current) cameraInputRef.current.value = "";
+      if (galleryInputRef.current) galleryInputRef.current.value = "";
     },
     [onAddPhoto]
   );
@@ -90,17 +92,67 @@ export function TrialPhotoUploader({
   return (
     <div className="trial-photo-uploader">
       {isController && (
-        <label className="trial-photo-upload-btn">
+        <div style={{ display: "inline-flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
           <input
-            ref={fileInputRef}
+            ref={cameraInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            style={{ display: "none" }}
+            onChange={(e) => handleFileAdd(e.target.files)}
+          />
+          <input
+            ref={galleryInputRef}
             type="file"
             accept="image/*"
             multiple
             style={{ display: "none" }}
             onChange={(e) => handleFileAdd(e.target.files)}
           />
-          📷 Tambah Foto
-        </label>
+          <button
+            type="button"
+            className="trial-photo-upload-btn"
+            onClick={() => cameraInputRef.current?.click()}
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+              <circle cx="12" cy="13" r="3" />
+            </svg>
+            <span>Ambil Foto</span>
+          </button>
+          <button
+            type="button"
+            className="trial-photo-upload-btn"
+            onClick={() => galleryInputRef.current?.click()}
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+              <circle cx="8.5" cy="8.5" r="1.5" />
+              <polyline points="21 15 16 10 5 21" />
+            </svg>
+            <span>Pilih Galeri</span>
+          </button>
+        </div>
       )}
       {photos.length > 0 && (
         <div className="trial-photo-grid">

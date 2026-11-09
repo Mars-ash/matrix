@@ -75,7 +75,8 @@ export function ProcessPhotoDialog({
 }: ProcessPhotoDialogProps) {
   const dispatch = useAppDispatch();
   const { isController } = useAuth();
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
   const [deletePhotoTarget, setDeletePhotoTarget] = useState<ProcessPhoto | null>(null);
   const [previewPhoto, setPreviewPhoto] = useState<ProcessPhoto | null>(null);
 
@@ -101,8 +102,9 @@ export function ProcessPhotoDialog({
           file,
         });
       }
-      // Reset input
-      if (fileInputRef.current) fileInputRef.current.value = "";
+      // Reset inputs
+      if (cameraInputRef.current) cameraInputRef.current.value = "";
+      if (galleryInputRef.current) galleryInputRef.current.value = "";
     },
     [dispatch, projectId, joId, categoryId, itemId, control.process]
   );
@@ -138,32 +140,96 @@ export function ProcessPhotoDialog({
         }
       >
         {isController && (
-          <div style={{ marginBottom: 12 }}>
-            <label
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
+            <input
+              ref={cameraInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              style={{ display: "none" }}
+              onChange={(e) => handleFileAdd(e.target.files)}
+            />
+            <input
+              ref={galleryInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              style={{ display: "none" }}
+              onChange={(e) => handleFileAdd(e.target.files)}
+            />
+
+            <button
+              type="button"
+              onClick={() => cameraInputRef.current?.click()}
+              className="btn btn-secondary"
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: 8,
-                padding: "10px 14px",
+                justifyContent: "center",
+                gap: 6,
+                padding: "9px 12px",
+                fontSize: 12,
+                fontWeight: 600,
                 border: "1px dashed var(--color-border)",
                 borderRadius: "var(--radius-md)",
                 cursor: "pointer",
-                fontSize: 12,
-                fontWeight: 500,
-                color: "var(--color-text-secondary)",
-                transition: "border-color 100ms",
+                background: "var(--color-bg-wash)",
+                color: "var(--color-text)",
               }}
             >
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                multiple
-                style={{ display: "none" }}
-                onChange={(e) => handleFileAdd(e.target.files)}
-              />
-              📷 Add Photo
-            </label>
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+                <circle cx="12" cy="13" r="3" />
+              </svg>
+              <span>Ambil Foto</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => galleryInputRef.current?.click()}
+              className="btn btn-secondary"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 6,
+                padding: "9px 12px",
+                fontSize: 12,
+                fontWeight: 600,
+                border: "1px dashed var(--color-border)",
+                borderRadius: "var(--radius-md)",
+                cursor: "pointer",
+                background: "var(--color-bg-wash)",
+                color: "var(--color-text)",
+              }}
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                <circle cx="8.5" cy="8.5" r="1.5" />
+                <polyline points="21 15 16 10 5 21" />
+              </svg>
+              <span>Pilih Galeri</span>
+            </button>
           </div>
         )}
 
