@@ -318,21 +318,6 @@ export function TrialReportEditor({
           )}
         </div>
         <div>
-          <label className="label">Update</label>
-          {isViewer ? (
-            <div style={{ fontSize: 13, fontWeight: 500, padding: "6px 0", color: "var(--color-text)" }}>
-              {session.updateDate || "—"}
-            </div>
-          ) : (
-            <input
-              className="input"
-              type="date"
-              value={session.updateDate}
-              onChange={(e) => updateSession({ updateDate: e.target.value })}
-            />
-          )}
-        </div>
-        <div>
           <label className="label">Customer</label>
           {isViewer ? (
             <div style={{ fontSize: 13, fontWeight: 500, padding: "6px 0", color: "var(--color-text)" }}>
@@ -348,7 +333,7 @@ export function TrialReportEditor({
           )}
         </div>
         <div>
-          <label className="label">Job No.</label>
+          <label className="label">J.O. No.</label>
           {isViewer ? (
             <div style={{ fontSize: 13, fontWeight: 500, padding: "6px 0", color: "var(--color-text)" }}>
               {session.jobNo || "—"}

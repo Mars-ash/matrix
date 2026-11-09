@@ -127,4 +127,22 @@ describe("TrialReportEditor synchronization indicator", () => {
     expect(screen.queryByText("Temuan A")).toBeNull();
     expect(screen.queryByText("Temuan B")).toBeNull();
   });
+
+  it("renders J.O. No. label and does not render Update date field in header", () => {
+    render(
+      <TrialReportEditor
+        projectId="p-1"
+        joId="jo-1"
+        session={sampleSession}
+      />
+    );
+
+    expect(screen.getByText("J.O. No.")).toBeDefined();
+    expect(screen.queryByText("Job No.")).toBeNull();
+    // Update button exists in the sync bar, but the header field label 'Update' is removed
+    const labels = screen.queryAllByText((content, element) => {
+      return element?.tagName.toLowerCase() === "label" && content.trim() === "Update";
+    });
+    expect(labels.length).toBe(0);
+  });
 });

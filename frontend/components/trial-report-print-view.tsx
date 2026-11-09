@@ -84,7 +84,7 @@ export function TrialReportPrintView({
                       <td className="trial-print-meta-value">{session.customer}</td>
                     </tr>
                     <tr>
-                      <td className="trial-print-meta-label">Job . No.</td>
+                      <td className="trial-print-meta-label">J.O. No.</td>
                       <td className="trial-print-meta-value">{session.jobNo}</td>
                     </tr>
                     <tr>

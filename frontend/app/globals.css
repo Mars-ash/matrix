@@ -2068,18 +2068,18 @@ input.no-spinner,
 }
 
 .trial-print-logo {
-  height: 52px;
-  max-height: 56px;
+  height: 44px;
+  max-height: 48px;
   width: auto;
   object-fit: contain;
   flex-shrink: 0;
 }
 
 .trial-print-title {
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 800;
   margin: 0;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.02em;
   line-height: 1.2;
   white-space: nowrap;
 }
@@ -2092,7 +2092,7 @@ input.no-spinner,
 
 .trial-print-header-meta {
   flex-shrink: 0;
-  width: 180px;
+  width: 230px;
 }
 
 .trial-print-header-meta-table {
@@ -2110,21 +2110,22 @@ input.no-spinner,
 }
 
 .trial-print-header-meta-table .trial-print-meta-label {
-  width: 70px;
+  width: 65px;
   font-weight: 600;
   background: #f0f0f0;
   white-space: nowrap;
 }
 
 .trial-print-header-meta-table .trial-print-meta-value {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  line-height: 1.25;
 }
 
 .trial-print-header-signatures {
   flex-shrink: 0;
-  width: 200px;
+  width: 170px;
 }
 
 .trial-print-sig-table {
@@ -2637,7 +2638,7 @@ input.no-spinner,
 
   .trial-print-header-meta {
     flex-shrink: 0 !important;
-    width: 180px !important;
+    width: 230px !important;
     display: block !important;
   }
 
@@ -2653,7 +2654,7 @@ input.no-spinner,
 
   .trial-print-header-signatures {
     flex-shrink: 0 !important;
-    width: 200px !important;
+    width: 170px !important;
     display: block !important;
   }
 

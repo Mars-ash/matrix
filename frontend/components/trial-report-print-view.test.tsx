@@ -48,4 +48,22 @@ describe("TrialReportPrintView Logo & Subcont Suppliers", () => {
   it("includes IDM COATING in SUBCONT_SUPPLIERS", () => {
     expect(SUBCONT_SUPPLIERS).toContain("IDM COATING");
   });
+
+  it("renders full customer name without truncation for long names", () => {
+    const longCustomerSession: TrialSession = {
+      ...mockSession,
+      customer: "PT TOYOTA BOSHOKU INDONESIA SUKABUMI",
+    };
+
+    render(
+      <TrialReportPrintView
+        sessions={[longCustomerSession]}
+        company="BMI"
+      />
+    );
+
+    const customerCell = screen.getByText("PT TOYOTA BOSHOKU INDONESIA SUKABUMI");
+    expect(customerCell).toBeInTheDocument();
+    expect(customerCell).toHaveClass("trial-print-meta-value");
+  });
 });
