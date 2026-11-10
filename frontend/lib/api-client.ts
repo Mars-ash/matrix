@@ -12,15 +12,73 @@ import type {
   Partner,
   PartnerType,
   PartnerStatus,
+  TrialSession,
+  TrialSessionSnapshot,
+  TrialFinding,
+  TrialEntryPhoto,
 } from "./types";
 import { API_BASE_URL } from "./config";
 import { getAuthToken, clearAuthStorage } from "./auth-storage";
 
+export interface PoTrackerApiResponse {
+  id: string;
+  itemId: string;
+  itemNo: string;
+  itemDescription: string;
+  itemDimension: string;
+  itemMaterial: string;
+  itemQty: number;
+  itemHrc: string;
+  joId: string;
+  joNumber: string;
+  joProduct: string;
+  joType: JoType;
+  projectId: string;
+  projectName: string;
+  projectCustomer: string;
+  supplier?: string;
+  poNo?: string;
+  poDate?: string;
+  targetArrival?: string;
+  status: ControlStatus;
+  notes?: string;
+}
+
+export interface SubcontTrackerApiResponse {
+  id: string;
+  itemNo: string;
+  itemDescription: string;
+  itemDimension: string;
+  itemMaterial: string;
+  itemQty: number;
+  joId: string;
+  joNumber: string;
+  joProduct: string;
+  joType: JoType;
+  projectId: string;
+  projectName: string;
+  projectCustomer: string;
+  subcontSupplier?: string;
+  subcontProcess?: string;
+  subcontStatus?: string;
+  arrivalTargetDate?: string;
+  subcontNotes?: string;
+}
+
+export interface OcrExtractedItem {
+  no: string;
+  description: string;
+  dimension: string;
+  material: string;
+  qty: number;
+  hrc: string;
+}
+
 class ApiError extends Error {
   status: number;
-  data: any;
+  data: unknown;
 
-  constructor(message: string, status: number, data?: any) {
+  constructor(message: string, status: number, data?: unknown) {
     super(message);
     this.name = "ApiError";
     this.status = status;
@@ -381,21 +439,21 @@ export const api = {
   },
 
   // Trackers
-  async getSubcontTracker(): Promise<{ data: any[] }> {
-    return request<{ data: any[] }>("/trackers/subcont");
+  async getSubcontTracker(): Promise<{ data: SubcontTrackerApiResponse[] }> {
+    return request<{ data: SubcontTrackerApiResponse[] }>("/trackers/subcont");
   },
 
-  async getPoTracker(): Promise<{ data: any[] }> {
-    return request<{ data: any[] }>("/trackers/po");
+  async getPoTracker(): Promise<{ data: PoTrackerApiResponse[] }> {
+    return request<{ data: PoTrackerApiResponse[] }>("/trackers/po");
   },
 
   // Trial Sessions
-  async getTrialSessions(joId: string): Promise<{ data: any[] }> {
-    return request<{ data: any[] }>(`/jos/${joId}/trial-sessions`);
+  async getTrialSessions(joId: string): Promise<{ data: TrialSession[] }> {
+    return request<{ data: TrialSession[] }>(`/jos/${joId}/trial-sessions`);
   },
 
-  async getTrialSession(sessionId: string): Promise<{ data: any }> {
-    return request<{ data: any }>(`/trial-sessions/${sessionId}`);
+  async getTrialSession(sessionId: string): Promise<{ data: TrialSession }> {
+    return request<{ data: TrialSession }>(`/trial-sessions/${sessionId}`);
   },
 
   async createTrialSession(
@@ -410,8 +468,8 @@ export const api = {
       picName?: string;
       approvedByName?: string;
     }
-  ): Promise<{ data: any; message: string }> {
-    return request<{ data: any; message: string }>(`/jos/${joId}/trial-sessions`, {
+  ): Promise<{ data: TrialSession; message: string }> {
+    return request<{ data: TrialSession; message: string }>(`/jos/${joId}/trial-sessions`, {
       method: "POST",
       body: JSON.stringify(payload),
     });
@@ -419,16 +477,16 @@ export const api = {
 
   async updateTrialSession(
     sessionId: string,
-    payload: Record<string, any>
-  ): Promise<{ data: any; message: string }> {
-    return request<{ data: any; message: string }>(`/trial-sessions/${sessionId}`, {
+    payload: Partial<Omit<TrialSession, "id" | "joId" | "findings" | "createdAt">>
+  ): Promise<{ data: TrialSession; message: string }> {
+    return request<{ data: TrialSession; message: string }>(`/trial-sessions/${sessionId}`, {
       method: "PATCH",
       body: JSON.stringify(payload),
     });
   },
 
-  async publishTrialSession(sessionId: string, snapshot?: any): Promise<{ data: any; message: string }> {
-    return request<{ data: any; message: string }>(`/trial-sessions/${sessionId}/publish`, {
+  async publishTrialSession(sessionId: string, snapshot?: TrialSessionSnapshot): Promise<{ data: TrialSession; message: string }> {
+    return request<{ data: TrialSession; message: string }>(`/trial-sessions/${sessionId}/publish`, {
       method: "POST",
       body: JSON.stringify(snapshot ? { snapshot } : {}),
     });
@@ -437,8 +495,8 @@ export const api = {
   async duplicateTrialSession(
     sessionId: string,
     name?: string
-  ): Promise<{ data: any; message: string }> {
-    return request<{ data: any; message: string }>(`/trial-sessions/${sessionId}/duplicate`, {
+  ): Promise<{ data: TrialSession; message: string }> {
+    return request<{ data: TrialSession; message: string }>(`/trial-sessions/${sessionId}/duplicate`, {
       method: "POST",
       body: JSON.stringify({ name }),
     });
@@ -450,15 +508,15 @@ export const api = {
     });
   },
 
-  async addTrialFinding(sessionId: string, payload?: { id?: string }): Promise<{ data: any; message: string }> {
-    return request<{ data: any; message: string }>(`/trial-sessions/${sessionId}/findings`, {
+  async addTrialFinding(sessionId: string, payload?: { id?: string }): Promise<{ data: TrialSession; message: string }> {
+    return request<{ data: TrialSession; message: string }>(`/trial-sessions/${sessionId}/findings`, {
       method: "POST",
       body: payload ? JSON.stringify(payload) : undefined,
     });
   },
 
-  async deleteTrialFinding(findingId: string): Promise<{ data: any; message: string }> {
-    return request<{ data: any; message: string }>(`/trial-findings/${findingId}`, {
+  async deleteTrialFinding(findingId: string): Promise<{ data: TrialSession; message: string }> {
+    return request<{ data: TrialSession; message: string }>(`/trial-findings/${findingId}`, {
       method: "DELETE",
     });
   },
@@ -473,8 +531,8 @@ export const api = {
       pic?: string;
       status?: string;
     }
-  ): Promise<{ data: any; message: string }> {
-    return request<{ data: any; message: string }>(`/trial-findings/${findingId}/entries`, {
+  ): Promise<{ data: TrialSession; message: string }> {
+    return request<{ data: TrialSession; message: string }>(`/trial-findings/${findingId}/entries`, {
       method: "POST",
       body: JSON.stringify(payload),
     });
@@ -488,15 +546,15 @@ export const api = {
       pic?: string;
       status?: string;
     }
-  ): Promise<{ data: any; message: string }> {
-    return request<{ data: any; message: string }>(`/trial-entries/${entryId}`, {
+  ): Promise<{ data: TrialSession; message: string }> {
+    return request<{ data: TrialSession; message: string }>(`/trial-entries/${entryId}`, {
       method: "PATCH",
       body: JSON.stringify(payload),
     });
   },
 
-  async deleteTrialEntry(entryId: string): Promise<{ data: any; message: string }> {
-    return request<{ data: any; message: string }>(`/trial-entries/${entryId}`, {
+  async deleteTrialEntry(entryId: string): Promise<{ data: TrialSession; message: string }> {
+    return request<{ data: TrialSession; message: string }>(`/trial-entries/${entryId}`, {
       method: "DELETE",
     });
   },
@@ -504,7 +562,7 @@ export const api = {
   async uploadTrialPhoto(
     entryId: string,
     file: File
-  ): Promise<{ data: any; session: any; message: string }> {
+  ): Promise<{ data: TrialEntryPhoto; session: TrialSession; message: string }> {
     const formData = new FormData();
     formData.append("photo", file);
 
@@ -526,8 +584,8 @@ export const api = {
     return res.json();
   },
 
-  async deleteTrialPhoto(photoId: string): Promise<{ data: any; message: string }> {
-    return request<{ data: any; message: string }>(`/trial-entry-photos/${photoId}`, {
+  async deleteTrialPhoto(photoId: string): Promise<{ data: TrialSession; message: string }> {
+    return request<{ data: TrialSession; message: string }>(`/trial-entry-photos/${photoId}`, {
       method: "DELETE",
     });
   },
@@ -571,7 +629,7 @@ export const api = {
     categoryId: string,
     file: File,
     consent: boolean = true
-  ): Promise<{ success: boolean; provider: string; items: any[]; message: string }> {
+  ): Promise<{ success: boolean; provider: string; items: OcrExtractedItem[]; message: string }> {
     const formData = new FormData();
     formData.append("image", file);
     formData.append("consent", consent ? "1" : "0");
